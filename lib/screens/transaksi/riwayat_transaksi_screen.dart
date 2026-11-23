@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../database/database_helper.dart';
+import '../../models/transaksi.dart';
 import '../../providers/kas_santri_provider.dart';
 import '../../utils/currency_formatter.dart';
-import '../../utils/date_formatter.dart';
+import '../../utils/time_category_helper.dart';
 
 class RiwayatTransaksiScreen extends StatefulWidget {
   const RiwayatTransaksiScreen({Key? key}) : super(key: key);
@@ -13,8 +14,9 @@ class RiwayatTransaksiScreen extends StatefulWidget {
 }
 
 class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
-  String _filter = 'SEMUA';
-  List<Map<String, dynamic>> _list = [];
+  String _selectedSantriId = 'ALL';
+  String _selectedWaktu = 'ALL';
+  List<TransaksiHarian> _list = [];
   bool _isLoading = true;
 
   @override
@@ -25,70 +27,47 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
 
   Future<void> _fetch() async {
     setState(() => _isLoading = true);
-    final db = await DatabaseHelper.instance.database;
-
-    String query = '''
-      SELECT t.*, s.nama_lengkap, s.nama_panggilan, s.kamar
-      FROM transaksi_harian t
-      JOIN santri s ON t.santri_id = s.id
-    ''';
-
-    final now = DateTime.now();
-    List<dynamic> args = [];
-
-    if (_filter == 'HARI_INI') {
-      final today = DateFormatter.toLocalDateString(now);
-      query += ' WHERE t.tanggal_lokal = ?';
-      args.add(today);
-    } else if (_filter == 'KEMARIN') {
-      final yesterday = DateFormatter.toLocalDateString(now.subtract(const Duration(days: 1)));
-      query += ' WHERE t.tanggal_lokal = ?';
-      args.add(yesterday);
-    } else if (_filter == '7_HARI') {
-      final weekAgo = DateFormatter.toLocalDateString(now.subtract(const Duration(days: 7)));
-      final today = DateFormatter.toLocalDateString(now);
-      query += ' WHERE t.tanggal_lokal BETWEEN ? AND ?';
-      args.addAll([weekAgo, today]);
-    } else if (_filter == 'BULAN_INI') {
-      final first = DateFormatter.toLocalDateString(DateTime(now.year, now.month, 1));
-      final today = DateFormatter.toLocalDateString(now);
-      query += ' WHERE t.tanggal_lokal BETWEEN ? AND ?';
-      args.addAll([first, today]);
-    }
-
-    query += ' ORDER BY t.waktu_ambil DESC';
-
-    final res = await db.rawQuery(query, args);
-
+    final results = await DatabaseHelper.instance.getAllTransaksi(
+      santriId: _selectedSantriId,
+      kategoriWaktu: _selectedWaktu,
+    );
     if (mounted) {
       setState(() {
-        _list = res;
+        _list = results;
         _isLoading = false;
       });
     }
   }
 
-  void _confirmVoid(Map<String, dynamic> row) {
-    final txId = row['id'] as String;
-    final nominal = (row['nominal'] as num).toInt();
-    final nama = row['nama_lengkap'] as String;
-
+  void _confirmVoid(TransaksiHarian tx, String namaSantri) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Batalkan Transaksi Ini?'),
         content: Text(
-          'Transaksi $nama sebesar ${CurrencyFormatter.format(nominal)} akan dibatalkan dan saldo santri akan dikembalikan otomatis.',
+          'Transaksi $namaSantri sebesar ${CurrencyFormatter.format(tx.nominal)} akan dibatalkan dan saldo santri akan dikembalikan otomatis.',
+          style: const TextStyle(fontSize: 12.5),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Tutup')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Tutup', style: TextStyle(color: Colors.white70)),
+          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF43F5E)),
             onPressed: () async {
               final provider = Provider.of<KasSantriProvider>(context, listen: false);
-              await provider.voidTransaksi(txId);
-              Navigator.pop(ctx);
-              await _fetch();
+              await provider.voidTransaksi(tx.id);
+              if (mounted) {
+                Navigator.pop(ctx);
+                await _fetch();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Transaksi dibatalkan & saldo dikembalikan.'),
+                    backgroundColor: Color(0xFF10B981),
+                  ),
+                );
+              }
             },
             child: const Text('Ya, Batalkan Transaksi'),
           ),
@@ -99,146 +78,258 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Buku Mutasi Kas Seluruh Santri'),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(48),
-          child: Container(
-            color: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _chip('SEMUA', 'Semua'),
-                  _chip('HARI_INI', 'Hari Ini'),
-                  _chip('KEMARIN', 'Kemarin'),
-                  _chip('7_HARI', '7 Hari Terakhir'),
-                  _chip('BULAN_INI', 'Bulan Ini'),
-                ],
-              ),
+    final provider = Provider.of<KasSantriProvider>(context);
+    final santriList = provider.allSantri.where((s) => s.statusAktif).toList();
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        await provider.loadAllData();
+        await _fetch();
+      },
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 44, 16, 90),
+        children: [
+          // Filter Card
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F172A).withOpacity(0.85),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.white12),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Text(
+                          'BUKU MUTASI DIGITAL',
+                          style: TextStyle(color: Color(0xFF34D399), fontSize: 9.5, fontWeight: FontWeight.w900, letterSpacing: 1.2),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Riwayat Keluar & Masuk',
+                          style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w900),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF060B14),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white12),
+                      ),
+                      child: Text(
+                        '${_list.length} catatan',
+                        style: const TextStyle(color: Colors.white70, fontSize: 10.5, fontFamily: 'monospace', fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 12),
+
+                // 2 Dropdowns: Filter Santri & Filter Waktu
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: _selectedSantriId,
+                        dropdownColor: const Color(0xFF090E1A),
+                        style: const TextStyle(color: Colors.white, fontSize: 11),
+                        decoration: const InputDecoration(
+                          isDense: true,
+                          contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        ),
+                        items: [
+                          const DropdownMenuItem(value: 'ALL', child: Text('Semua Santri')),
+                          ...santriList.map((s) => DropdownMenuItem(value: s.id, child: Text(s.namaLengkap, overflow: TextOverflow.ellipsis))),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) {
+                            setState(() => _selectedSantriId = val);
+                            _fetch();
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: _selectedWaktu,
+                        dropdownColor: const Color(0xFF090E1A),
+                        style: const TextStyle(color: Colors.white, fontSize: 11),
+                        decoration: const InputDecoration(
+                          isDense: true,
+                          contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        ),
+                        items: const [
+                          DropdownMenuItem(value: 'ALL', child: Text('Semua Waktu')),
+                          DropdownMenuItem(value: 'PAGI', child: Text('🌅 Pagi')),
+                          DropdownMenuItem(value: 'SIANG', child: Text('☀️ Siang')),
+                          DropdownMenuItem(value: 'SORE', child: Text('🌤️ Sore')),
+                          DropdownMenuItem(value: 'MALAM', child: Text('🌙 Malam')),
+                          DropdownMenuItem(value: 'SETORAN', child: Text('📥 Setoran')),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) {
+                            setState(() => _selectedWaktu = val);
+                            _fetch();
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-        ),
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _list.isEmpty
-              ? const Center(
-                  child: Text('Tidak ada riwayat mutasi pada filter ini', style: TextStyle(color: Colors.grey)),
-                )
-              : ListView.separated(
-                  padding: const EdgeInsets.all(14),
-                  itemCount: _list.length,
-                  separatorBuilder: (ctx, idx) => const Divider(height: 1),
-                  itemBuilder: (ctx, idx) {
-                    final item = _list[idx];
-                    final nominal = (item['nominal'] as num).toInt();
-                    final isVoided = (item['is_voided'] as int?) == 1;
-                    final isOverlimit = (item['is_overlimit'] as int?) == 1;
-                    final tipe = item['tipe'] as String? ?? 'PENGAMBILAN';
-                    final isSetoran = tipe == 'SETORAN';
-                    final waktu = DateTime.tryParse(item['waktu_ambil'] as String) ?? DateTime.now();
 
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: isVoided
-                            ? Colors.grey.shade200
-                            : isSetoran
-                                ? Colors.green.shade50
-                                : Colors.red.shade50,
-                        foregroundColor: isVoided
-                            ? Colors.grey
-                            : isSetoran
-                                ? Colors.green
-                                : Colors.red,
-                        child: Icon(
-                          isVoided
-                              ? Icons.cancel
-                              : isSetoran
-                                  ? Icons.arrow_downward
-                                  : Icons.arrow_upward,
-                          size: 18,
-                        ),
-                      ),
-                      title: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Flexible(
-                            child: Text(
-                              '${item['nama_lengkap']} (${item['kamar']})',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                                decoration: isVoided ? TextDecoration.lineThrough : null,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          Text(
-                            '${isSetoran ? '+' : '-'}${CurrencyFormatter.format(nominal)}',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                              color: isVoided
-                                  ? Colors.grey
-                                  : isSetoran
-                                      ? Colors.green.shade700
-                                      : Colors.red.shade700,
-                              decoration: isVoided ? TextDecoration.lineThrough : null,
-                            ),
-                          ),
-                        ],
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${DateFormatter.formatFullDateTime(waktu)} WIB • ${item['kategori_waktu']}'
-                            '${item['catatan'] != null ? ' (${item['catatan']})' : ''}'
-                            '${isOverlimit ? " ⚠️ OVERLIMIT" : ""}',
-                            style: TextStyle(fontSize: 11, color: isOverlimit ? Colors.orange.shade800 : Colors.grey.shade600),
-                          ),
-                          Text(
-                            'Sisa: ${CurrencyFormatter.format((item['saldo_setelah_transaksi'] as num?)?.toInt() ?? 0)}',
-                            style: const TextStyle(fontSize: 11, color: Colors.teal),
-                          ),
-                        ],
-                      ),
-                      trailing: isVoided
-                          ? const Text('BATAL', style: TextStyle(color: Colors.red, fontSize: 10, fontWeight: FontWeight.bold))
-                          : IconButton(
-                              icon: const Icon(Icons.cancel_outlined, size: 18, color: Colors.grey),
-                              tooltip: 'Batalkan / Void',
-                              onPressed: () => _confirmVoid(item),
-                            ),
-                    );
-                  },
+          const SizedBox(height: 12),
+
+          // Transaction Items
+          if (_isLoading)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(32),
+                child: CircularProgressIndicator(),
+              ),
+            )
+          else if (_list.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F172A).withOpacity(0.5),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: Colors.white12),
+              ),
+              child: const Center(
+                child: Text('Belum ada catatan mutasi transaksi.', style: TextStyle(color: Colors.white54, fontSize: 12)),
+              ),
+            )
+          else
+            ..._list.map((tx) {
+              final santri = santriList.where((s) => s.id == tx.santriId).firstOrNull;
+              final namaSantri = santri != null ? santri.namaLengkap : 'Santri';
+              final isMasuk = tx.tipe == TipeTransaksi.setoran;
+              final katStr = TimeCategoryHelper.getDbString(tx.kategoriWaktu);
+              final jamStr = '${tx.waktuAmbil.hour.toString().padLeft(2, '0')}:${tx.waktuAmbil.minute.toString().padLeft(2, '0')}';
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0F172A).withOpacity(0.85),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white12),
                 ),
-    );
-  }
-
-  Widget _chip(String key, String label) {
-    final isSelected = _filter == key;
-    return Padding(
-      padding: const EdgeInsets.only(right: 6),
-      child: ChoiceChip(
-        label: Text(label),
-        selected: isSelected,
-        onSelected: (selected) {
-          if (selected) {
-            setState(() => _filter = key);
-            _fetch();
-          }
-        },
-        selectedColor: const Color(0xFF00796B),
-        labelStyle: TextStyle(
-          color: isSelected ? Colors.white : Colors.black87,
-          fontSize: 11.5,
-          fontWeight: FontWeight.w600,
-        ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: isMasuk
+                                ? const Color(0xFF10B981).withOpacity(0.2)
+                                : const Color(0xFF06B6D4).withOpacity(0.18),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: isMasuk
+                                  ? const Color(0xFF34D399).withOpacity(0.4)
+                                  : const Color(0xFF38BDF8).withOpacity(0.4),
+                            ),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(isMasuk ? '📥' : '💸', style: const TextStyle(fontSize: 16)),
+                        ),
+                        const SizedBox(width: 10),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  namaSantri,
+                                  style: const TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w800),
+                                ),
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black45,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: Colors.white12),
+                                  ),
+                                  child: Text(
+                                    '$katStr • $jamStr',
+                                    style: const TextStyle(color: Colors.white70, fontSize: 9, fontFamily: 'monospace', fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                                if (tx.isOverlimit)
+                                  Container(
+                                    margin: const EdgeInsets.only(left: 4),
+                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF43F5E).withOpacity(0.3),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(color: const Color(0xFFFB7185).withOpacity(0.5)),
+                                    ),
+                                    child: const Text(
+                                      'Overlimit',
+                                      style: TextStyle(color: Color(0xFFFDA4AF), fontSize: 8.5, fontWeight: FontWeight.w800),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              tx.catatan != null && tx.catatan!.isNotEmpty ? tx.catatan! : (isMasuk ? 'Setoran' : 'Jajan Harian'),
+                              style: const TextStyle(color: Colors.white54, fontSize: 10.5),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '${isMasuk ? '+' : '-'}${CurrencyFormatter.format(tx.nominal)}',
+                          style: TextStyle(
+                            color: isMasuk ? const Color(0xFF34D399) : const Color(0xFFFCD34D),
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w900,
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        InkWell(
+                          onTap: () => _confirmVoid(tx, namaSantri),
+                          child: const Text(
+                            'Void / Batal',
+                            style: TextStyle(
+                              color: Color(0xFFFB7185),
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.bold,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+        ],
       ),
     );
   }

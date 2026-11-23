@@ -6,6 +6,9 @@ class Santri {
   final String? noWaWali;
   final int saldoTotal;
   final int jatahHarian;
+  final int setoranAwal;
+  final int tunggakan;
+  final String catatanTunggakan;
   final bool statusAktif;
   final DateTime createdAt;
 
@@ -17,6 +20,9 @@ class Santri {
     this.noWaWali,
     this.saldoTotal = 0,
     this.jatahHarian = 10000,
+    this.setoranAwal = 300000,
+    this.tunggakan = 0,
+    this.catatanTunggakan = '',
     this.statusAktif = true,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
@@ -37,6 +43,9 @@ class Santri {
     String? noWaWali,
     int? saldoTotal,
     int? jatahHarian,
+    int? setoranAwal,
+    int? tunggakan,
+    String? catatanTunggakan,
     bool? statusAktif,
     DateTime? createdAt,
   }) {
@@ -48,6 +57,9 @@ class Santri {
       noWaWali: noWaWali ?? this.noWaWali,
       saldoTotal: saldoTotal ?? this.saldoTotal,
       jatahHarian: jatahHarian ?? this.jatahHarian,
+      setoranAwal: setoranAwal ?? this.setoranAwal,
+      tunggakan: tunggakan ?? this.tunggakan,
+      catatanTunggakan: catatanTunggakan ?? this.catatanTunggakan,
       statusAktif: statusAktif ?? this.statusAktif,
       createdAt: createdAt ?? this.createdAt,
     );
@@ -62,6 +74,9 @@ class Santri {
       'no_wa_wali': noWaWali,
       'saldo_total': saldoTotal,
       'jatah_harian': jatahHarian,
+      'setoran_awal': setoranAwal,
+      'tunggakan': tunggakan,
+      'catatan_tunggakan': catatanTunggakan,
       'status_aktif': statusAktif ? 1 : 0,
       'created_at': createdAt.toIso8601String(),
     };
@@ -76,6 +91,9 @@ class Santri {
       noWaWali: map['no_wa_wali'] as String?,
       saldoTotal: (map['saldo_total'] as num?)?.toInt() ?? 0,
       jatahHarian: (map['jatah_harian'] as num?)?.toInt() ?? 10000,
+      setoranAwal: (map['setoran_awal'] as num?)?.toInt() ?? 300000,
+      tunggakan: (map['tunggakan'] as num?)?.toInt() ?? 0,
+      catatanTunggakan: map['catatan_tunggakan'] as String? ?? '',
       statusAktif: (map['status_aktif'] as int?) == 1,
       createdAt: map['created_at'] != null
           ? DateTime.tryParse(map['created_at'].toString()) ?? DateTime.now()

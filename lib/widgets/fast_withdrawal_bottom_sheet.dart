@@ -5,8 +5,7 @@ import '../models/santri_status.dart';
 import '../models/transaksi.dart';
 import '../providers/kas_santri_provider.dart';
 import '../utils/currency_formatter.dart';
-import 'numpad_widget.dart';
-import 'quick_chips_widget.dart';
+import '../utils/time_category_helper.dart';
 
 class FastWithdrawalBottomSheet extends StatefulWidget {
   final SantriStatusHariIni statusSantri;
@@ -26,93 +25,81 @@ class FastWithdrawalBottomSheet extends StatefulWidget {
   }
 
   @override
-  State<FastWithdrawalBottomSheet> createState() =>
-      _FastWithdrawalBottomSheetState();
+  State<FastWithdrawalBottomSheet> createState() => _FastWithdrawalBottomSheetState();
 }
 
 class _FastWithdrawalBottomSheetState extends State<FastWithdrawalBottomSheet> {
-  String _inputNominalStr = '';
-  String? _selectedCategory;
-  final TextEditingController _customNoteController = TextEditingController();
+  final TextEditingController _nominalController = TextEditingController();
+  TimeCategory _selectedWaktu = TimeCategory.malam;
+  String _selectedKeperluan = 'Jajan Harian';
+  OverlimitHandling _selectedPolicy = OverlimitHandling.potongBesok;
 
   final List<String> _tagChips = [
-    'Jajan',
-    'Beli Sabun/Toiletries',
-    'Obat/Sakit',
-    'Fotokopi/Sekolah',
+    'Jajan Harian',
+    'Sabun/Cuci',
+    'Obat',
+    'Fotokopi',
   ];
 
-  int get _nominal => int.tryParse(_inputNominalStr) ?? 0;
+  @override
+  void initState() {
+    super.initState();
+    // Default select time based on taken periods
+    final txList = widget.statusSantri.transaksiHariIni;
+    final takenPeriods = txList.map((t) => t.kategoriWaktu).toList();
+    if (!takenPeriods.contains(TimeCategory.pagi)) {
+      _selectedWaktu = TimeCategory.pagi;
+    } else if (!takenPeriods.contains(TimeCategory.siang)) {
+      _selectedWaktu = TimeCategory.siang;
+    } else if (!takenPeriods.contains(TimeCategory.sore)) {
+      _selectedWaktu = TimeCategory.sore;
+    } else {
+      _selectedWaktu = TimeCategory.malam;
+    }
+
+    final sisa = widget.statusSantri.sisaJatahHariIni;
+    if (sisa > 0) {
+      _nominalController.text = (sisa >= 2000 ? 2000 : sisa).toString();
+    }
+  }
+
+  @override
+  void dispose() {
+    _nominalController.dispose();
+    super.dispose();
+  }
+
+  int get _nominal => int.tryParse(_nominalController.text.trim()) ?? 0;
   Santri get _santri => widget.statusSantri.santri;
   int get _sisaJatah => widget.statusSantri.sisaJatahHariIni;
+  bool get _isOverlimit => _nominal > _sisaJatah;
 
-  void _onKeyPress(String val) {
-    if (_inputNominalStr.length >= 8) return; // Maks 99 juta
+  void _addQuickChip(int amount) {
     setState(() {
-      _inputNominalStr += val;
+      final cur = _nominal;
+      _nominalController.text = (cur + amount).toString();
     });
   }
 
-  void _onBackspace() {
-    if (_inputNominalStr.isNotEmpty) {
-      setState(() {
-        _inputNominalStr =
-            _inputNominalStr.substring(0, _inputNominalStr.length - 1);
-      });
-    }
-  }
-
-  void _onClear() {
+  void _pasSisa() {
     setState(() {
-      _inputNominalStr = '';
+      _nominalController.text = (_sisaJatah > 0 ? _sisaJatah : 0).toString();
     });
   }
 
-  void _onAddQuickAmount(int amount) {
-    setState(() {
-      final current = _nominal;
-      final result = current + amount;
-      _inputNominalStr = result.toString();
-    });
+  String _getInitials(String name) {
+    if (name.trim().isEmpty) return 'KS';
+    final parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return parts[0].substring(0, parts[0].length >= 2 ? 2 : 1).toUpperCase();
   }
 
-  void _onTakeRemainingQuota() {
-    setState(() {
-      _inputNominalStr = _sisaJatah.toString();
-    });
-  }
-
-  // Menentukan warna indikator: Hijau (Aman), Kuning (Pas Limit), Merah (Overlimit)
-  Color _getIndicatorColor() {
-    if (_nominal == 0) return Colors.black87;
-    if (_nominal > _sisaJatah) {
-      return const Color(0xFFD32F2F); // Merah
-    } else if (_nominal == _sisaJatah) {
-      return const Color(0xFFF57C00); // Kuning / Amber
-    } else {
-      return const Color(0xFF2E7D32); // Hijau
-    }
-  }
-
-  String _getIndicatorStatusText() {
-    if (_nominal == 0) return 'Masukkan nominal pengambilan';
-    if (_nominal > _sisaJatah) {
-      final kelebihan = _nominal - _sisaJatah;
-      return '⚠️ Melebihi jatah harian (+${CurrencyFormatter.format(kelebihan)})';
-    } else if (_nominal == _sisaJatah) {
-      return '✓ Pas dengan sisa limit hari ini';
-    } else {
-      final sisaSetelah = _sisaJatah - _nominal;
-      return '✓ Masih aman (Sisa nanti: ${CurrencyFormatter.format(sisaSetelah)})';
-    }
-  }
-
-  Future<void> _handleSubmit() async {
+  Future<void> _submit() async {
     if (_nominal <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Nominal pengambilan harus lebih dari Rp 0'),
-          backgroundColor: Colors.red,
+          content: Text('Masukkan nominal pengambilan lebih dari Rp 0!'),
+          backgroundColor: Color(0xFFF43F5E),
         ),
       );
       return;
@@ -122,365 +109,528 @@ class _FastWithdrawalBottomSheetState extends State<FastWithdrawalBottomSheet> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Saldo santri tidak mencukupi! (Saldo: ${CurrencyFormatter.format(_santri.saldoTotal)})',
+            'Saldo total santri tidak mencukupi! (Saldo: ${CurrencyFormatter.format(_santri.saldoTotal)})',
           ),
-          backgroundColor: Colors.red,
+          backgroundColor: const Color(0xFFF43F5E),
         ),
       );
       return;
     }
 
-    final isOverlimit = _nominal > _sisaJatah;
-    final note = _selectedCategory ??
-        (_customNoteController.text.trim().isNotEmpty
-            ? _customNoteController.text.trim()
-            : 'Jajan');
-
-    if (isOverlimit) {
-      // Tampilkan Warning Modal Overlimit sesuai PRD
-      final kelebihan = _nominal - _sisaJatah;
-      final handling = await _showOverlimitDialog(kelebihan);
-      if (handling == null) return; // Dibatalkan oleh pengurus
-
-      _saveTransaction(isOverlimit: true, handling: handling, note: note);
-    } else {
-      _saveTransaction(isOverlimit: false, note: note);
-    }
-  }
-
-  Future<OverlimitHandling?> _showOverlimitDialog(int kelebihan) {
-    return showDialog<OverlimitHandling>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) {
-        OverlimitHandling selectedOption = OverlimitHandling.potongBesok;
-        return StatefulBuilder(
-          builder: (dialogCtx, setDialogState) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              title: Row(
-                children: const [
-                  Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 28),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Peringatan Overlimit',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Pengambilan melebihi jatah harian sebesar ${CurrencyFormatter.format(kelebihan)}. Apakah tetap diizinkan (Darurat / Kasbon Jatah)?',
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Pilih Penyesuaian Saldo:',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                  ),
-                  RadioListTile<OverlimitHandling>(
-                    title: const Text('Opsi A: Potong Jatah Besok', style: TextStyle(fontSize: 13)),
-                    subtitle: const Text('Jatah besok otomatis berkurang sebesar nominal kelebihan hari ini.', style: TextStyle(fontSize: 11)),
-                    value: OverlimitHandling.potongBesok,
-                    groupValue: selectedOption,
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    onChanged: (val) {
-                      if (val != null) setDialogState(() => selectedOption = val);
-                    },
-                  ),
-                  RadioListTile<OverlimitHandling>(
-                    title: const Text('Opsi B: Hitung Ulang Rata-Rata', style: TextStyle(fontSize: 13)),
-                    subtitle: const Text('Jatah harian untuk sisa hari ke depan dihitung ulang proporsional.', style: TextStyle(fontSize: 11)),
-                    value: OverlimitHandling.hitungUlangRataRata,
-                    groupValue: selectedOption,
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    onChanged: (val) {
-                      if (val != null) setDialogState(() => selectedOption = val);
-                    },
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(dialogCtx, null),
-                  child: const Text('Batal', style: TextStyle(color: Colors.grey)),
-                ),
-                ElevatedButton(
-                  onPressed: () => Navigator.pop(dialogCtx, selectedOption),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.amber.shade800,
-                  ),
-                  child: const Text('Izinkan Ambil'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  void _saveTransaction({
-    required bool isOverlimit,
-    OverlimitHandling? handling,
-    required String note,
-  }) async {
     final provider = Provider.of<KasSantriProvider>(context, listen: false);
-
-    Navigator.pop(context); // Tutup bottom sheet segera
-
     await provider.catatPengambilan(
       santri: _santri,
       nominal: _nominal,
-      catatan: note,
-      isOverlimit: isOverlimit,
-      overlimitHandling: handling,
+      catatan: _selectedKeperluan,
+      isOverlimit: _isOverlimit,
+      overlimitHandling: _isOverlimit ? _selectedPolicy : null,
+      waktuCategory: _selectedWaktu,
     );
+
+    if (mounted) {
+      Navigator.pop(context);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final indicatorColor = _getIndicatorColor();
+    final sisaSetelah = _sisaJatah - _nominal;
+    final pct = widget.statusSantri.jatahHariIni > 0
+        ? (((widget.statusSantri.totalAmbilHariIni + _nominal) / widget.statusSantri.jatahHariIni) * 100).clamp(0, 100).toInt()
+        : 100;
 
     return Container(
       decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        color: Color(0xFF0E1422),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        border: Border(
+          top: BorderSide(color: Color(0x33FFFFFF), width: 1.5),
+        ),
       ),
       padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
         top: 12,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+        left: 20,
+        right: 20,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Drag handle
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-
-          // Header Info Santri & Real-time Quota Info
-          Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: const Color(0xFF00796B),
-                foregroundColor: Colors.white,
-                radius: 20,
-                child: Text(
-                  _santri.namaPanggilan.isNotEmpty
-                      ? _santri.namaPanggilan[0].toUpperCase()
-                      : _santri.namaLengkap[0].toUpperCase(),
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Handle Bar
+            Center(
+              child: Container(
+                width: 44,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            ),
+            const SizedBox(height: 14),
+
+            // Header Modal: Avatar, Nama, Kamar & Close
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
                   children: [
-                    Text(
-                      _santri.namaLengkap,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withOpacity(0.18),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: const Color(0xFF10B981).withOpacity(0.35),
+                        ),
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      alignment: Alignment.center,
+                      child: Text(
+                        _getInitials(_santri.namaLengkap),
+                        style: const TextStyle(
+                          color: Color(0xFF34D399),
+                          fontWeight: FontWeight.w900,
+                          fontSize: 15,
+                        ),
+                      ),
                     ),
-                    Text(
-                      '${_santri.kamar} • Saldo: ${CurrencyFormatter.format(_santri.saldoTotal)}',
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            _santri.kamar,
+                            style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          _santri.namaLengkap,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close, color: Colors.white60, size: 20),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 14),
+
+            // Panel Live Simulasi Sisa Jatah Hari Ini
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFF060B14),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white12),
               ),
-              // Sisa Jatah Badge
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'SISA JATAH HARI INI',
+                            style: TextStyle(
+                              color: Colors.white54,
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Row(
+                            children: [
+                              Text(
+                                CurrencyFormatter.format(_sisaJatah < 0 ? 0 : _sisaJatah),
+                                style: const TextStyle(
+                                  color: Color(0xFF34D399),
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w900,
+                                  fontFamily: 'monospace',
+                                ),
+                              ),
+                              if (_nominal > 0)
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 6),
+                                  child: Text(
+                                    '→ Sisa ${CurrencyFormatter.format(sisaSetelah < 0 ? 0 : sisaSetelah)}',
+                                    style: TextStyle(
+                                      color: _isOverlimit ? const Color(0xFFFB7185) : Colors.white60,
+                                      fontSize: 11,
+                                      fontFamily: 'monospace',
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          const Text(
+                            'TOTAL SALDO',
+                            style: TextStyle(
+                              color: Colors.white54,
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            CurrencyFormatter.format(_santri.saldoTotal),
+                            style: const TextStyle(
+                              color: Color(0xFFE2E8F0),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              fontFamily: 'monospace',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Container(
+                    height: 6,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0F172A),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: FractionallySizedBox(
+                      alignment: Alignment.centerLeft,
+                      widthFactor: (pct / 100).clamp(0.0, 1.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          gradient: LinearGradient(
+                            colors: _isOverlimit
+                                ? [const Color(0xFFF43F5E), const Color(0xFFE11D48)]
+                                : [const Color(0xFF10B981), const Color(0xFF06B6D4)],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        widget.statusSantri.transaksiHariIni.isNotEmpty
+                            ? 'Hari ini: ${widget.statusSantri.transaksiHariIni.length}x ambil'
+                            : 'Hari ini: Belum ada pengambilan',
+                        style: const TextStyle(color: Color(0xFF7DD3FC), fontSize: 10.5),
+                      ),
+                      Text(
+                        'Kuota: ${CurrencyFormatter.format(_santri.jatahHarian)}/hr',
+                        style: const TextStyle(color: Colors.white54, fontSize: 10.5, fontFamily: 'monospace'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 14),
+
+            // Sesi Waktu Pengambilan (Pagi, Siang, Sore, Malam)
+            const Text(
+              'SESI WAKTU PENGAMBILAN',
+              style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.5),
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                _buildWaktuBtn('🌅 Pagi', TimeCategory.pagi),
+                const SizedBox(width: 6),
+                _buildWaktuBtn('☀️ Siang', TimeCategory.siang),
+                const SizedBox(width: 6),
+                _buildWaktuBtn('🌤️ Sore', TimeCategory.sore),
+                const SizedBox(width: 6),
+                _buildWaktuBtn('🌙 Malam', TimeCategory.malam),
+              ],
+            ),
+
+            const SizedBox(height: 14),
+
+            // Nominal Ambil & Reset
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'NOMINAL AMBIL (RP)',
+                  style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.5),
+                ),
+                InkWell(
+                  onTap: () => setState(() => _nominalController.text = '0'),
+                  child: const Text(
+                    'Reset Rp 0',
+                    style: TextStyle(color: Color(0xFFFB7185), fontSize: 11, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _nominalController,
+              keyboardType: TextInputType.number,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+                fontFamily: 'monospace',
+              ),
+              decoration: InputDecoration(
+                prefixText: 'Rp ',
+                prefixStyle: const TextStyle(
+                  color: Color(0xFF34D399),
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  fontFamily: 'monospace',
+                ),
+                filled: true,
+                fillColor: const Color(0xFF060A14),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(18),
+                  borderSide: const BorderSide(color: Colors.white24, width: 1.5),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(18),
+                  borderSide: BorderSide(
+                    color: _isOverlimit ? const Color(0xFFF43F5E) : const Color(0xFF34D399),
+                    width: 2,
+                  ),
+                ),
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
+
+            const SizedBox(height: 8),
+
+            // Quick Chips Akumulatif
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                _buildQuickChip('+1.000', 1000),
+                _buildQuickChip('+2.000', 2000),
+                _buildQuickChip('+3.000', 3000),
+                _buildQuickChip('+5.000', 5000),
+                _buildQuickChip('+10.000', 10000),
+                InkWell(
+                  onTap: _pasSisa,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF10B981).withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFF10B981).withOpacity(0.4)),
+                    ),
+                    child: const Text(
+                      'Pas Sisa',
+                      style: TextStyle(color: Color(0xFF34D399), fontSize: 11, fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 14),
+
+            // Tag Keperluan
+            const Text(
+              'TAG KEPERLUAN',
+              style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.5),
+            ),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: _tagChips.map((tag) {
+                final isSelected = _selectedKeperluan == tag;
+                return InkWell(
+                  onTap: () => setState(() => _selectedKeperluan = tag),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: isSelected ? const Color(0xFF10B981) : const Color(0xFF0F172A),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: isSelected ? const Color(0xFF34D399) : Colors.white12),
+                    ),
+                    child: Text(
+                      tag,
+                      style: TextStyle(
+                        color: isSelected ? const Color(0xFF04121A) : Colors.white70,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+
+            // Box Peringatan Overlimit
+            if (_isOverlimit) ...[
+              const SizedBox(height: 14),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.teal.shade50,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.teal.shade200),
+                  color: const Color(0xFF450A1A).withOpacity(0.8),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFF43F5E).withOpacity(0.5)),
                 ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Sisa Jatah Hari Ini',
-                      style: TextStyle(fontSize: 10, color: Colors.teal),
+                    const Row(
+                      children: [
+                        Icon(Icons.warning_amber_rounded, color: Color(0xFFFB7185), size: 16),
+                        SizedBox(width: 6),
+                        Text(
+                          'Melebihi Sisa Jatah Hari Ini!',
+                          style: TextStyle(color: Color(0xFFFECDD3), fontSize: 11.5, fontWeight: FontWeight.w900),
+                        ),
+                      ],
                     ),
+                    const SizedBox(height: 4),
                     Text(
-                      CurrencyFormatter.format(_sisaJatah),
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF004D40),
+                      'Input nominal ${CurrencyFormatter.format(_nominal)} melampaui sisa kuota hari ini sebesar ${CurrencyFormatter.format(_nominal - _sisaJatah)}.',
+                      style: const TextStyle(color: Color(0xFFFDA4AF), fontSize: 10.5),
+                    ),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<OverlimitHandling>(
+                      value: _selectedPolicy,
+                      dropdownColor: const Color(0xFF1F122B),
+                      decoration: InputDecoration(
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFF43F5E)),
+                        ),
                       ),
+                      items: const [
+                        DropdownMenuItem(
+                          value: OverlimitHandling.potongBesok,
+                          child: Text('Izinkan (Darurat) & Potong Total Saldo', style: TextStyle(fontSize: 11, color: Colors.white)),
+                        ),
+                        DropdownMenuItem(
+                          value: OverlimitHandling.hitungUlangRataRata,
+                          child: Text('Izinkan & Hitung Ulang Rata-Rata Jatah Harian', style: TextStyle(fontSize: 11, color: Colors.white)),
+                        ),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) setState(() => _selectedPolicy = val);
+                      },
                     ),
                   ],
                 ),
               ),
             ],
-          ),
 
-          const SizedBox(height: 8),
-          // Rincian Pengambilan Sebelumnya Hari Ini
-          if (widget.statusSantri.transaksiHariIni.isNotEmpty)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                widget.statusSantri.ringkasanAmbilHariIni,
-                style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
-              ),
-            ),
+            const SizedBox(height: 18),
 
-          const SizedBox(height: 12),
-
-          // Display Nominal Input Real-time dengan Indikator Warna
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: indicatorColor.withOpacity(0.06),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: indicatorColor.withOpacity(0.3), width: 1.5),
-            ),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    Text(
-                      'Rp ',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w600,
-                        color: indicatorColor,
-                      ),
-                    ),
-                    Text(
-                      _nominal > 0 ? CurrencyFormatter.formatWithoutSymbol(_nominal) : '0',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: indicatorColor,
-                      ),
-                    ),
-                  ],
+            // Tombol Simpan Pengambilan Uang
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _isOverlimit ? const Color(0xFFF43F5E) : const Color(0xFF10B981),
+                  foregroundColor: const Color(0xFF030712),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                  elevation: 6,
+                  shadowColor: (_isOverlimit ? const Color(0xFFF43F5E) : const Color(0xFF10B981)).withOpacity(0.4),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  _getIndicatorStatusText(),
-                  style: TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w600,
-                    color: indicatorColor,
-                  ),
-                  textAlign: TextAlign.center,
+                onPressed: _submit,
+                child: Text(
+                  _isOverlimit ? '⚠️ IZINKAN AMBIL MELEBIHI JATAH' : '✅ SIMPAN PENGAMBILAN UANG',
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 0.5),
                 ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 8),
-
-          // Quick Addition Chips (+1k, +2k, +5k, Ambil Sisa Jatah)
-          QuickChipsWidget(
-            onAddAmount: _onAddQuickAmount,
-            onTakeRemainingQuota: _onTakeRemainingQuota,
-            sisaJatahHariIni: _sisaJatah,
-          ),
-
-          const SizedBox(height: 8),
-
-          // Tag Keterangan Sekali Klik
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: _tagChips.map((tag) {
-                final isSelected = _selectedCategory == tag;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 6),
-                  child: FilterChip(
-                    label: Text(tag, style: const TextStyle(fontSize: 11)),
-                    selected: isSelected,
-                    onSelected: (selected) {
-                      setState(() {
-                        _selectedCategory = selected ? tag : null;
-                      });
-                    },
-                    selectedColor: Colors.teal.shade100,
-                    checkmarkColor: const Color(0xFF00796B),
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-
-          const SizedBox(height: 8),
-
-          // Numpad Kustom Berukuran Besar
-          NumpadWidget(
-            onKeyPress: _onKeyPress,
-            onBackspace: _onBackspace,
-            onClear: _onClear,
-          ),
-
-          const SizedBox(height: 12),
-
-          // Tombol Simpan Ambil Uang (Tap 3)
-          ElevatedButton(
-            onPressed: _handleSubmit,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF00796B),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.check_circle_outline, color: Colors.white),
-                const SizedBox(width: 8),
-                Text(
-                  'Simpan Ambil Uang (${CurrencyFormatter.format(_nominal)})',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWaktuBtn(String label, TimeCategory cat) {
+    final isSelected = _selectedWaktu == cat;
+    return Expanded(
+      child: InkWell(
+        onTap: () => setState(() => _selectedWaktu = cat),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 9),
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFF10B981).withOpacity(0.2) : const Color(0xFF060B14),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected ? const Color(0xFF34D399) : Colors.white12,
+              width: isSelected ? 1.5 : 1,
             ),
           ),
-        ],
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? const Color(0xFF34D399) : Colors.white60,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickChip(String label, int amount) {
+    return InkWell(
+      onTap: () => _addQuickChip(amount),
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0F172A),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.white12),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            fontFamily: 'monospace',
+          ),
+        ),
       ),
     );
   }

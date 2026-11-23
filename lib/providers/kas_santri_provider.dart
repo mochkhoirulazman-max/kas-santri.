@@ -7,6 +7,7 @@ import '../models/pengaturan.dart';
 import '../models/santri_status.dart';
 import '../database/database_helper.dart';
 import '../utils/date_formatter.dart';
+import '../utils/time_category_helper.dart';
 
 class KasSantriProvider extends ChangeNotifier {
   final DatabaseHelper _db = DatabaseHelper.instance;
@@ -20,9 +21,6 @@ class KasSantriProvider extends ChangeNotifier {
   List<SantriStatusHariIni> _santriStatusList = [];
   List<SantriStatusHariIni> get santriStatusList => _santriStatusList;
 
-  List<Santri> _recentSantri = [];
-  List<Santri> get recentSantri => _recentSantri;
-
   List<String> _kamars = [];
   List<String> get kamars => _kamars;
 
@@ -32,21 +30,32 @@ class KasSantriProvider extends ChangeNotifier {
   String? _selectedKamar;
   String? get selectedKamar => _selectedKamar;
 
+  String _activeFilter = 'ALL'; // ALL, TUNGGAKAN, UTUH, SEBAGIAN, HABIS
+  String get activeFilter => _activeFilter;
+
   PengaturanAplikasi _pengaturan = PengaturanAplikasi();
   PengaturanAplikasi get pengaturan => _pengaturan;
 
-  // Stat summary
+  // Stat Summary
   int _totalBrankasFisik = 0;
   int get totalBrankasFisik => _totalBrankasFisik;
 
   int _totalPengeluaranHariIni = 0;
   int get totalPengeluaranHariIni => _totalPengeluaranHariIni;
 
-  int _jumlahTransaksiHariIni = 0;
-  int get jumlahTransaksiHariIni => _jumlahTransaksiHariIni;
+  int _totalKuotaHariIni = 0;
+  int get totalKuotaHariIni => _totalKuotaHariIni;
 
-  Map<String, int> _rekapKategoriHariIni = {};
-  Map<String, int> get rekapKategoriHariIni => _rekapKategoriHariIni;
+  int _totalTunggakanPondok = 0;
+  int get totalTunggakanPondok => _totalTunggakanPondok;
+
+  int get countSantriTunggakan => _allSantri.where((s) => s.statusAktif && s.tunggakan > 0).length;
+
+  int _rekapPagiSiang = 0;
+  int get rekapPagiSiang => _rekapPagiSiang;
+
+  int _rekapSoreMalam = 0;
+  int get rekapSoreMalam => _rekapSoreMalam;
 
   // 5-Detik Undo State
   TransaksiHarian? _lastTransaction;
@@ -79,15 +88,15 @@ class KasSantriProvider extends ChangeNotifier {
 
     final todayStr = DateFormatter.toLocalDateString(DateTime.now());
 
-    // 1. Hitung status hari ini untuk setiap santri
+    // 1. Status hari ini untuk setiap santri aktif
     List<SantriStatusHariIni> statuses = [];
+    int totalKuota = 0;
     for (var santri in _allSantri.where((s) => s.statusAktif)) {
+      totalKuota += santri.jatahHarian;
       final txHariIni = await _db.getTransaksiHariIni(santri.id, todayStr);
       final totalAmbil = await _db.getTotalPengambilanHariIni(santri.id, todayStr);
-      
-      int sisaJatah = santri.jatahHarian - totalAmbil;
-      if (sisaJatah < 0) sisaJatah = 0;
 
+      int sisaJatah = santri.jatahHarian - totalAmbil;
       final hasOverlimit = txHariIni.any((t) => t.isOverlimit);
 
       statuses.add(
@@ -102,29 +111,18 @@ class KasSantriProvider extends ChangeNotifier {
       );
     }
     _santriStatusList = statuses;
+    _totalKuotaHariIni = totalKuota;
 
-    // 2. Ambil santri yang baru saja / sering bertransaksi
-    final recentRows = await _db.getRecentTransactedSantriIds(limit: 6);
-    List<Santri> recents = [];
-    for (var row in recentRows) {
-      final sId = row['santri_id'] as String;
-      final match = _allSantri.where((s) => s.id == sId).firstOrNull;
-      if (match != null && match.statusAktif) {
-        recents.add(match);
-      }
-    }
-    _recentSantri = recents;
-
-    // 3. Ringkasan Kas & Brankas Fisik
+    // 2. Metrics & Brankas
     _totalBrankasFisik = await _db.getTotalSaldoBrankasFisik();
     _totalPengeluaranHariIni = await _db.getTotalPengeluaranHariIni(todayStr);
-    _jumlahTransaksiHariIni = await _db.getJumlahTransaksiHariIni(todayStr);
-    _rekapKategoriHariIni = await _db.getRekapKategoriHariIni(todayStr);
+    _totalTunggakanPondok = await _db.getTotalTunggakanPondok();
+    _rekapPagiSiang = await _db.getTotalPagiSiangHariIni(todayStr);
+    _rekapSoreMalam = await _db.getTotalSoreMalamHariIni(todayStr);
 
     notifyListeners();
   }
 
-  // Filter santri
   void setSearchQuery(String query) {
     _searchQuery = query;
     notifyListeners();
@@ -135,17 +133,57 @@ class KasSantriProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setFilter(String filter) {
+    _activeFilter = filter;
+    notifyListeners();
+  }
+
+  Future<void> toggleGridLayout() async {
+    final updated = _pengaturan.copyWith(isTwoColGrid: !_pengaturan.isTwoColGrid);
+    _pengaturan = updated;
+    await _db.updatePengaturan(updated);
+    notifyListeners();
+  }
+
+  Future<void> toggleHideBalance() async {
+    final updated = _pengaturan.copyWith(hideBalance: !_pengaturan.hideBalance);
+    _pengaturan = updated;
+    await _db.updatePengaturan(updated);
+    notifyListeners();
+  }
+
+  Future<void> updateLogoPath(String? path) async {
+    final updated = _pengaturan.copyWith(logoPath: path);
+    _pengaturan = updated;
+    await _db.updatePengaturan(updated);
+    notifyListeners();
+  }
+
   List<SantriStatusHariIni> get filteredSantriStatusList {
     return _santriStatusList.where((item) {
+      // Filter kamar
       final matchesKamar = _selectedKamar == null ||
           _selectedKamar!.isEmpty ||
           item.santri.kamar == _selectedKamar;
-
       if (!matchesKamar) return false;
 
-      if (_searchQuery.isEmpty) return true;
+      // Filter status / tunggakan
+      if (_activeFilter == 'TUNGGAKAN') {
+        if (item.santri.tunggakan <= 0) return false;
+      } else if (_activeFilter == 'UTUH') {
+        if (item.badgeStatus != BadgeStatusHariIni.utuh) return false;
+      } else if (_activeFilter == 'SEBAGIAN') {
+        if (item.badgeStatus != BadgeStatusHariIni.sebagian) return false;
+      } else if (_activeFilter == 'HABIS') {
+        if (item.badgeStatus != BadgeStatusHariIni.limitHabis &&
+            item.badgeStatus != BadgeStatusHariIni.overlimitKritis) {
+          return false;
+        }
+      }
 
-      final query = _searchQuery.toLowerCase();
+      // Search query
+      if (_searchQuery.trim().isEmpty) return true;
+      final query = _searchQuery.toLowerCase().trim();
       final matchNama = item.santri.namaLengkap.toLowerCase().contains(query);
       final matchPanggilan = item.santri.namaPanggilan.toLowerCase().contains(query);
       final matchKamar = item.santri.kamar.toLowerCase().contains(query);
@@ -154,7 +192,7 @@ class KasSantriProvider extends ChangeNotifier {
     }).toList();
   }
 
-  // ==================== CATAT TRANSAKSI CEPAT (3-TAP UX) ====================
+  // ==================== CATAT PENGAMBILAN (3-TAP UX) ====================
 
   Future<TransaksiHarian> catatPengambilan({
     required Santri santri,
@@ -162,6 +200,7 @@ class KasSantriProvider extends ChangeNotifier {
     String? catatan,
     bool isOverlimit = false,
     OverlimitHandling? overlimitHandling,
+    TimeCategory? waktuCategory,
   }) async {
     final tx = await _db.catatPengambilan(
       santriId: santri.id,
@@ -169,9 +208,10 @@ class KasSantriProvider extends ChangeNotifier {
       catatan: catatan,
       isOverlimit: isOverlimit,
       overlimitHandling: overlimitHandling,
+      waktuCategory: waktuCategory,
     );
 
-    // Siapkan Undo 5 Detik
+    // Set 5-second undo
     _lastTransaction = tx;
     _lastSantri = santri;
     _undoCountdown = 5;
@@ -194,7 +234,6 @@ class KasSantriProvider extends ChangeNotifier {
     return tx;
   }
 
-  /// Eksekusi Undo Transaksi dalam rentang 5 detik
   Future<void> undoLastTransaction() async {
     if (_lastTransaction == null) return;
     _undoTimer?.cancel();
@@ -217,7 +256,24 @@ class KasSantriProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ==================== MUTASI & SETORAN ====================
+  // ==================== TUNGGAKAN ====================
+
+  Future<void> kelolaTunggakan({
+    required String santriId,
+    required int nominal,
+    required String catatan,
+    required bool isBayar,
+  }) async {
+    await _db.kelolaTunggakan(
+      santriId: santriId,
+      nominal: nominal,
+      catatan: catatan,
+      isBayar: isBayar,
+    );
+    await loadAllData();
+  }
+
+  // ==================== SETORAN & MUTASI ====================
 
   Future<void> catatSetoran({
     required String santriId,
@@ -249,46 +305,21 @@ class KasSantriProvider extends ChangeNotifier {
     await loadAllData();
   }
 
-  Future<void> editTransaksi(String id, int nominal, String? catatan) async {
-    await _db.editTransaksi(id, nominal, catatan);
+  // ==================== SANTRI BARU & PENGATURAN ====================
+
+  Future<void> tambahSantriBaru(Santri santri) async {
+    await _db.insertSantri(santri);
     await loadAllData();
   }
 
-  // ==================== KELOLA SANTRI ====================
-
-  Future<void> saveSantri(Santri santri, {bool isEdit = false}) async {
-    if (isEdit) {
-      await _db.updateSantri(santri);
-    } else {
-      await _db.insertSantri(santri);
-    }
+  Future<void> savePengaturan(PengaturanAplikasi updated) async {
+    _pengaturan = updated;
+    await _db.updatePengaturan(updated);
     await loadAllData();
   }
 
-  Future<void> toggleSantriActive(String id, bool active) async {
-    await _db.toggleSantriStatus(id, active);
+  Future<void> resetToInitialData() async {
+    await _db.resetToInitialDemoData();
     await loadAllData();
-  }
-
-  Future<void> updateJatahKhusus(String santriId, int jatahBaru) async {
-    final santri = await _db.getSantriById(santriId);
-    if (santri != null) {
-      await _db.updateSantri(santri.copyWith(jatahHarian: jatahBaru));
-      await loadAllData();
-    }
-  }
-
-  // ==================== PENGATURAN ====================
-
-  Future<void> savePengaturan(PengaturanAplikasi pengaturan) async {
-    await _db.updatePengaturan(pengaturan);
-    _pengaturan = pengaturan;
-    notifyListeners();
-  }
-
-  @override
-  void dispose() {
-    _undoTimer?.cancel();
-    super.dispose();
   }
 }

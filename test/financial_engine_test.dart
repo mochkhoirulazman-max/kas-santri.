@@ -35,12 +35,16 @@ void main() {
         kamar: 'Kamar 1',
         saldoTotal: 250000,
         jatahHarian: 10000,
+        tunggakan: 50000,
+        catatanTunggakan: 'Spp Nov',
       );
 
       expect(santri.estimasiHari, 25);
+      expect(santri.tunggakan, 50000);
+      expect(santri.catatanTunggakan, 'Spp Nov');
     });
 
-    test('D. Klasifikasi Badge Status Santri', () {
+    test('D. Klasifikasi Badge Status Santri (Utuh, Sebagian, Limit Habis, Overlimit)', () {
       final santri = Santri(
         id: '1',
         namaLengkap: 'Zaid',
@@ -87,6 +91,18 @@ void main() {
         transaksiHariIni: [txPagi],
       );
       expect(statusHabis.badgeStatus, BadgeStatusHariIni.limitHabis);
+
+      // Status Overlimit Kritis
+      final statusOverlimit = SantriStatusHariIni(
+        santri: santri,
+        totalAmbilHariIni: 15000,
+        sisaJatahHariIni: -5000,
+        jatahHariIni: 10000,
+        transaksiHariIni: [txPagi],
+        hasOverlimitToday: true,
+      );
+      expect(statusOverlimit.badgeStatus, BadgeStatusHariIni.overlimitKritis);
+      expect(statusOverlimit.badgeLabel, 'Overlimit');
     });
 
     test('E. Kategori Waktu (PAGI, SIANG, SORE, MALAM)', () {
@@ -100,6 +116,40 @@ void main() {
       expect(CurrencyFormatter.parse('10.000'), 10000);
       expect(CurrencyFormatter.parse('Rp 350.000'), 350000);
       expect(CurrencyFormatter.formatWithoutSymbol(10000), '10.000');
+    });
+
+    test('G. Fitur Tunggakan Santri (Bayar / Cicil dan Tambah Tunggakan)', () {
+      final santri = Santri(
+        id: '1',
+        namaLengkap: 'M. Rizky Pratama',
+        namaPanggilan: 'Rizky',
+        kamar: 'Kamar 2',
+        saldoTotal: 20000,
+        jatahHarian: 10000,
+        tunggakan: 120000,
+        catatanTunggakan: 'SPP Bulan Lalu',
+      );
+
+      expect(santri.tunggakan, 120000);
+
+      // Simulasi cicil 50.000
+      const cicil = 50000;
+      final sisaTunggakan = (santri.tunggakan - cicil).clamp(0, double.infinity).toInt();
+      final santriSetelahCicil = santri.copyWith(tunggakan: sisaTunggakan);
+      expect(santriSetelahCicil.tunggakan, 70000);
+
+      // Simulasi pelunasan penuh
+      final santriLunas = santriSetelahCicil.copyWith(tunggakan: 0, catatanTunggakan: null);
+      expect(santriLunas.tunggakan, 0);
+      expect(santriLunas.catatanTunggakan, isNull);
+
+      // Simulasi tambah tunggakan baru
+      const tambah = 25000;
+      final santriTambah = santri.copyWith(
+        tunggakan: santri.tunggakan + tambah,
+        catatanTunggakan: 'SPP Bulan Lalu + Kitab Fiqih',
+      );
+      expect(santriTambah.tunggakan, 145000);
     });
   });
 }

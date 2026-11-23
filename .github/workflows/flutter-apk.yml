@@ -187,9 +187,6 @@ jobs:
 
       - name: Configure Android Gradle wrapper
         run: |
-          flutter create --platforms=android .
-          rm -f android/*.gradle.kts android/app/*.gradle.kts
-          rm -rf android/app/src/main/kotlin/com/pondok/kas_santri
           chmod +x android/gradlew
 
       - name: Install dependencies

@@ -25,9 +25,11 @@ class KasSantriApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Kas Santri',
+      title: 'PPS MIFTAHUSSUNAN — Kas & Keuangan Santri',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
+      theme: AppTheme.darkTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.dark,
       home: const SplashScreen(),
     );
   }

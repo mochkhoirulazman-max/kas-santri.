@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/kas_santri_provider.dart';
-import '../services/auth_service.dart';
 import '../widgets/undo_snackbar.dart';
 import 'home_fast_withdrawal_screen.dart';
-import 'santri/santri_list_screen.dart';
 import 'setoran/setoran_screen.dart';
+import 'transaksi/riwayat_transaksi_screen.dart';
 import 'rekap/rekap_laporan_screen.dart';
 import 'settings/settings_screen.dart';
-import 'pin_lock_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({Key? key}) : super(key: key);
@@ -20,99 +18,111 @@ class MainNavigationScreen extends StatefulWidget {
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = const [
-    HomeFastWithdrawalScreen(),
-    SantriListScreen(),
-    SetoranScreen(),
-    RekapLaporanScreen(),
-    SettingsScreen(),
-  ];
+  final List<Widget> _screens = [];
 
-  Future<void> _lockAppNow() async {
-    await AuthService.instance.lockSession();
-    if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const PinLockScreen(isUnlockingSession: true)),
-    );
+  @override
+  void initState() {
+    super.initState();
+    _screens.addAll([
+      const HomeFastWithdrawalScreen(),
+      SetoranScreen(onSaved: () => setState(() => _currentIndex = 0)),
+      const RiwayatTransaksiScreen(),
+      const RekapLaporanScreen(),
+      const SettingsScreen(),
+    ]);
   }
 
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<KasSantriProvider>(context);
-
     return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              provider.pengaturan.namaPondok,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            Text(
-              'Pengurus: ${provider.pengaturan.namaPengurus}',
-              style: const TextStyle(fontSize: 11, color: Colors.white70),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.lock_clock_outlined),
-            tooltip: 'Kunci Aplikasi Sekarang',
-            onPressed: _lockAppNow,
-          ),
-        ],
-      ),
+      backgroundColor: const Color(0xFF060A12),
       body: Stack(
         children: [
+          // Main Body Screen
           IndexedStack(
             index: _currentIndex,
             children: _screens,
           ),
-          // Banner Undo 5 Detik di Bagian Bawah Layar (PRD Non-Fungsional Guard)
+
+          // Undo Bottom Banner (floating above bottom navigation)
           const Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
+            left: 12,
+            right: 12,
+            bottom: 74,
             child: UndoBottomBanner(),
+          ),
+
+          // Floating Glass Bottom Navigation Bar
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: 12,
+            child: Container(
+              height: 62,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xE60F172A),
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: Colors.white.withOpacity(0.12)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.65),
+                    blurRadius: 25,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildNavItem(0, '💸', 'Kas & Ambil'),
+                  _buildNavItem(1, '📥', 'Setoran'),
+                  _buildNavItem(2, '📜', 'Mutasi'),
+                  _buildNavItem(3, '📊', 'Rekap WA'),
+                  _buildNavItem(4, '⚙️', 'Sistem'),
+                ],
+              ),
+            ),
           ),
         ],
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.flash_on_outlined),
-            selectedIcon: Icon(Icons.flash_on, color: Color(0xFF00796B)),
-            label: 'Ambil Cepat',
+    );
+  }
+
+  Widget _buildNavItem(int index, String emoji, String label) {
+    final isSelected = _currentIndex == index;
+    return Expanded(
+      child: InkWell(
+        onTap: () => setState(() => _currentIndex = index),
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 3),
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFF10B981).withOpacity(0.16) : Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.people_outline),
-            selectedIcon: Icon(Icons.people, color: Color(0xFF00796B)),
-            label: 'Santri',
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                emoji,
+                style: const TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: TextStyle(
+                  color: isSelected ? const Color(0xFF34D399) : Colors.white54,
+                  fontSize: 9.5,
+                  fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
-          NavigationDestination(
-            icon: Icon(Icons.input_rounded),
-            selectedIcon: Icon(Icons.input_rounded, color: Color(0xFF00796B)),
-            label: 'Setoran',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.bar_chart_rounded),
-            selectedIcon: Icon(Icons.bar_chart_rounded, color: Color(0xFF00796B)),
-            label: 'Rekap',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings, color: Color(0xFF00796B)),
-            label: 'Pengaturan',
-          ),
-        ],
+        ),
       ),
     );
   }

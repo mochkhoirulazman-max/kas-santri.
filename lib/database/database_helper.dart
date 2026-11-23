@@ -16,7 +16,7 @@ class DatabaseHelper {
 
   Future<Database> get database async {
     if (_database != null) return _database!;
-    _database = await _initDB('kas_santri.db');
+    _database = await _initDB('kas_santri_v2.db');
     return _database!;
   }
 
@@ -42,6 +42,9 @@ class DatabaseHelper {
         no_wa_wali TEXT,
         saldo_total INTEGER NOT NULL DEFAULT 0,
         jatah_harian INTEGER NOT NULL DEFAULT 10000,
+        setoran_awal INTEGER NOT NULL DEFAULT 300000,
+        tunggakan INTEGER NOT NULL DEFAULT 0,
+        catatan_tunggakan TEXT DEFAULT '',
         status_aktif INTEGER NOT NULL DEFAULT 1,
         created_at TEXT NOT NULL
       )
@@ -92,9 +95,12 @@ class DatabaseHelper {
         default_jatah_harian INTEGER NOT NULL DEFAULT 10000,
         default_durasi_hari INTEGER NOT NULL DEFAULT 30,
         mode_sisa_harian TEXT NOT NULL DEFAULT 'KETAT',
-        pin_keamanan TEXT,
+        pin_keamanan TEXT DEFAULT '1234',
         is_biometric_enabled INTEGER NOT NULL DEFAULT 0,
-        auto_lock_minutes INTEGER NOT NULL DEFAULT 1
+        auto_lock_minutes INTEGER NOT NULL DEFAULT 1,
+        logo_path TEXT,
+        is_two_col_grid INTEGER NOT NULL DEFAULT 1,
+        hide_balance INTEGER NOT NULL DEFAULT 0
       )
     ''');
 
@@ -121,15 +127,18 @@ class DatabaseHelper {
     // Inisialisasi data pengaturan bawaan
     await db.insert('pengaturan_aplikasi', {
       'id': 1,
-      'nama_pondok': 'Pondok Pesantren Darul Falah',
-      'nama_pengurus': 'Ustadz Abdullah',
+      'nama_pondok': 'PPS MIFTAHUSSUNAN',
+      'nama_pengurus': 'Pengurus Kas & Keuangan',
       'kontak_pengurus': '081234567890',
       'default_jatah_harian': 10000,
       'default_durasi_hari': 30,
       'mode_sisa_harian': 'KETAT',
-      'pin_keamanan': null,
+      'pin_keamanan': '1234',
       'is_biometric_enabled': 0,
       'auto_lock_minutes': 1,
+      'logo_path': null,
+      'is_two_col_grid': 1,
+      'hide_balance': 0,
     });
   }
 
@@ -188,6 +197,68 @@ class DatabaseHelper {
     return maps.map((m) => m['kamar'] as String).toList();
   }
 
+  // ==================== TUNGGAKAN OPERATIONS ====================
+
+  Future<void> kelolaTunggakan({
+    required String santriId,
+    required int nominal,
+    required String catatan,
+    required bool isBayar,
+  }) async {
+    final db = await database;
+    final santriMaps = await db.query('santri', where: 'id = ?', whereArgs: [santriId]);
+    if (santriMaps.isEmpty) return;
+
+    final santri = Santri.fromMap(santriMaps.first);
+    int newTunggakan = santri.tunggakan;
+    String newCatatan = santri.catatanTunggakan;
+
+    if (isBayar) {
+      newTunggakan = (santri.tunggakan - nominal);
+      if (newTunggakan < 0) newTunggakan = 0;
+      if (newTunggakan == 0) {
+        newCatatan = '';
+      } else if (catatan.trim().isNotEmpty) {
+        newCatatan = catatan.trim();
+      }
+    } else {
+      newTunggakan = santri.tunggakan + nominal;
+      if (catatan.trim().isNotEmpty) {
+        newCatatan = catatan.trim();
+      } else if (newCatatan.isEmpty) {
+        newCatatan = 'Tunggakan Kasbon / Pondok';
+      }
+    }
+
+    await db.update(
+      'santri',
+      {
+        'tunggakan': newTunggakan,
+        'catatan_tunggakan': newCatatan,
+      },
+      where: 'id = ?',
+      whereArgs: [santriId],
+    );
+  }
+
+  Future<int> getTotalTunggakanPondok() async {
+    final db = await database;
+    final result = await db.rawQuery(
+      'SELECT SUM(tunggakan) as total FROM santri WHERE status_aktif = 1',
+    );
+    final total = result.first['total'];
+    return (total as num?)?.toInt() ?? 0;
+  }
+
+  Future<int> getCountSantriTunggakan() async {
+    final db = await database;
+    final result = await db.rawQuery(
+      'SELECT COUNT(*) as count FROM santri WHERE tunggakan > 0 AND status_aktif = 1',
+    );
+    final count = result.first['count'];
+    return (count as num?)?.toInt() ?? 0;
+  }
+
   // ==================== SETORAN OPERATIONS (FASE 3) ====================
 
   Future<SetoranBulanan> catatSetoranBaru({
@@ -218,10 +289,8 @@ class DatabaseHelper {
     );
 
     await db.transaction((txn) async {
-      // 1. Simpan record setoran_bulanan
       await txn.insert('setoran_bulanan', setoran.toMap());
 
-      // 2. Ambil data santri saat ini
       final santriMaps = await txn.query('santri', where: 'id = ?', whereArgs: [santriId]);
       if (santriMaps.isEmpty) throw Exception('Santri tidak ditemukan');
       final currentSantri = Santri.fromMap(santriMaps.first);
@@ -230,22 +299,17 @@ class DatabaseHelper {
       int jatahBaru = currentSantri.jatahHarian;
 
       if (tipeSetoran == TipeSetoran.awalBulan) {
-        // Jika sisa bulan lalu disimpan sebagai tabungan terpisah, saldo awal di-reset ke setoran baru
         if (perlakuanSisa == PerlakuanSisaSaldoLalu.simpanTabungan) {
           saldoBaru = nominalSetoran;
         }
         jatahBaru = jatahHarianHitung;
       } else {
-        // Setoran Susulan
         if (opsiSusulan == OpsiSetoranSusulan.tambahJatahHarian) {
-          // Tambah jatah harian dari nominal susulan dibagi sisa durasi
           final tambahanJatah = durasiHari > 0 ? (nominalSetoran / durasiHari).round() : 0;
           jatahBaru += tambahanJatah;
         }
-        // Jika perpanjang hari, jatah harian tetap, saldo total bertambah
       }
 
-      // 3. Update saldo & jatah santri
       await txn.update(
         'santri',
         {
@@ -256,7 +320,6 @@ class DatabaseHelper {
         whereArgs: [santriId],
       );
 
-      // 4. Catat juga ke transaksi_harian sebagai mutasi pemasukan
       final now = DateTime.now();
       final transaksiMutasi = TransaksiHarian(
         id: transaksiId,
@@ -264,8 +327,8 @@ class DatabaseHelper {
         nominal: nominalSetoran,
         waktuAmbil: now,
         tanggalLokal: DateFormatter.toLocalDateString(tanggalSetor),
-        kategoriWaktu: TimeCategoryHelper.fromDateTime(now),
-        catatan: catatan ?? (tipeSetoran == TipeSetoran.awalBulan ? 'Setoran Awal Bulan' : 'Setoran Susulan Top-Up'),
+        kategoriWaktu: TimeCategory.setoran,
+        catatan: catatan ?? (tipeSetoran == TipeSetoran.awalBulan ? 'Setoran Awal Bulan' : 'Top-Up Susulan'),
         saldoSetelahTransaksi: saldoBaru,
         tipe: TipeTransaksi.setoran,
       );
@@ -286,7 +349,7 @@ class DatabaseHelper {
     return maps.map((m) => SetoranBulanan.fromMap(m)).toList();
   }
 
-  // ==================== TRANSAKSI & AMBIL UANG (FASE 1 & 3) ====================
+  // ==================== TRANSAKSI & AMBIL UANG ====================
 
   Future<TransaksiHarian> catatPengambilan({
     required String santriId,
@@ -294,13 +357,14 @@ class DatabaseHelper {
     String? catatan,
     bool isOverlimit = false,
     OverlimitHandling? overlimitHandling,
+    TimeCategory? waktuCategory,
     DateTime? customTimestamp,
   }) async {
     final db = await database;
     final id = const Uuid().v4();
     final waktu = customTimestamp ?? DateTime.now();
     final tanggalLokal = DateFormatter.toLocalDateString(waktu);
-    final kategoriWaktu = TimeCategoryHelper.fromDateTime(waktu);
+    final kategoriWaktu = waktuCategory ?? TimeCategoryHelper.fromDateTime(waktu);
 
     late TransaksiHarian transaksi;
 
@@ -326,16 +390,12 @@ class DatabaseHelper {
         tipe: TipeTransaksi.pengambilan,
       );
 
-      // 1. Simpan transaksi
       await txn.insert('transaksi_harian', transaksi.toMap());
 
-      // 2. Update saldo santri
       Map<String, dynamic> updateData = {'saldo_total': saldoBaru};
 
-      // Jika overlimit dan dipilih hitung ulang rata-rata
       if (isOverlimit && overlimitHandling == OverlimitHandling.hitungUlangRataRata) {
-        // Jatah harian baru = Saldo akhir / sisa hari (asumsi default 15 hari sisa periode jika tidak spesifik)
-        const sisaHariPeriode = 15;
+        const sisaHariPeriode = 20;
         if (saldoBaru > 0) {
           final jatahBaru = (saldoBaru / sisaHariPeriode).round();
           updateData['jatah_harian'] = jatahBaru;
@@ -353,16 +413,14 @@ class DatabaseHelper {
     return transaksi;
   }
 
-  /// Membatalkan / Void transaksi (Fitur Undo 5 detik & Pembatalan Pengurus)
   Future<void> voidTransaksi(String transaksiId) async {
     final db = await database;
     await db.transaction((txn) async {
       final txMaps = await txn.query('transaksi_harian', where: 'id = ?', whereArgs: [transaksiId]);
       if (txMaps.isEmpty) return;
       final tx = TransaksiHarian.fromMap(txMaps.first);
-      if (tx.isVoided) return; // Sudah pernah dibatalkan
+      if (tx.isVoided) return;
 
-      // 1. Tandai transaksi batal
       await txn.update(
         'transaksi_harian',
         {'is_voided': 1},
@@ -370,7 +428,6 @@ class DatabaseHelper {
         whereArgs: [transaksiId],
       );
 
-      // 2. Kembalikan saldo santri
       final santriMaps = await txn.query('santri', where: 'id = ?', whereArgs: [tx.santriId]);
       if (santriMaps.isNotEmpty) {
         final currentSaldo = santriMaps.first['saldo_total'] as int;
@@ -388,45 +445,6 @@ class DatabaseHelper {
     });
   }
 
-  /// Menyesuaikan / Edit transaksi jika ada kesalahan input nominal
-  Future<void> editTransaksi(String transaksiId, int nominalBaru, String? catatanBaru) async {
-    final db = await database;
-    await db.transaction((txn) async {
-      final txMaps = await txn.query('transaksi_harian', where: 'id = ?', whereArgs: [transaksiId]);
-      if (txMaps.isEmpty) return;
-      final tx = TransaksiHarian.fromMap(txMaps.first);
-      if (tx.isVoided) return;
-
-      final selisih = nominalBaru - tx.nominal;
-
-      await txn.update(
-        'transaksi_harian',
-        {
-          'nominal': nominalBaru,
-          'catatan': catatanBaru,
-        },
-        where: 'id = ?',
-        whereArgs: [transaksiId],
-      );
-
-      final santriMaps = await txn.query('santri', where: 'id = ?', whereArgs: [tx.santriId]);
-      if (santriMaps.isNotEmpty) {
-        final currentSaldo = santriMaps.first['saldo_total'] as int;
-        final updatedSaldo = tx.tipe == TipeTransaksi.pengambilan
-            ? currentSaldo - selisih
-            : currentSaldo + selisih;
-
-        await txn.update(
-          'santri',
-          {'saldo_total': updatedSaldo},
-          where: 'id = ?',
-          whereArgs: [tx.santriId],
-        );
-      }
-    });
-  }
-
-  /// Ambil total pengambilan santri pada tanggal tertentu
   Future<int> getTotalPengambilanHariIni(String santriId, String tanggalLokal) async {
     final db = await database;
     final result = await db.rawQuery('''
@@ -442,7 +460,6 @@ class DatabaseHelper {
     return (total as num?)?.toInt() ?? 0;
   }
 
-  /// Ambil transaksi santri pada hari ini
   Future<List<TransaksiHarian>> getTransaksiHariIni(String santriId, String tanggalLokal) async {
     final db = await database;
     final maps = await db.query(
@@ -454,32 +471,37 @@ class DatabaseHelper {
     return maps.map((m) => TransaksiHarian.fromMap(m)).toList();
   }
 
-  /// Buku mutasi digital lengkap per santri
-  Future<List<TransaksiHarian>> getBukuMutasiSantri(
-    String santriId, {
-    String? tanggalMulai,
-    String? tanggalSelesai,
+  Future<List<TransaksiHarian>> getAllTransaksi({
+    String? santriId,
+    String? kategoriWaktu,
+    int? limit,
   }) async {
     final db = await database;
-    String where = 'santri_id = ?';
-    List<dynamic> whereArgs = [santriId];
+    String where = 'is_voided = 0';
+    List<dynamic> args = [];
 
-    if (tanggalMulai != null && tanggalSelesai != null) {
-      where += ' AND tanggal_lokal BETWEEN ? AND ?';
-      whereArgs.addAll([tanggalMulai, tanggalSelesai]);
+    if (santriId != null && santriId.isNotEmpty && santriId != 'ALL') {
+      where += ' AND santri_id = ?';
+      args.add(santriId);
+    }
+
+    if (kategoriWaktu != null && kategoriWaktu.isNotEmpty && kategoriWaktu != 'ALL') {
+      where += ' AND kategori_waktu = ?';
+      args.add(kategoriWaktu);
     }
 
     final maps = await db.query(
       'transaksi_harian',
       where: where,
-      whereArgs: whereArgs,
+      whereArgs: args.isNotEmpty ? args : null,
       orderBy: 'waktu_ambil DESC',
+      limit: limit,
     );
+
     return maps.map((m) => TransaksiHarian.fromMap(m)).toList();
   }
 
-  /// Riwayat transaksi santri yang paling baru (untuk tampilan transaksi terakhir)
-  Future<List<Map<String, dynamic>>> getRecentTransactedSantriIds({int limit = 5}) async {
+  Future<List<Map<String, dynamic>>> getRecentTransactedSantriIds({int limit = 6}) async {
     final db = await database;
     return await db.rawQuery('''
       SELECT santri_id, MAX(waktu_ambil) as latest_time
@@ -491,111 +513,138 @@ class DatabaseHelper {
     ''', [limit]);
   }
 
-  // ==================== REKAP & LAPORAN AUDIT (FASE 4) ====================
+  // ==================== REKAP & AUDIT ====================
 
-  /// Total Sisa Saldo Seluruh Santri Aktif (Brankas Fisik)
   Future<int> getTotalSaldoBrankasFisik() async {
     final db = await database;
-    final result = await db.rawQuery('''
-      SELECT SUM(saldo_total) as total_brankas
-      FROM santri
-      WHERE status_aktif = 1
-    ''');
-    final total = result.first['total_brankas'];
+    final result = await db.rawQuery(
+      'SELECT SUM(saldo_total) as total FROM santri WHERE status_aktif = 1',
+    );
+    final total = result.first['total'];
     return (total as num?)?.toInt() ?? 0;
   }
 
-  /// Total Uang Tunai yang Keluar Hari Ini dari seluruh santri
   Future<int> getTotalPengeluaranHariIni(String tanggalLokal) async {
     final db = await database;
     final result = await db.rawQuery('''
-      SELECT SUM(nominal) as total_keluar
-      FROM transaksi_harian
+      SELECT SUM(nominal) as total 
+      FROM transaksi_harian 
       WHERE tanggal_lokal = ? 
         AND is_voided = 0 
         AND tipe = 'PENGAMBILAN'
     ''', [tanggalLokal]);
-    final total = result.first['total_keluar'];
+
+    final total = result.first['total'];
     return (total as num?)?.toInt() ?? 0;
   }
 
-  /// Jumlah transaksi pengambilan hari ini
+  Future<int> getTotalPagiSiangHariIni(String tanggalLokal) async {
+    final db = await database;
+    final result = await db.rawQuery('''
+      SELECT SUM(nominal) as total 
+      FROM transaksi_harian 
+      WHERE tanggal_lokal = ? 
+        AND is_voided = 0 
+        AND tipe = 'PENGAMBILAN'
+        AND kategori_waktu IN ('PAGI', 'SIANG')
+    ''', [tanggalLokal]);
+
+    final total = result.first['total'];
+    return (total as num?)?.toInt() ?? 0;
+  }
+
+  Future<int> getTotalSoreMalamHariIni(String tanggalLokal) async {
+    final db = await database;
+    final result = await db.rawQuery('''
+      SELECT SUM(nominal) as total 
+      FROM transaksi_harian 
+      WHERE tanggal_lokal = ? 
+        AND is_voided = 0 
+        AND tipe = 'PENGAMBILAN'
+        AND kategori_waktu IN ('SORE', 'MALAM')
+    ''', [tanggalLokal]);
+
+    final total = result.first['total'];
+    return (total as num?)?.toInt() ?? 0;
+  }
+
   Future<int> getJumlahTransaksiHariIni(String tanggalLokal) async {
     final db = await database;
     final result = await db.rawQuery('''
-      SELECT COUNT(*) as jumlah
-      FROM transaksi_harian
+      SELECT COUNT(DISTINCT santri_id) as count 
+      FROM transaksi_harian 
       WHERE tanggal_lokal = ? 
         AND is_voided = 0 
         AND tipe = 'PENGAMBILAN'
     ''', [tanggalLokal]);
-    final count = result.first['jumlah'];
+
+    final count = result.first['count'];
     return (count as num?)?.toInt() ?? 0;
   }
 
-  /// Rekap pengeluaran harian per kategori (Jajan, Sabun, Obat, dll.)
   Future<Map<String, int>> getRekapKategoriHariIni(String tanggalLokal) async {
     final db = await database;
-    final results = await db.rawQuery('''
-      SELECT COALESCE(catatan, 'Lainnya') as kategori, SUM(nominal) as total
+    final maps = await db.rawQuery('''
+      SELECT kategori_waktu, SUM(nominal) as total
       FROM transaksi_harian
-      WHERE tanggal_lokal = ? 
-        AND is_voided = 0 
-        AND tipe = 'PENGAMBILAN'
-      GROUP BY kategori
+      WHERE tanggal_lokal = ? AND is_voided = 0 AND tipe = 'PENGAMBILAN'
+      GROUP BY kategori_waktu
     ''', [tanggalLokal]);
 
-    Map<String, int> rekap = {};
-    for (var r in results) {
-      final kat = r['kategori'] as String;
-      final tot = (r['total'] as num?)?.toInt() ?? 0;
+    Map<String, int> rekap = {
+      'PAGI': 0,
+      'SIANG': 0,
+      'SORE': 0,
+      'MALAM': 0,
+    };
+
+    for (var m in maps) {
+      final kat = m['kategori_waktu'] as String;
+      final tot = (m['total'] as num).toInt();
       rekap[kat] = tot;
     }
     return rekap;
   }
 
-  /// Rekap Bulanan (Pemasukan setoran vs Pengeluaran penarikan)
-  Future<Map<String, int>> getRekapBulanan(int tahun, int bulan) async {
-    final db = await database;
-    final bulanStr = bulan.toString().padLeft(2, '0');
-    final prefix = '$tahun-$bulanStr';
-
-    final resultKeluar = await db.rawQuery('''
-      SELECT SUM(nominal) as total
-      FROM transaksi_harian
-      WHERE tanggal_lokal LIKE '$prefix%' 
-        AND is_voided = 0 
-        AND tipe = 'PENGAMBILAN'
-    ''');
-    final totalKeluar = (resultKeluar.first['total'] as num?)?.toInt() ?? 0;
-
-    final resultMasuk = await db.rawQuery('''
-      SELECT SUM(nominal_setoran) as total
-      FROM setoran_bulanan
-      WHERE tanggal_setor LIKE '$prefix%'
-    ''');
-    final totalMasuk = (resultMasuk.first['total'] as num?)?.toInt() ?? 0;
-
-    return {
-      'pemasukan': totalMasuk,
-      'pengeluaran': totalKeluar,
-      'net': totalMasuk - totalKeluar,
-    };
-  }
-
-  /// Ambil seluruh transaksi pada tanggal tertentu (beserta nama & kamar santri)
   Future<List<Map<String, dynamic>>> getDetailTransaksiTanggal(String tanggalLokal) async {
     final db = await database;
     return await db.rawQuery('''
       SELECT t.*, s.nama_lengkap, s.nama_panggilan, s.kamar
       FROM transaksi_harian t
       JOIN santri s ON t.santri_id = s.id
-      WHERE t.tanggal_lokal = ?
+      WHERE t.tanggal_lokal = ? AND t.is_voided = 0
       ORDER BY t.waktu_ambil DESC
     ''', [tanggalLokal]);
   }
 
-  // ==================== PENGATURAN (FASE 5) ====================
+  Future<Map<String, int>> getRekapBulanan(int tahun, int bulan) async {
+    final db = await database;
+    final bulanStr = bulan.toString().padLeft(2, '0');
+    final prefix = '$tahun-$bulanStr%';
+
+    final resPengeluaran = await db.rawQuery('''
+      SELECT SUM(nominal) as total
+      FROM transaksi_harian
+      WHERE tanggal_lokal LIKE ? AND is_voided = 0 AND tipe = 'PENGAMBILAN'
+    ''', [prefix]);
+
+    final resPemasukan = await db.rawQuery('''
+      SELECT SUM(nominal_setoran) as total
+      FROM setoran_bulanan
+      WHERE tanggal_setor LIKE ?
+    ''', [prefix]);
+
+    final keluar = (resPengeluaran.first['total'] as num?)?.toInt() ?? 0;
+    final masuk = (resPemasukan.first['total'] as num?)?.toInt() ?? 0;
+
+    return {
+      'pemasukan': masuk,
+      'pengeluaran': keluar,
+      'net': masuk - keluar,
+    };
+  }
+
+  // ==================== PENGATURAN ====================
 
   Future<PengaturanAplikasi> getPengaturan() async {
     final db = await database;
@@ -625,7 +674,7 @@ class DatabaseHelper {
     final pengaturanList = await db.query('pengaturan_aplikasi');
 
     return {
-      'version': 1,
+      'version': 2,
       'exported_at': DateTime.now().toIso8601String(),
       'santri': santriList,
       'setoran_bulanan': setoranList,
@@ -665,99 +714,189 @@ class DatabaseHelper {
     });
   }
 
-  Future<void> seedDemoData() async {
+  Future<void> resetToInitialDemoData() async {
     final db = await database;
-    final existing = await db.query('santri');
-    if (existing.isNotEmpty) return; // Jangan timpah jika sudah ada santri
+    await db.transaction((txn) async {
+      await txn.delete('transaksi_harian');
+      await txn.delete('setoran_bulanan');
+      await txn.delete('santri');
+      await txn.delete('pengaturan_aplikasi');
+    });
+
+    await db.insert('pengaturan_aplikasi', {
+      'id': 1,
+      'nama_pondok': 'PPS MIFTAHUSSUNAN',
+      'nama_pengurus': 'Pengurus Kas & Keuangan',
+      'kontak_pengurus': '081234567890',
+      'default_jatah_harian': 10000,
+      'default_durasi_hari': 30,
+      'mode_sisa_harian': 'KETAT',
+      'pin_keamanan': '1234',
+      'is_biometric_enabled': 0,
+      'auto_lock_minutes': 1,
+      'logo_path': null,
+      'is_two_col_grid': 1,
+      'hide_balance': 0,
+    });
+
+    await seedDemoData(force: true);
+  }
+
+  Future<void> seedDemoData({bool force = false}) async {
+    final db = await database;
+    if (!force) {
+      final existing = await db.query('santri');
+      if (existing.isNotEmpty) return;
+    }
 
     final santriDemo = [
       Santri(
-        id: '1',
+        id: 's1',
         namaLengkap: 'Ahmad Fauzi',
         namaPanggilan: 'Ahmad',
-        kamar: 'Kamar Abu Bakar (01)',
+        kamar: 'Kamar 1',
         noWaWali: '628123456701',
-        saldoTotal: 285000,
+        saldoTotal: 243000,
         jatahHarian: 10000,
+        setoranAwal: 300000,
+        tunggakan: 50000,
+        catatanTunggakan: 'Kurang Setoran Bulanan',
       ),
       Santri(
-        id: '2',
-        namaLengkap: 'Muhammad Rizky',
-        namaPanggilan: 'Rizky',
-        kamar: 'Kamar Abu Bakar (01)',
+        id: 's2',
+        namaLengkap: 'Zaidan Alfarizi',
+        namaPanggilan: 'Zaidan',
+        kamar: 'Kamar 1',
         noWaWali: '628123456702',
+        saldoTotal: 280000,
+        jatahHarian: 10000,
+        setoranAwal: 300000,
+        tunggakan: 0,
+        catatanTunggakan: '',
+      ),
+      Santri(
+        id: 's3',
+        namaLengkap: 'M. Rizky Pratama',
+        namaPanggilan: 'Rizky',
+        kamar: 'Kamar 2',
+        noWaWali: '628123456703',
+        saldoTotal: 190000,
+        jatahHarian: 10000,
+        setoranAwal: 300000,
+        tunggakan: 120000,
+        catatanTunggakan: 'Tunggakan Syahriyah & Kasbon Obat',
+      ),
+      Santri(
+        id: 's4',
+        namaLengkap: 'Bilal Ramadhan',
+        namaPanggilan: 'Bilal',
+        kamar: 'Kamar 2',
+        noWaWali: '628123456704',
+        saldoTotal: 387000,
+        jatahHarian: 15000,
+        setoranAwal: 450000,
+        tunggakan: 0,
+        catatanTunggakan: '',
+      ),
+      Santri(
+        id: 's5',
+        namaLengkap: 'Naufal Syauqi',
+        namaPanggilan: 'Naufal',
+        kamar: 'Kamar 3',
+        noWaWali: '628123456705',
+        saldoTotal: 266000,
+        jatahHarian: 10000,
+        setoranAwal: 300000,
+        tunggakan: 75000,
+        catatanTunggakan: 'Belum Lunas Uang Makan',
+      ),
+      Santri(
+        id: 's6',
+        namaLengkap: 'Farhan Maulana',
+        namaPanggilan: 'Farhan',
+        kamar: 'Kamar 3',
+        noWaWali: '628123456706',
         saldoTotal: 300000,
         jatahHarian: 10000,
-      ),
-      Santri(
-        id: '3',
-        namaLengkap: 'Fikri Haikal',
-        namaPanggilan: 'Haikal',
-        kamar: 'Kamar Umar bin Khattab (02)',
-        noWaWali: '628123456703',
-        saldoTotal: 150000,
-        jatahHarian: 10000,
-      ),
-      Santri(
-        id: '4',
-        namaLengkap: 'Zaid bin Tsabit',
-        namaPanggilan: 'Zaid',
-        kamar: 'Kamar Umar bin Khattab (02)',
-        noWaWali: '628123456704',
-        saldoTotal: 5000,
-        jatahHarian: 10000,
-      ),
-      Santri(
-        id: '5',
-        namaLengkap: 'Bilal Al-Habasyi',
-        namaPanggilan: 'Bilal',
-        kamar: 'Kamar Utsman bin Affan (03)',
-        noWaWali: '628123456705',
-        saldoTotal: 420000,
-        jatahHarian: 12000,
-      ),
-      Santri(
-        id: '6',
-        namaLengkap: 'Ali Zainal Abidin',
-        namaPanggilan: 'Ali',
-        kamar: 'Kamar Ali bin Abi Thalib (04)',
-        noWaWali: '628123456706',
-        saldoTotal: 290000,
-        jatahHarian: 10000,
+        setoranAwal: 300000,
+        tunggakan: 0,
+        catatanTunggakan: '',
       ),
     ];
 
     for (var s in santriDemo) {
-      await db.insert('santri', s.toMap());
+      await db.insert('santri', s.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
     }
 
     final today = DateFormatter.toLocalDateString(DateTime.now());
     final now = DateTime.now();
 
-    // Transaksi pagi untuk Ahmad (Rp 2.000)
-    final txAhmad1 = TransaksiHarian(
-      id: const Uuid().v4(),
-      santriId: '1',
+    final txAhmadPagi = TransaksiHarian(
+      id: 'tx_demo_1',
+      santriId: 's1',
       nominal: 2000,
+      waktuAmbil: DateTime(now.year, now.month, now.day, 7, 15),
+      tanggalLokal: today,
+      kategoriWaktu: TimeCategory.pagi,
+      catatan: 'Jajan Pagi / Sarapan',
+      saldoSetelahTransaksi: 248000,
+    );
+    final txAhmadSiang = TransaksiHarian(
+      id: 'tx_demo_2',
+      santriId: 's1',
+      nominal: 5000,
+      waktuAmbil: DateTime(now.year, now.month, now.day, 12, 40),
+      tanggalLokal: today,
+      kategoriWaktu: TimeCategory.siang,
+      catatan: 'Jajan Siang',
+      saldoSetelahTransaksi: 243000,
+    );
+
+    final txRizkyPagi = TransaksiHarian(
+      id: 'tx_demo_3',
+      santriId: 's3',
+      nominal: 5000,
       waktuAmbil: DateTime(now.year, now.month, now.day, 7, 30),
       tanggalLokal: today,
       kategoriWaktu: TimeCategory.pagi,
-      catatan: 'Jajan',
-      saldoSetelahTransaksi: 288000,
+      catatan: 'Jajan Harian',
+      saldoSetelahTransaksi: 195000,
     );
-    await db.insert('transaksi_harian', txAhmad1.toMap());
-
-    // Transaksi siang untuk Ahmad (Rp 5.000)
-    final txAhmad2 = TransaksiHarian(
-      id: const Uuid().v4(),
-      santriId: '1',
+    final txRizkySiang = TransaksiHarian(
+      id: 'tx_demo_4',
+      santriId: 's3',
       nominal: 5000,
-      waktuAmbil: DateTime(now.year, now.month, now.day, 12, 45),
+      waktuAmbil: DateTime(now.year, now.month, now.day, 13, 10),
       tanggalLokal: today,
       kategoriWaktu: TimeCategory.siang,
-      catatan: 'Beli Sabun/Toiletries',
-      saldoSetelahTransaksi: 285000,
+      catatan: 'Beli Sabun/Cuci',
+      saldoSetelahTransaksi: 190000,
     );
-    await db.insert('transaksi_harian', txAhmad2.toMap());
+
+    final txBilalPagi = TransaksiHarian(
+      id: 'tx_demo_5',
+      santriId: 's4',
+      nominal: 3000,
+      waktuAmbil: DateTime(now.year, now.month, now.day, 8, 0),
+      tanggalLokal: today,
+      kategoriWaktu: TimeCategory.pagi,
+      catatan: 'Jajan Harian',
+      saldoSetelahTransaksi: 387000,
+    );
+
+    final txNaufalPagi = TransaksiHarian(
+      id: 'tx_demo_6',
+      santriId: 's5',
+      nominal: 4000,
+      waktuAmbil: DateTime(now.year, now.month, now.day, 9, 20),
+      tanggalLokal: today,
+      kategoriWaktu: TimeCategory.pagi,
+      catatan: 'Jajan Harian',
+      saldoSetelahTransaksi: 266000,
+    );
+
+    for (var tx in [txAhmadPagi, txAhmadSiang, txRizkyPagi, txRizkySiang, txBilalPagi, txNaufalPagi]) {
+      await db.insert('transaksi_harian', tx.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+    }
   }
 }

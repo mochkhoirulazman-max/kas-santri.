@@ -64,7 +64,10 @@ class _SantriFormScreenState extends State<SantriFormScreen> {
       kamar: _kamarController.text.trim(),
       noWaWali: _noWaWaliController.text.trim().isNotEmpty ? _noWaWaliController.text.trim() : null,
       saldoTotal: int.tryParse(_saldoAwalController.text) ?? 0,
+      setoranAwal: widget.santriToEdit?.setoranAwal ?? (int.tryParse(_saldoAwalController.text) ?? 0),
       jatahHarian: int.tryParse(_jatahHarianController.text) ?? 10000,
+      tunggakan: widget.santriToEdit?.tunggakan ?? 0,
+      catatanTunggakan: widget.santriToEdit?.catatanTunggakan,
       statusAktif: _statusAktif,
       createdAt: widget.santriToEdit?.createdAt,
     );

@@ -10,6 +10,7 @@ import '../../utils/currency_formatter.dart';
 import '../../utils/date_formatter.dart';
 import '../../utils/time_category_helper.dart';
 import '../../widgets/fast_withdrawal_bottom_sheet.dart';
+import '../../widgets/tunggakan_bottom_sheet.dart';
 import 'emergency_override_dialog.dart';
 import 'santri_form_screen.dart';
 import '../setoran/setoran_form_screen.dart';
@@ -398,6 +399,47 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> {
                         ],
                       ),
                     ),
+
+                    if (santri.tunggakan > 0) ...[
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF43F5E).withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFF43F5E).withOpacity(0.3)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Text('🚨', style: TextStyle(fontSize: 16)),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Tunggakan: ${CurrencyFormatter.format(santri.tunggakan)}',
+                                    style: const TextStyle(
+                                      color: Color(0xFFF43F5E),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  if (santri.catatanTunggakan != null && santri.catatanTunggakan!.isNotEmpty)
+                                    Text(
+                                      santri.catatanTunggakan!,
+                                      style: TextStyle(
+                                        color: Colors.red.shade900,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -431,6 +473,22 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> {
                         ),
                       );
                     },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                InkWell(
+                  onTap: () => TunggakanBottomSheet.show(context, santri),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: santri.tunggakan > 0 ? const Color(0xFFF43F5E).withOpacity(0.15) : Colors.grey.shade200,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: santri.tunggakan > 0 ? const Color(0xFFF43F5E).withOpacity(0.5) : Colors.grey.shade400,
+                      ),
+                    ),
+                    child: const Text('🚨', style: TextStyle(fontSize: 16)),
                   ),
                 ),
               ],
