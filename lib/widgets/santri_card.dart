@@ -1,6 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../models/santri.dart';
 import '../models/santri_status.dart';
+import '../providers/kas_santri_provider.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/time_category_helper.dart';
 import '../utils/app_feedback.dart';

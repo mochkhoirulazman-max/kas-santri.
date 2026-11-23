@@ -1,4 +1,5 @@
 import 'santri.dart';
+export 'santri.dart';
 import 'transaksi.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/time_category_helper.dart';
