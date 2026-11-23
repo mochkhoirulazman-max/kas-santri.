@@ -33,11 +33,10 @@ jobs:
       - name: Verify Flutter version
         run: flutter --version
 
-      - name: Generate Gradle Wrapper
-        working-directory: android
+      - name: Configure Android wrapper
         run: |
-          gradle wrapper --gradle-version 8.5 || true
-          chmod +x gradlew || true
+          flutter create --platforms=android .
+          chmod +x android/gradlew
 
       - name: Install dependencies
         run: flutter pub get
@@ -46,11 +45,11 @@ jobs:
         run: flutter test
 
       - name: Build APK Release
-        run: flutter build apk --release
+        run: flutter build apk --release --no-tree-shake-icons
 
       - name: Upload APK to Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: kas-santri-release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: build/app/outputs/flutter-apk/*.apk
           if-no-files-found: error
