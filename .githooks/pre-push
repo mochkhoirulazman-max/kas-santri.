@@ -1,0 +1,14 @@
+#!/bin/sh
+set -e
+
+echo "[Pre-Push] Menjalankan pengujian regresi lokal sebelum push..."
+
+if command -v flutter >/dev/null 2>&1; then
+    echo "-> Menjalankan unit & widget test suite..."
+    flutter test
+    echo "[Pre-Push] 100% tes lokal lulus! Melanjutkan proses git push..."
+else
+    echo "-> Peringatan: Flutter SDK tidak ditemukan, push diteruskan ke CI runner."
+fi
+
+exit 0

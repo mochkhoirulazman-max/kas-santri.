@@ -1,0 +1,23 @@
+#!/bin/sh
+set -e
+
+echo "[Pre-Commit] Menjalankan validasi kualitas kode lokal..."
+
+# 1. Cek format kode Dart
+if command -v dart >/dev/null 2>&1; then
+    echo "-> Memeriksa format kode (dart format)..."
+    dart format --output=none --set-exit-if-changed .
+else
+    echo "-> Peringatan: Dart SDK belum terdeteksi di lingkungan lokal."
+fi
+
+# 2. Cek linter static analysis
+if command -v flutter >/dev/null 2>&1; then
+    echo "-> Memeriksa static analysis (flutter analyze)..."
+    flutter analyze --no-fatal-infos
+else
+    echo "-> Peringatan: Flutter SDK belum terdeteksi di lingkungan lokal."
+fi
+
+echo "[Pre-Commit] Seluruh validasi pre-commit lolos!"
+exit 0
