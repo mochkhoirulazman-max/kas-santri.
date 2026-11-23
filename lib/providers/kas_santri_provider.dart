@@ -350,6 +350,11 @@ class KasSantriProvider extends ChangeNotifier {
     await loadAllData();
   }
 
+  Future<void> deleteSantri(String santriId) async {
+    await _db.deleteSantri(santriId);
+    await loadAllData();
+  }
+
   // ==================== SANTRI BARU & PENGATURAN ====================
 
   Future<void> tambahSantriBaru(Santri santri) async {

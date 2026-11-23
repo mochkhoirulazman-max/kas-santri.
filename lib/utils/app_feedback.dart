@@ -1,27 +1,24 @@
 import 'package:flutter/services.dart';
 
 class AppFeedback {
-  /// Efek getar lembut dan suara klik taktil saat tombol/kartu disentuh
+  /// Suara sentuhan lembut (soft click) tanpa getaran
   static void tap() {
     try {
-      HapticFeedback.selectionClick();
       SystemSound.play(SystemSoundType.click);
     } catch (_) {}
   }
 
-  /// Efek getar dan konfirmasi suara sukses
+  /// Suara sentuhan konfirmasi tanpa getaran
   static void success() {
     try {
-      HapticFeedback.mediumImpact();
       SystemSound.play(SystemSoundType.click);
     } catch (_) {}
   }
 
-  /// Efek getar peringatan untuk overlimit atau pembatalan
+  /// Suara peringatan tanpa getaran
   static void alert() {
     try {
-      HapticFeedback.heavyImpact();
-      SystemSound.play(SystemSoundType.alert);
+      SystemSound.play(SystemSoundType.click);
     } catch (_) {}
   }
 }

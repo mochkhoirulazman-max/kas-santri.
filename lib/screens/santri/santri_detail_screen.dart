@@ -10,6 +10,7 @@ import '../../services/report_service.dart';
 import '../../utils/currency_formatter.dart';
 import '../../utils/date_formatter.dart';
 import '../../utils/time_category_helper.dart';
+import '../../utils/app_feedback.dart';
 import '../../widgets/fast_withdrawal_bottom_sheet.dart';
 import '../../widgets/tunggakan_bottom_sheet.dart';
 import 'emergency_override_dialog.dart';
@@ -256,12 +257,21 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> {
             icon: const Icon(Icons.edit_outlined),
             tooltip: 'Edit Data Santri',
             onPressed: () {
+              AppFeedback.tap();
               Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (_) => SantriFormScreen(santriToEdit: santri),
                 ),
               );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline, color: Color(0xFFFB7185)),
+            tooltip: 'Hapus Santri',
+            onPressed: () {
+              AppFeedback.tap();
+              _confirmDelete(context, santri);
             },
           ),
         ],
@@ -672,6 +682,74 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> {
             const SizedBox(height: 40),
           ],
         ),
+      ),
+    );
+  }
+
+  void _confirmDelete(BuildContext context, Santri santri) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF0F172A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(22),
+          side: const BorderSide(color: Color(0xFFF43F5E), width: 1.2),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF4C0519),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Text('🗑️', style: TextStyle(fontSize: 18)),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Hapus ${santri.namaLengkap}?',
+                style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w900),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'Apakah Anda yakin ingin menghapus santri ${santri.namaLengkap} (${santri.kamar}) dari daftar? Seluruh data saldo, tunggakan, dan riwayat mutasi akan dihapus permanen.',
+          style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              AppFeedback.tap();
+              Navigator.pop(ctx);
+            },
+            child: const Text('Batal', style: TextStyle(color: Colors.white60)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFE11D48),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx); // close dialog
+              Navigator.pop(context); // return from detail screen to list
+              AppFeedback.tap();
+              final provider = Provider.of<KasSantriProvider>(context, listen: false);
+              await provider.deleteSantri(santri.id);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Santri ${santri.namaLengkap} berhasil dihapus dari daftar.'),
+                    backgroundColor: const Color(0xFFE11D48),
+                  ),
+                );
+              }
+            },
+            child: const Text('Ya, Hapus Santri', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
       ),
     );
   }

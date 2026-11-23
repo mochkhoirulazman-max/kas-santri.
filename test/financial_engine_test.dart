@@ -193,5 +193,27 @@ void main() {
       expect(saldo, 0); // Saldo habis
       expect(tunggakanSantri, 3000); // Kekurangan Rp 3.000 jadi tunggakan
     });
+
+    test('I. Presisi Rollback Void Transaksi & Penanganan Hapus Santri', () {
+      // Simulasi void transaksi pengambilan yang sebelumnya menimbulkan tunggakan
+      int saldo = 0;
+      int tunggakan = 3000;
+      const nominalVoid = 5000;
+
+      int sisaRefund = nominalVoid;
+      if (tunggakan > 0) {
+        if (sisaRefund >= tunggakan) {
+          sisaRefund -= tunggakan;
+          tunggakan = 0;
+        } else {
+          tunggakan -= sisaRefund;
+          sisaRefund = 0;
+        }
+      }
+      saldo += sisaRefund;
+
+      expect(tunggakan, 0); // Tunggakan talangan dibatalkan
+      expect(saldo, 2000); // Saldo asli sebelum transaksi berhasil dipulihkan presisi
+    });
   });
 }

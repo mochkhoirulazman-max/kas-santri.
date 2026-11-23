@@ -426,13 +426,13 @@ class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen> {
               )
             else if (isTwoCol)
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 90),
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 115),
                 sliver: SliverGrid(
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
                     mainAxisSpacing: 10,
                     crossAxisSpacing: 10,
-                    childAspectRatio: 0.65,
+                    childAspectRatio: 0.52,
                   ),
                   delegate: SliverChildBuilderDelegate(
                     (ctx, idx) {
@@ -450,7 +450,7 @@ class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen> {
               )
             else
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(0, 4, 0, 90),
+                padding: const EdgeInsets.fromLTRB(0, 4, 0, 115),
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (ctx, idx) {

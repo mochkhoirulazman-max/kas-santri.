@@ -88,7 +88,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
         await _fetch();
       },
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 44, 16, 90),
+        padding: const EdgeInsets.fromLTRB(16, 44, 16, 115),
         children: [
           // Filter Card
           Container(

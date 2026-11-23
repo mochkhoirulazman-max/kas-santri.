@@ -296,8 +296,96 @@ class _QuickEditSantriBottomSheetState extends State<QuickEditSantriBottomSheet>
                 onPressed: _isLoading ? null : _save,
               ),
             ),
+            const SizedBox(height: 8),
+
+            // Tombol Hapus Santri
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.delete_outline_rounded, color: Color(0xFFFB7185), size: 16),
+                label: const Text(
+                  'HAPUS DATA SANTRI INI',
+                  style: TextStyle(color: Color(0xFFFB7185), fontSize: 11, fontWeight: FontWeight.bold),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Color(0xFFF43F5E), width: 1.2),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+                onPressed: _isLoading ? null : () => _confirmDelete(context),
+              ),
+            ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _confirmDelete(BuildContext context) {
+    final s = widget.santri;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF0F172A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(22),
+          side: const BorderSide(color: Color(0xFFF43F5E), width: 1.2),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF4C0519),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Text('🗑️', style: TextStyle(fontSize: 18)),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Hapus ${s.namaLengkap}?',
+                style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w900),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'Apakah Anda yakin ingin menghapus santri ${s.namaLengkap} (${s.kamar}) dari daftar? Seluruh data saldo, tunggakan, dan riwayat mutasi akan dihapus permanen.',
+          style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              AppFeedback.tap();
+              Navigator.pop(ctx);
+            },
+            child: const Text('Batal', style: TextStyle(color: Colors.white60)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFE11D48),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              Navigator.pop(context); // close bottom sheet
+              AppFeedback.tap();
+              final provider = Provider.of<KasSantriProvider>(context, listen: false);
+              await provider.deleteSantri(s.id);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Santri ${s.namaLengkap} berhasil dihapus dari daftar.'),
+                    backgroundColor: const Color(0xFFE11D48),
+                  ),
+                );
+              }
+            },
+            child: const Text('Ya, Hapus Santri', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
       ),
     );
   }

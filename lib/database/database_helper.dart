@@ -229,6 +229,15 @@ class DatabaseHelper {
     );
   }
 
+  Future<void> deleteSantri(String santriId) async {
+    final db = await database;
+    await db.transaction((txn) async {
+      await txn.delete('transaksi_harian', where: 'santri_id = ?', whereArgs: [santriId]);
+      await txn.delete('setoran_bulanan', where: 'santri_id = ?', whereArgs: [santriId]);
+      await txn.delete('santri', where: 'id = ?', whereArgs: [santriId]);
+    });
+  }
+
   Future<List<String>> getAllKamars() async {
     final db = await database;
     final maps = await db.rawQuery(
@@ -528,17 +537,46 @@ class DatabaseHelper {
 
       final santriMaps = await txn.query('santri', where: 'id = ?', whereArgs: [tx.santriId]);
       if (santriMaps.isNotEmpty) {
-        final currentSaldo = santriMaps.first['saldo_total'] as int;
-        final restoredSaldo = tx.tipe == TipeTransaksi.pengambilan
-            ? currentSaldo + tx.nominal
-            : currentSaldo - tx.nominal;
+        final currentSantri = Santri.fromMap(santriMaps.first);
+        if (tx.tipe == TipeTransaksi.pengambilan) {
+          int sisaRefund = tx.nominal;
+          int tunggakanBaru = currentSantri.tunggakan;
+          String catatanTunggakanBaru = currentSantri.catatanTunggakan;
+          int saldoBaru = currentSantri.saldoTotal;
 
-        await txn.update(
-          'santri',
-          {'saldo_total': restoredSaldo},
-          where: 'id = ?',
-          whereArgs: [tx.santriId],
-        );
+          // Batalkan tunggakan terlebih dahulu jika ada tunggakan
+          if (tunggakanBaru > 0) {
+            if (sisaRefund >= tunggakanBaru) {
+              sisaRefund -= tunggakanBaru;
+              tunggakanBaru = 0;
+              catatanTunggakanBaru = '';
+            } else {
+              tunggakanBaru -= sisaRefund;
+              sisaRefund = 0;
+            }
+          }
+          saldoBaru += sisaRefund;
+
+          await txn.update(
+            'santri',
+            {
+              'saldo_total': saldoBaru,
+              'tunggakan': tunggakanBaru,
+              'catatan_tunggakan': catatanTunggakanBaru,
+            },
+            where: 'id = ?',
+            whereArgs: [tx.santriId],
+          );
+        } else {
+          // Void setoran: kurangi saldo yang sempat disetor
+          final int restoredSaldo = (currentSantri.saldoTotal - tx.nominal).clamp(0, double.infinity).toInt();
+          await txn.update(
+            'santri',
+            {'saldo_total': restoredSaldo},
+            where: 'id = ?',
+            whereArgs: [tx.santriId],
+          );
+        }
       }
     });
   }

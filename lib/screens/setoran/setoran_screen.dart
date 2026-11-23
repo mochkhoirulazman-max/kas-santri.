@@ -32,7 +32,15 @@ class _SetoranScreenState extends State<SetoranScreen> {
 
   int get _nominal => int.tryParse(_nominalController.text.trim()) ?? 0;
   int get _durasi => int.tryParse(_durasiController.text.trim()) ?? 30;
-  int get _hitungJatah => _durasi > 0 ? (_nominal / _durasi).round() : 0;
+
+  int _hitungJatahPresisi(Santri? santri) {
+    if (_durasi <= 0) return 0;
+    int net = _nominal;
+    if (santri != null && santri.tunggakan > 0) {
+      net = (_nominal - santri.tunggakan).clamp(0, double.infinity).toInt();
+    }
+    return (net / _durasi).round();
+  }
 
   void _setQuick(int nominal, int durasi) {
     AppFeedback.tap();
@@ -72,7 +80,7 @@ class _SetoranScreenState extends State<SetoranScreen> {
       santriId: targetId,
       nominalSetoran: _nominal,
       durasiHari: _durasi,
-      jatahHarianHitung: _hitungJatah,
+      jatahHarianHitung: _hitungJatahPresisi(santri),
       tipeSetoran: _tipeSetoran,
       tanggalSetor: DateTime.now(),
       catatan: catatan,
@@ -101,7 +109,7 @@ class _SetoranScreenState extends State<SetoranScreen> {
     final selectedSantri = santriList.where((s) => s.id == _selectedSantriId).firstOrNull;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 44, 16, 90),
+      padding: const EdgeInsets.fromLTRB(16, 44, 16, 115),
       children: [
         // Glass Card Container
         Container(
@@ -360,7 +368,7 @@ class _SetoranScreenState extends State<SetoranScreen> {
                         ),
                         const SizedBox(height: 3),
                         Text(
-                          '${CurrencyFormatter.format(_hitungJatah)} / hari',
+                          '${CurrencyFormatter.format(_hitungJatahPresisi(selectedSantri))} / hari',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 18,
