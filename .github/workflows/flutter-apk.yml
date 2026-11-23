@@ -33,6 +33,11 @@ jobs:
       - name: Verify Flutter version
         run: flutter --version
 
+      - name: Configure Android wrapper
+        run: |
+          flutter create --platforms=android .
+          chmod +x android/gradlew || true
+
       - name: Install dependencies
         run: flutter pub get
 
@@ -40,7 +45,7 @@ jobs:
         run: flutter test
 
       - name: Build APK Release
-        run: flutter build apk --release --verbose
+        run: flutter build apk --release
 
       - name: Upload APK to Artifacts
         uses: actions/upload-artifact@v4
