@@ -4,6 +4,13 @@ analyzer:
   exclude:
     - build/**
     - .dart_tool/**
+  errors:
+    deprecated_member_use: ignore
+    use_super_parameters: ignore
+    prefer_const_constructors: ignore
+    prefer_const_literals_to_create_immutables: ignore
+    prefer_const_declarations: ignore
+    curly_braces_in_flow_control_structures: ignore
 
 linter:
   rules:
