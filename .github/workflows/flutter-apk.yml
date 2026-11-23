@@ -33,10 +33,11 @@ jobs:
       - name: Verify Flutter version
         run: flutter --version
 
-      - name: Configure Android wrapper
+      - name: Generate Gradle Wrapper
+        working-directory: android
         run: |
-          flutter create --platforms=android .
-          chmod +x android/gradlew || true
+          gradle wrapper --gradle-version 8.5 || true
+          chmod +x gradlew || true
 
       - name: Install dependencies
         run: flutter pub get
@@ -45,22 +46,11 @@ jobs:
         run: flutter test
 
       - name: Build APK Release
-        run: |
-          set -o pipefail
-          flutter build apk --release --verbose 2>&1 | tee build_verbose.log
-
-      - name: Output Build Summary
-        if: always()
-        run: |
-          echo "### Flutter Build Output (Last 150 lines)" >> $GITHUB_STEP_SUMMARY
-          echo '```text' >> $GITHUB_STEP_SUMMARY
-          tail -n 150 build_verbose.log >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
+        run: flutter build apk --release
 
       - name: Upload APK to Artifacts
-        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: kas-santri-release-apk
-          path: build/app/outputs/flutter-apk/*.apk
-          if-no-files-found: warn
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
