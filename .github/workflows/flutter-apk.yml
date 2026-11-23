@@ -45,11 +45,15 @@ jobs:
         run: flutter test
 
       - name: Build APK Release
-        run: flutter build apk --release
+        run: |
+          flutter build apk --release --verbose 2>&1 | tee build_verbose.log
 
       - name: Upload APK to Artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: kas-santri-release-apk
-          path: build/app/outputs/flutter-apk/*.apk
-          if-no-files-found: error
+          path: |
+            build/app/outputs/flutter-apk/*.apk
+            build_verbose.log
+          if-no-files-found: warn
