@@ -46,14 +46,21 @@ jobs:
 
       - name: Build APK Release
         run: |
+          set -o pipefail
           flutter build apk --release --verbose 2>&1 | tee build_verbose.log
+
+      - name: Output Build Summary
+        if: always()
+        run: |
+          echo "### Flutter Build Output (Last 150 lines)" >> $GITHUB_STEP_SUMMARY
+          echo '```text' >> $GITHUB_STEP_SUMMARY
+          tail -n 150 build_verbose.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Upload APK to Artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: kas-santri-release-apk
-          path: |
-            build/app/outputs/flutter-apk/*.apk
-            build_verbose.log
+          path: build/app/outputs/flutter-apk/*.apk
           if-no-files-found: warn
