@@ -28,6 +28,11 @@ class DatabaseHelper {
       path,
       version: 1,
       onCreate: _createDB,
+      onOpen: (db) async {
+        try {
+          await db.execute('ALTER TABLE santri ADD COLUMN foto_path TEXT;');
+        } catch (_) {}
+      },
     );
   }
 
@@ -45,6 +50,7 @@ class DatabaseHelper {
         setoran_awal INTEGER NOT NULL DEFAULT 300000,
         tunggakan INTEGER NOT NULL DEFAULT 0,
         catatan_tunggakan TEXT DEFAULT '',
+        foto_path TEXT,
         status_aktif INTEGER NOT NULL DEFAULT 1,
         created_at TEXT NOT NULL
       )
@@ -179,6 +185,39 @@ class DatabaseHelper {
     );
   }
 
+  Future<void> updateSantriFoto(String santriId, String? fotoPath) async {
+    final db = await database;
+    await db.update(
+      'santri',
+      {'foto_path': fotoPath},
+      where: 'id = ?',
+      whereArgs: [santriId],
+    );
+  }
+
+  Future<void> quickUpdateSantri(
+    String santriId, {
+    required String namaLengkap,
+    required String namaPanggilan,
+    required String kamar,
+    String? noWaWali,
+    required int jatahHarian,
+  }) async {
+    final db = await database;
+    await db.update(
+      'santri',
+      {
+        'nama_lengkap': namaLengkap,
+        'nama_panggilan': namaPanggilan,
+        'kamar': kamar,
+        'no_wa_wali': noWaWali,
+        'jatah_harian': jatahHarian,
+      },
+      where: 'id = ?',
+      whereArgs: [santriId],
+    );
+  }
+
   Future<void> toggleSantriStatus(String id, bool active) async {
     final db = await database;
     await db.update(
@@ -295,17 +334,45 @@ class DatabaseHelper {
       if (santriMaps.isEmpty) throw Exception('Santri tidak ditemukan');
       final currentSantri = Santri.fromMap(santriMaps.first);
 
-      int saldoBaru = currentSantri.saldoTotal + nominalSetoran;
+      int sisaSetoranMasukSaldo = nominalSetoran;
+      int tunggakanBaru = currentSantri.tunggakan;
+      String catatanTunggakanBaru = currentSantri.catatanTunggakan;
+      int saldoBaru = currentSantri.saldoTotal;
       int jatahBaru = currentSantri.jatahHarian;
+      String logPotongTunggakan = '';
+
+      // Jika santri memiliki tunggakan, setoran otomatis memotong tunggakan terlebih dahulu
+      if (tunggakanBaru > 0) {
+        if (sisaSetoranMasukSaldo >= tunggakanBaru) {
+          final nominalLunas = tunggakanBaru;
+          sisaSetoranMasukSaldo -= tunggakanBaru;
+          tunggakanBaru = 0;
+          catatanTunggakanBaru = '';
+          logPotongTunggakan = ' (Potong Lunas Tunggakan ${CurrencyFormatter.format(nominalLunas)})';
+        } else {
+          tunggakanBaru -= sisaSetoranMasukSaldo;
+          logPotongTunggakan = ' (Potong Cicil Tunggakan ${CurrencyFormatter.format(sisaSetoranMasukSaldo)})';
+          sisaSetoranMasukSaldo = 0;
+        }
+      }
 
       if (tipeSetoran == TipeSetoran.awalBulan) {
         if (perlakuanSisa == PerlakuanSisaSaldoLalu.simpanTabungan) {
-          saldoBaru = nominalSetoran;
+          saldoBaru = sisaSetoranMasukSaldo;
+        } else {
+          saldoBaru += sisaSetoranMasukSaldo;
         }
-        jatahBaru = jatahHarianHitung;
+        if (durasiHari > 0 && sisaSetoranMasukSaldo > 0) {
+          jatahBaru = (sisaSetoranMasukSaldo / durasiHari).round();
+        } else if (sisaSetoranMasukSaldo == 0) {
+          jatahBaru = currentSantri.jatahHarian;
+        } else {
+          jatahBaru = jatahHarianHitung;
+        }
       } else {
+        saldoBaru += sisaSetoranMasukSaldo;
         if (opsiSusulan == OpsiSetoranSusulan.tambahJatahHarian) {
-          final tambahanJatah = durasiHari > 0 ? (nominalSetoran / durasiHari).round() : 0;
+          final tambahanJatah = durasiHari > 0 ? (sisaSetoranMasukSaldo / durasiHari).round() : 0;
           jatahBaru += tambahanJatah;
         }
       }
@@ -315,6 +382,8 @@ class DatabaseHelper {
         {
           'saldo_total': saldoBaru,
           'jatah_harian': jatahBaru,
+          'tunggakan': tunggakanBaru,
+          'catatan_tunggakan': catatanTunggakanBaru,
         },
         where: 'id = ?',
         whereArgs: [santriId],
@@ -328,7 +397,9 @@ class DatabaseHelper {
         waktuAmbil: now,
         tanggalLokal: DateFormatter.toLocalDateString(tanggalSetor),
         kategoriWaktu: TimeCategory.setoran,
-        catatan: catatan ?? (tipeSetoran == TipeSetoran.awalBulan ? 'Setoran Awal Bulan' : 'Top-Up Susulan'),
+        catatan: (catatan != null && catatan.isNotEmpty)
+            ? '$catatan$logPotongTunggakan'
+            : (tipeSetoran == TipeSetoran.awalBulan ? 'Setoran Awal Bulan$logPotongTunggakan' : 'Top-Up Susulan$logPotongTunggakan'),
         saldoSetelahTransaksi: saldoBaru,
         tipe: TipeTransaksi.setoran,
       );
@@ -373,7 +444,29 @@ class DatabaseHelper {
       if (santriMaps.isEmpty) throw Exception('Santri tidak ditemukan');
       final santri = Santri.fromMap(santriMaps.first);
 
-      final saldoBaru = santri.saldoTotal - nominal;
+      int saldoBaru = santri.saldoTotal;
+      int tunggakanBaru = santri.tunggakan;
+      String catatanTunggakanBaru = santri.catatanTunggakan;
+
+      if (santri.saldoTotal >= nominal) {
+        // Cukup saldo: potong saldo bulanan
+        saldoBaru = santri.saldoTotal - nominal;
+      } else if (santri.saldoTotal > 0) {
+        // Sebagian saldo ada: habiskan saldo sampai 0, kekurangan jadi tunggakan
+        final int kekurangan = nominal - santri.saldoTotal;
+        saldoBaru = 0;
+        tunggakanBaru += kekurangan;
+        catatanTunggakanBaru = catatanTunggakanBaru.isEmpty
+            ? 'Talangan Kas Pondok'
+            : '$catatanTunggakanBaru, Talangan Kas';
+      } else {
+        // Saldo bulanan sudah 0: seluruhnya jadi tunggakan talangan dari kas pondok
+        saldoBaru = 0;
+        tunggakanBaru += nominal;
+        catatanTunggakanBaru = catatanTunggakanBaru.isEmpty
+            ? 'Talangan Kas Pondok'
+            : catatanTunggakanBaru;
+      }
 
       transaksi = TransaksiHarian(
         id: id,
@@ -382,7 +475,7 @@ class DatabaseHelper {
         waktuAmbil: waktu,
         tanggalLokal: tanggalLokal,
         kategoriWaktu: kategoriWaktu,
-        isOverlimit: isOverlimit,
+        isOverlimit: isOverlimit || santri.saldoTotal < nominal,
         catatan: catatan,
         isVoided: false,
         overlimitHandling: overlimitHandling,
@@ -392,7 +485,11 @@ class DatabaseHelper {
 
       await txn.insert('transaksi_harian', transaksi.toMap());
 
-      Map<String, dynamic> updateData = {'saldo_total': saldoBaru};
+      Map<String, dynamic> updateData = {
+        'saldo_total': saldoBaru,
+        'tunggakan': tunggakanBaru,
+        'catatan_tunggakan': catatanTunggakanBaru,
+      };
 
       if (isOverlimit && overlimitHandling == OverlimitHandling.hitungUlangRataRata) {
         const sisaHariPeriode = 20;

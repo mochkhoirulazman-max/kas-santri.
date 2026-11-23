@@ -28,33 +28,48 @@ class _RekapLaporanScreenState extends State<RekapLaporanScreen> {
             final kat = TimeCategoryHelper.getDbString(t.kategoriWaktu);
             final jam = '${t.waktuAmbil.hour.toString().padLeft(2, '0')}:${t.waktuAmbil.minute.toString().padLeft(2, '0')}';
             final nom = CurrencyFormatter.format(t.nominal);
-            final note = t.catatan ?? 'Jajan Harian';
-            return '- $kat ($jam): $nom [$note]';
+            final note = t.catatan != null && t.catatan!.isNotEmpty ? t.catatan! : 'Jajan Harian';
+            return '   • $kat ($jam): $nom ($note)';
           }).join('\n')
-        : '- Belum ada pengambilan uang hari ini';
+        : '   • _Belum ada pengambilan uang saku hari ini_';
 
     final infoTunggakan = santri.tunggakan > 0
-        ? '🚨 *Tunggakan:* ${CurrencyFormatter.format(santri.tunggakan)} (${santri.catatanTunggakan.isNotEmpty ? santri.catatanTunggakan : 'Aktif'})'
-        : '✅ *Status Tunggakan:* Lunas / Tidak Ada Tunggakan';
+        ? '🚨 *Catatan Administrasi/Tunggakan:* ${CurrencyFormatter.format(santri.tunggakan)} (${santri.catatanTunggakan.isNotEmpty ? santri.catatanTunggakan : 'Talangan Kas Pondok'})'
+        : '✅ *Status Administrasi:* Bersih / Tidak Ada Tunggakan';
 
-    return '''*LAPORAN KAS & UANG SAKU SANTRI*
-*$namaPondok*
-----------------------------------------
-👦 *Nama Santri:* ${santri.namaLengkap} (${santri.kamar})
-📅 *Tanggal:* $todayStr
+    return '''*Assalamu’alaikum Warahmatullahi Wabarakatuh* 🌸
 
-📊 *RINGKASAN HARI INI:*
-• Kuota Jatah Harian: ${CurrencyFormatter.format(santri.jatahHarian)}
-• Terpakai Hari Ini: ${CurrencyFormatter.format(status.totalAmbilHariIni)}
-• Sisa Jatah Hari Ini: ${CurrencyFormatter.format(status.sisaJatahHariIni < 0 ? 0 : status.sisaJatahHariIni)}
+Yth. *Bapak/Ibu Wali Santri*
+dari ananda tercinta: *${santri.namaLengkap}* (${santri.kamar})
+di Tempat.
+
+Semoga Bapak/Ibu sekeluarga senantiasa berada dalam lindungan, rahmat, dan keberkahan dari Allah Subhanahu wa Ta'ala.
+
+Izin menyampaikan laporan mutasi keluar-masuk uang saku ananda per hari ini ($todayStr):
+
+📊 *RINGKASAN UANG SAKU HARI INI:*
+• Jatah Harian Ananda: *${CurrencyFormatter.format(santri.jatahHarian)} / hari*
+• Pengambilan Hari Ini: *${CurrencyFormatter.format(status.totalAmbilHariIni)}*
+• Sisa Kuota Hari Ini: *${CurrencyFormatter.format(status.sisaJatahHariIni < 0 ? 0 : status.sisaJatahHariIni)}*
 
 📝 *RINCIAN PENGAMBILAN HARI INI:*
 $rincianList
 
-🏦 *Total Sisa Saldo Titipan:* ${CurrencyFormatter.format(santri.saldoTotal)}
+💰 *STATUS SALDO TITIPAN SANTRI:*
+• Sisa Saldo Titipan: *${CurrencyFormatter.format(santri.saldoTotal)}*
+• Estimasi Ketahanan: ±*${santri.estimasiHari} hari* ke depan
 $infoTunggakan
-----------------------------------------
-_Sistem Aplikasi Kas Santri — By Moch Khoirul Azman_''';
+
+Demikian laporan ini kami sampaikan dengan penuh amanah demi kenyamanan ananda dalam menuntut ilmu di *$namaPondok*. 
+
+Apabila Bapak/Ibu hendak menitipkan setoran tambahan atau mengonfirmasi keperluan ananda, silakan hubungi pengurus kas pondok.
+
+*Jazakumullah Khairan Katsiran*
+*Wassalamu’alaikum Warahmatullahi Wabarakatuh* 🙏
+
+Salam hormat & ta'dzim,
+*Pengurus Kas & Keuangan Santri*
+*$namaPondok*''';
   }
 
   void _copyWaText(String text) {

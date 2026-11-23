@@ -5,6 +5,7 @@ import '../../models/transaksi.dart';
 import '../../providers/kas_santri_provider.dart';
 import '../../utils/currency_formatter.dart';
 import '../../utils/time_category_helper.dart';
+import '../../utils/app_feedback.dart';
 
 class RiwayatTransaksiScreen extends StatefulWidget {
   const RiwayatTransaksiScreen({Key? key}) : super(key: key);
@@ -229,90 +230,110 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                   border: Border.all(color: Colors.white12),
                 ),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 38,
-                          height: 38,
-                          decoration: BoxDecoration(
-                            color: isMasuk
-                                ? const Color(0xFF10B981).withOpacity(0.2)
-                                : const Color(0xFF06B6D4).withOpacity(0.18),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
+                    // Kolom info kiri
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
                               color: isMasuk
-                                  ? const Color(0xFF34D399).withOpacity(0.4)
-                                  : const Color(0xFF38BDF8).withOpacity(0.4),
+                                  ? const Color(0xFF10B981).withOpacity(0.2)
+                                  : const Color(0xFF06B6D4).withOpacity(0.18),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: isMasuk
+                                    ? const Color(0xFF34D399).withOpacity(0.4)
+                                    : const Color(0xFF38BDF8).withOpacity(0.4),
+                              ),
                             ),
+                            alignment: Alignment.center,
+                            child: Text(isMasuk ? '📥' : '💸', style: const TextStyle(fontSize: 16)),
                           ),
-                          alignment: Alignment.center,
-                          child: Text(isMasuk ? '📥' : '💸', style: const TextStyle(fontSize: 16)),
-                        ),
-                        const SizedBox(width: 10),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        namaSantri,
+                                        style: const TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w800),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black45,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: Colors.white12),
+                                      ),
+                                      child: Text(
+                                        '$katStr • $jamStr',
+                                        style: const TextStyle(color: Colors.white70, fontSize: 9, fontFamily: 'monospace', fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                    if (tx.isOverlimit)
+                                      Container(
+                                        margin: const EdgeInsets.only(left: 4),
+                                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF43F5E).withOpacity(0.3),
+                                          borderRadius: BorderRadius.circular(6),
+                                          border: Border.all(color: const Color(0xFFFB7185).withOpacity(0.5)),
+                                        ),
+                                        child: const Text(
+                                          'Overlimit',
+                                          style: TextStyle(color: Color(0xFFFDA4AF), fontSize: 8.5, fontWeight: FontWeight.w800),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                const SizedBox(height: 2),
                                 Text(
-                                  namaSantri,
-                                  style: const TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w800),
+                                  tx.catatan != null && tx.catatan!.isNotEmpty ? tx.catatan! : (isMasuk ? 'Setoran' : 'Jajan Harian'),
+                                  style: const TextStyle(color: Colors.white54, fontSize: 10.5),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                const SizedBox(width: 6),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black45,
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: Colors.white12),
-                                  ),
-                                  child: Text(
-                                    '$katStr • $jamStr',
-                                    style: const TextStyle(color: Colors.white70, fontSize: 9, fontFamily: 'monospace', fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                                if (tx.isOverlimit)
-                                  Container(
-                                    margin: const EdgeInsets.only(left: 4),
-                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF43F5E).withOpacity(0.3),
-                                      borderRadius: BorderRadius.circular(6),
-                                      border: Border.all(color: const Color(0xFFFB7185).withOpacity(0.5)),
-                                    ),
-                                    child: const Text(
-                                      'Overlimit',
-                                      style: TextStyle(color: Color(0xFFFDA4AF), fontSize: 8.5, fontWeight: FontWeight.w800),
-                                    ),
-                                  ),
                               ],
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              tx.catatan != null && tx.catatan!.isNotEmpty ? tx.catatan! : (isMasuk ? 'Setoran' : 'Jajan Harian'),
-                              style: const TextStyle(color: Colors.white54, fontSize: 10.5),
-                            ),
-                          ],
-                        ),
-                      ],
+                          ),
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 8),
+
+                    // Kolom nominal & aksi kanan
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text(
-                          '${isMasuk ? '+' : '-'}${CurrencyFormatter.format(tx.nominal)}',
-                          style: TextStyle(
-                            color: isMasuk ? const Color(0xFF34D399) : const Color(0xFFFCD34D),
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w900,
-                            fontFamily: 'monospace',
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            '${isMasuk ? '+' : '-'}${CurrencyFormatter.format(tx.nominal)}',
+                            style: TextStyle(
+                              color: isMasuk ? const Color(0xFF34D399) : const Color(0xFFFCD34D),
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w900,
+                              fontFamily: 'monospace',
+                            ),
                           ),
                         ),
                         const SizedBox(height: 3),
                         InkWell(
-                          onTap: () => _confirmVoid(tx, namaSantri),
+                          onTap: () {
+                            AppFeedback.tap();
+                            _confirmVoid(tx, namaSantri);
+                          },
                           child: const Text(
                             'Void / Batal',
                             style: TextStyle(

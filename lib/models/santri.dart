@@ -9,6 +9,7 @@ class Santri {
   final int setoranAwal;
   final int tunggakan;
   final String catatanTunggakan;
+  final String? fotoPath;
   final bool statusAktif;
   final DateTime createdAt;
 
@@ -23,6 +24,7 @@ class Santri {
     this.setoranAwal = 300000,
     this.tunggakan = 0,
     this.catatanTunggakan = '',
+    this.fotoPath,
     this.statusAktif = true,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
@@ -46,6 +48,7 @@ class Santri {
     int? setoranAwal,
     int? tunggakan,
     String? catatanTunggakan,
+    String? fotoPath,
     bool? statusAktif,
     DateTime? createdAt,
   }) {
@@ -60,6 +63,7 @@ class Santri {
       setoranAwal: setoranAwal ?? this.setoranAwal,
       tunggakan: tunggakan ?? this.tunggakan,
       catatanTunggakan: catatanTunggakan ?? this.catatanTunggakan,
+      fotoPath: fotoPath ?? this.fotoPath,
       statusAktif: statusAktif ?? this.statusAktif,
       createdAt: createdAt ?? this.createdAt,
     );
@@ -77,6 +81,7 @@ class Santri {
       'setoran_awal': setoranAwal,
       'tunggakan': tunggakan,
       'catatan_tunggakan': catatanTunggakan,
+      'foto_path': fotoPath,
       'status_aktif': statusAktif ? 1 : 0,
       'created_at': createdAt.toIso8601String(),
     };
@@ -94,6 +99,7 @@ class Santri {
       setoranAwal: (map['setoran_awal'] as num?)?.toInt() ?? 300000,
       tunggakan: (map['tunggakan'] as num?)?.toInt() ?? 0,
       catatanTunggakan: map['catatan_tunggakan'] as String? ?? '',
+      fotoPath: map['foto_path'] as String?,
       statusAktif: (map['status_aktif'] as int?) == 1,
       createdAt: map['created_at'] != null
           ? DateTime.tryParse(map['created_at'].toString()) ?? DateTime.now()

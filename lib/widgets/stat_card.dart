@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../utils/currency_formatter.dart';
+import '../utils/app_feedback.dart';
 
 class SafeVaultCard extends StatelessWidget {
   final int totalBrankas;
@@ -85,7 +86,10 @@ class SafeVaultCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   InkWell(
-                    onTap: onToggleHide,
+                    onTap: () {
+                      AppFeedback.tap();
+                      onToggleHide();
+                    },
                     borderRadius: BorderRadius.circular(8),
                     child: Padding(
                       padding: const EdgeInsets.all(2),
@@ -127,27 +131,31 @@ class SafeVaultCard extends StatelessWidget {
 
           const SizedBox(height: 6),
 
-          // Total Uang Fisik Besar
-          Text(
-            isHidden ? 'Rp ••••••••' : CurrencyFormatter.format(totalBrankas),
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 26,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -0.5,
-              fontFamily: 'monospace',
-              shadows: [
-                Shadow(
-                  color: Color(0x6610B981),
-                  blurRadius: 12,
-                ),
-              ],
+          // Total Uang Fisik Besar (FittedBox agar tidak pernah terpotong)
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              isHidden ? 'Rp ••••••••' : CurrencyFormatter.format(totalBrankas),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 26,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.5,
+                fontFamily: 'monospace',
+                shadows: [
+                  Shadow(
+                    color: Color(0x6610B981),
+                    blurRadius: 12,
+                  ),
+                ],
+              ),
             ),
           ),
 
           const SizedBox(height: 12),
 
-          // Bar Serapan Kuota Harian Pondok
+          // Bar Serapan Kuota Harian Pondok (Animated)
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -179,27 +187,34 @@ class SafeVaultCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: Colors.white.withOpacity(0.12)),
             ),
-            child: FractionallySizedBox(
-              alignment: Alignment.centerLeft,
-              widthFactor: (pct / 100).clamp(0.0, 1.0),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  gradient: const LinearGradient(
-                    colors: [
-                      Color(0xFF10B981),
-                      Color(0xFF06B6D4),
-                      Color(0xFFD946EF),
-                    ],
-                  ),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0xFF06B6D4),
-                      blurRadius: 8,
+            child: TweenAnimationBuilder<double>(
+              tween: Tween<double>(begin: 0, end: (pct / 100).clamp(0.0, 1.0)),
+              duration: const Duration(milliseconds: 600),
+              curve: Curves.easeOutCubic,
+              builder: (context, value, _) {
+                return FractionallySizedBox(
+                  alignment: Alignment.centerLeft,
+                  widthFactor: value,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      gradient: const LinearGradient(
+                        colors: [
+                          Color(0xFF10B981),
+                          Color(0xFF06B6D4),
+                          Color(0xFFD946EF),
+                        ],
+                      ),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0xFF06B6D4),
+                          blurRadius: 8,
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
+                  ),
+                );
+              },
             ),
           ),
 
@@ -233,16 +248,18 @@ class SafeVaultCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 3),
-                      Text(
-                        isHidden ? 'Rp ••••' : CurrencyFormatter.format(totalKeluarHariIni),
-                        style: const TextStyle(
-                          color: Color(0xFFFCD34D),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
-                          fontFamily: 'monospace',
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          isHidden ? 'Rp ••••' : CurrencyFormatter.format(totalKeluarHariIni),
+                          style: const TextStyle(
+                            color: Color(0xFFFCD34D),
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w900,
+                            fontFamily: 'monospace',
+                          ),
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
@@ -273,16 +290,18 @@ class SafeVaultCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 3),
-                      Text(
-                        isHidden ? 'Rp ••••' : CurrencyFormatter.format(totalKuotaHariIni),
-                        style: const TextStyle(
-                          color: Color(0xFF7DD3FC),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
-                          fontFamily: 'monospace',
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          isHidden ? 'Rp ••••' : CurrencyFormatter.format(totalKuotaHariIni),
+                          style: const TextStyle(
+                            color: Color(0xFF7DD3FC),
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w900,
+                            fontFamily: 'monospace',
+                          ),
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
@@ -293,7 +312,10 @@ class SafeVaultCard extends StatelessWidget {
               // 3. Tunggakan (Bisa diklik untuk filter santri bertunggakan)
               Expanded(
                 child: InkWell(
-                  onTap: onTunggakanTap,
+                  onTap: () {
+                    AppFeedback.tap();
+                    onTunggakanTap();
+                  },
                   borderRadius: BorderRadius.circular(16),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -326,7 +348,7 @@ class SafeVaultCard extends StatelessWidget {
                               ),
                             ),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFF43F5E),
                                 borderRadius: BorderRadius.circular(10),
@@ -343,16 +365,18 @@ class SafeVaultCard extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 3),
-                        Text(
-                          isHidden ? 'Rp ••••' : CurrencyFormatter.format(totalTunggakan),
-                          style: const TextStyle(
-                            color: Color(0xFFFDA4AF),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w900,
-                            fontFamily: 'monospace',
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            isHidden ? 'Rp ••••' : CurrencyFormatter.format(totalTunggakan),
+                            style: const TextStyle(
+                              color: Color(0xFFFDA4AF),
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w900,
+                              fontFamily: 'monospace',
+                            ),
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),

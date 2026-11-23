@@ -124,20 +124,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        'KONFIGURASI PONDOK',
-                        style: TextStyle(color: Color(0xFF38BDF8), fontSize: 9.5, fontWeight: FontWeight.w900, letterSpacing: 1.2),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        'Identitas, Logo & Kebijakan Kas',
-                        style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w900),
-                      ),
-                    ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Text(
+                          'KONFIGURASI PONDOK',
+                          style: TextStyle(color: Color(0xFF38BDF8), fontSize: 9.5, fontWeight: FontWeight.w900, letterSpacing: 1.2),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Identitas, Logo & Kebijakan Kas',
+                          style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w900),
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   ElevatedButton.icon(
                     onPressed: _pickLogo,
                     style: ElevatedButton.styleFrom(
@@ -175,17 +178,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 4),
               DropdownButtonFormField<ModeSisaHarian>(
                 value: settings.modeSisaHarian,
+                isExpanded: true,
                 dropdownColor: const Color(0xFF090E1A),
                 style: const TextStyle(color: Colors.white, fontSize: 12),
                 decoration: const InputDecoration(isDense: true),
                 items: const [
                   DropdownMenuItem(
                     value: ModeSisaHarian.ketat,
-                    child: Text('Mode Ketat (Tiap hari kuota tetap, sisa jadi tabungan)'),
+                    child: Text('Mode Ketat (Tiap hari kuota tetap, sisa jadi tabungan)', overflow: TextOverflow.ellipsis),
                   ),
                   DropdownMenuItem(
                     value: ModeSisaHarian.akumulasi,
-                    child: Text('Mode Akumulasi (Sisa hari ini ditambah ke kuota besok)'),
+                    child: Text('Mode Akumulasi (Sisa hari ini ditambah ke kuota besok)', overflow: TextOverflow.ellipsis),
                   ),
                 ],
                 onChanged: (val) {
@@ -408,16 +412,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _buildCreditRow(String label, String value, Color valueColor) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Text(label, style: const TextStyle(color: Colors.white54, fontSize: 10.5)),
-        Text(
-          value,
-          style: TextStyle(
-            color: valueColor,
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
-            fontFamily: label.contains('Tanggal') || label.contains('Versi') ? 'monospace' : null,
+        Expanded(
+          flex: 4,
+          child: Text(
+            label,
+            style: const TextStyle(color: Colors.white54, fontSize: 10.5),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          flex: 6,
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            style: TextStyle(
+              color: valueColor,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              fontFamily: label.contains('Tanggal') || label.contains('Versi') ? 'monospace' : null,
+            ),
           ),
         ),
       ],

@@ -317,6 +317,30 @@ class KasSantriProvider extends ChangeNotifier {
     await loadAllData();
   }
 
+  Future<void> updateSantriFoto(String santriId, String? fotoPath) async {
+    await _db.updateSantriFoto(santriId, fotoPath);
+    await loadAllData();
+  }
+
+  Future<void> quickUpdateSantri(
+    String santriId, {
+    required String namaLengkap,
+    required String namaPanggilan,
+    required String kamar,
+    String? noWaWali,
+    required int jatahHarian,
+  }) async {
+    await _db.quickUpdateSantri(
+      santriId,
+      namaLengkap: namaLengkap,
+      namaPanggilan: namaPanggilan,
+      kamar: kamar,
+      noWaWali: noWaWali,
+      jatahHarian: jatahHarian,
+    );
+    await loadAllData();
+  }
+
   Future<void> saveSantri(Santri santri, {bool isEdit = false}) async {
     if (isEdit) {
       await _db.updateSantri(santri);

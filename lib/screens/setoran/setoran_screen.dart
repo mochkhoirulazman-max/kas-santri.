@@ -4,6 +4,7 @@ import '../../models/santri.dart';
 import '../../models/setoran.dart';
 import '../../providers/kas_santri_provider.dart';
 import '../../utils/currency_formatter.dart';
+import '../../utils/app_feedback.dart';
 
 class SetoranScreen extends StatefulWidget {
   final VoidCallback? onSaved;
@@ -34,6 +35,7 @@ class _SetoranScreenState extends State<SetoranScreen> {
   int get _hitungJatah => _durasi > 0 ? (_nominal / _durasi).round() : 0;
 
   void _setQuick(int nominal, int durasi) {
+    AppFeedback.tap();
     setState(() {
       _nominalController.text = nominal.toString();
       _durasiController.text = durasi.toString();
@@ -46,6 +48,7 @@ class _SetoranScreenState extends State<SetoranScreen> {
 
     final targetId = _selectedSantriId ?? (santriList.isNotEmpty ? santriList.first.id : null);
     if (targetId == null) {
+      AppFeedback.alert();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Pilih santri terlebih dahulu!'), backgroundColor: Color(0xFFF43F5E)),
       );
@@ -53,6 +56,7 @@ class _SetoranScreenState extends State<SetoranScreen> {
     }
 
     if (_nominal <= 0) {
+      AppFeedback.alert();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Nominal setoran harus lebih dari Rp 0!'), backgroundColor: Color(0xFFF43F5E)),
       );
@@ -74,6 +78,7 @@ class _SetoranScreenState extends State<SetoranScreen> {
       catatan: catatan,
     );
 
+    AppFeedback.success();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -93,6 +98,7 @@ class _SetoranScreenState extends State<SetoranScreen> {
     if (_selectedSantriId == null && santriList.isNotEmpty) {
       _selectedSantriId = santriList.first.id;
     }
+    final selectedSantri = santriList.where((s) => s.id == _selectedSantriId).firstOrNull;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 44, 16, 90),
@@ -152,6 +158,7 @@ class _SetoranScreenState extends State<SetoranScreen> {
               const SizedBox(height: 6),
               DropdownButtonFormField<String>(
                 value: _selectedSantriId,
+                isExpanded: true,
                 dropdownColor: const Color(0xFF090E1A),
                 style: const TextStyle(color: Colors.white, fontSize: 12.5),
                 decoration: const InputDecoration(isDense: true),
@@ -161,13 +168,51 @@ class _SetoranScreenState extends State<SetoranScreen> {
                     child: Text(
                       '${s.namaLengkap} (${s.kamar}) — Saldo: ${CurrencyFormatter.format(s.saldoTotal)}',
                       style: const TextStyle(color: Colors.white, fontSize: 12),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   );
                 }).toList(),
                 onChanged: (val) {
-                  if (val != null) setState(() => _selectedSantriId = val);
+                  if (val != null) {
+                    AppFeedback.tap();
+                    setState(() => _selectedSantriId = val);
+                  }
                 },
               ),
+
+              if (selectedSantri != null && selectedSantri.tunggakan > 0) ...[
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF450A1A).withOpacity(0.7),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFFB7185).withOpacity(0.5)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Text('🚨', style: TextStyle(fontSize: 18)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Santri Memiliki Tunggakan: ${CurrencyFormatter.format(selectedSantri.tunggakan)}',
+                              style: const TextStyle(color: Color(0xFFFECDD3), fontSize: 11, fontWeight: FontWeight.w800),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Setoran ${_tipeSetoran == TipeSetoran.awalBulan ? 'Awal Bulan' : 'Susulan'} ini otomatis memotong dan melunasi tunggakan terlebih dahulu. Sisa bersih masuk saldo jatah: ${CurrencyFormatter.format(_nominal > selectedSantri.tunggakan ? _nominal - selectedSantri.tunggakan : 0)}.',
+                              style: const TextStyle(color: Color(0xFFFDA4AF), fontSize: 9.5),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
 
               const SizedBox(height: 14),
 
@@ -349,17 +394,28 @@ class _SetoranScreenState extends State<SetoranScreen> {
               // Tombol Simpan
               SizedBox(
                 width: double.infinity,
-                height: 48,
+                height: 52,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF10B981),
                     foregroundColor: const Color(0xFF030712),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                     elevation: 6,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     shadowColor: const Color(0xFF10B981).withOpacity(0.4),
                   ),
                   onPressed: _simpan,
-                  child: const Text('💾 SIMPAN SETORAN & UPDATE JATAH', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                  child: const FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      '💾 SIMPAN SETORAN & UPDATE JATAH',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ],

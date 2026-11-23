@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/santri.dart';
@@ -6,6 +7,7 @@ import '../models/transaksi.dart';
 import '../providers/kas_santri_provider.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/time_category_helper.dart';
+import '../utils/app_feedback.dart';
 
 class FastWithdrawalBottomSheet extends StatefulWidget {
   final SantriStatusHariIni statusSantri;
@@ -30,15 +32,21 @@ class FastWithdrawalBottomSheet extends StatefulWidget {
 
 class _FastWithdrawalBottomSheetState extends State<FastWithdrawalBottomSheet> {
   final TextEditingController _nominalController = TextEditingController();
+  final TextEditingController _customKeperluanController = TextEditingController(text: 'Jajan Harian');
   TimeCategory _selectedWaktu = TimeCategory.malam;
   String _selectedKeperluan = 'Jajan Harian';
   OverlimitHandling _selectedPolicy = OverlimitHandling.potongBesok;
 
   final List<String> _tagChips = [
-    'Jajan Harian',
+    'Jajan Pagi',
+    'Jajan Siang',
+    'Jajan Sore',
+    'Jajan Malam',
     'Sabun/Cuci',
     'Obat',
     'Fotokopi',
+    'Kitab',
+    'Potong Rambut',
   ];
 
   @override
@@ -66,6 +74,7 @@ class _FastWithdrawalBottomSheetState extends State<FastWithdrawalBottomSheet> {
   @override
   void dispose() {
     _nominalController.dispose();
+    _customKeperluanController.dispose();
     super.dispose();
   }
 
@@ -73,8 +82,10 @@ class _FastWithdrawalBottomSheetState extends State<FastWithdrawalBottomSheet> {
   Santri get _santri => widget.statusSantri.santri;
   int get _sisaJatah => widget.statusSantri.sisaJatahHariIni;
   bool get _isOverlimit => _nominal > _sisaJatah;
+  bool get _isSaldoKurang => _nominal > _santri.saldoTotal;
 
   void _addQuickChip(int amount) {
+    AppFeedback.tap();
     setState(() {
       final cur = _nominal;
       _nominalController.text = (cur + amount).toString();
@@ -82,6 +93,7 @@ class _FastWithdrawalBottomSheetState extends State<FastWithdrawalBottomSheet> {
   }
 
   void _pasSisa() {
+    AppFeedback.tap();
     setState(() {
       _nominalController.text = (_sisaJatah > 0 ? _sisaJatah : 0).toString();
     });
@@ -96,6 +108,7 @@ class _FastWithdrawalBottomSheetState extends State<FastWithdrawalBottomSheet> {
 
   Future<void> _submit() async {
     if (_nominal <= 0) {
+      AppFeedback.alert();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Masukkan nominal pengambilan lebih dari Rp 0!'),
@@ -105,30 +118,46 @@ class _FastWithdrawalBottomSheetState extends State<FastWithdrawalBottomSheet> {
       return;
     }
 
-    if (_nominal > _santri.saldoTotal) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Saldo total santri tidak mencukupi! (Saldo: ${CurrencyFormatter.format(_santri.saldoTotal)})',
-          ),
-          backgroundColor: const Color(0xFFF43F5E),
-        ),
-      );
-      return;
-    }
+    final String finalCatatan = _customKeperluanController.text.trim().isNotEmpty
+        ? _customKeperluanController.text.trim()
+        : _selectedKeperluan;
 
     final provider = Provider.of<KasSantriProvider>(context, listen: false);
     await provider.catatPengambilan(
       santri: _santri,
       nominal: _nominal,
-      catatan: _selectedKeperluan,
-      isOverlimit: _isOverlimit,
+      catatan: finalCatatan,
+      isOverlimit: _isOverlimit || _isSaldoKurang,
       overlimitHandling: _isOverlimit ? _selectedPolicy : null,
       waktuCategory: _selectedWaktu,
     );
 
+    if (_isSaldoKurang) {
+      AppFeedback.alert();
+    } else {
+      AppFeedback.success();
+    }
+
     if (mounted) {
       Navigator.pop(context);
+      if (_isSaldoKurang) {
+        final kekurangan = _nominal - _santri.saldoTotal;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Pengambilan dicatat! Saldo habis, ${CurrencyFormatter.format(kekurangan < 0 ? 0 : kekurangan)} otomatis ditalangi dari brankas & masuk tunggakan santri.',
+            ),
+            backgroundColor: const Color(0xFFE11D48),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Pengambilan ${CurrencyFormatter.format(_nominal)} (${_santri.namaLengkap}) berhasil dicatat.'),
+            backgroundColor: const Color(0xFF10B981),
+          ),
+        );
+      }
     }
   }
 
@@ -188,13 +217,23 @@ class _FastWithdrawalBottomSheetState extends State<FastWithdrawalBottomSheet> {
                         ),
                       ),
                       alignment: Alignment.center,
-                      child: Text(
-                        _getInitials(_santri.namaLengkap),
-                        style: const TextStyle(
-                          color: Color(0xFF34D399),
-                          fontWeight: FontWeight.w900,
-                          fontSize: 15,
-                        ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(15),
+                        child: _santri.fotoPath != null && File(_santri.fotoPath!).existsSync()
+                            ? Image.file(
+                                File(_santri.fotoPath!),
+                                width: 44,
+                                height: 44,
+                                fit: BoxFit.cover,
+                              )
+                            : Text(
+                                _getInitials(_santri.namaLengkap),
+                                style: const TextStyle(
+                                  color: Color(0xFF34D399),
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 15,
+                                ),
+                              ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -461,10 +500,19 @@ class _FastWithdrawalBottomSheetState extends State<FastWithdrawalBottomSheet> {
 
             const SizedBox(height: 14),
 
-            // Tag Keperluan
-            const Text(
-              'TAG KEPERLUAN',
-              style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.5),
+            // Tag Keperluan & Tulis Manual
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: const [
+                Text(
+                  'TAG KEPERLUAN',
+                  style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.5),
+                ),
+                Text(
+                  'Bisa pilih atau tulis manual ✍️',
+                  style: TextStyle(color: Color(0xFF38BDF8), fontSize: 9.5, fontWeight: FontWeight.bold),
+                ),
+              ],
             ),
             const SizedBox(height: 6),
             Wrap(
@@ -473,10 +521,16 @@ class _FastWithdrawalBottomSheetState extends State<FastWithdrawalBottomSheet> {
               children: _tagChips.map((tag) {
                 final isSelected = _selectedKeperluan == tag;
                 return InkWell(
-                  onTap: () => setState(() => _selectedKeperluan = tag),
+                  onTap: () {
+                    AppFeedback.tap();
+                    setState(() {
+                      _selectedKeperluan = tag;
+                      _customKeperluanController.text = tag;
+                    });
+                  },
                   borderRadius: BorderRadius.circular(12),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                    padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
                     decoration: BoxDecoration(
                       color: isSelected ? const Color(0xFF10B981) : const Color(0xFF0F172A),
                       borderRadius: BorderRadius.circular(12),
@@ -486,7 +540,7 @@ class _FastWithdrawalBottomSheetState extends State<FastWithdrawalBottomSheet> {
                       tag,
                       style: TextStyle(
                         color: isSelected ? const Color(0xFF04121A) : Colors.white70,
-                        fontSize: 11,
+                        fontSize: 10.5,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -495,8 +549,36 @@ class _FastWithdrawalBottomSheetState extends State<FastWithdrawalBottomSheet> {
               }).toList(),
             ),
 
-            // Box Peringatan Overlimit
-            if (_isOverlimit) ...[
+            const SizedBox(height: 8),
+
+            // Form Tulis Manual Catatan Keperluan
+            TextField(
+              controller: _customKeperluanController,
+              style: const TextStyle(color: Colors.white, fontSize: 12),
+              decoration: InputDecoration(
+                hintText: 'Tulis keperluan manual (contoh: Beli Kitab, Laundry, Cukur)...',
+                hintStyle: const TextStyle(color: Colors.white38, fontSize: 11),
+                prefixIcon: const Icon(Icons.edit_note, color: Color(0xFF38BDF8), size: 18),
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                filled: true,
+                fillColor: const Color(0xFF060B14),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: Colors.white24),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: Color(0xFF38BDF8), width: 1.5),
+                ),
+              ),
+              onChanged: (val) {
+                setState(() => _selectedKeperluan = val.trim());
+              },
+            ),
+
+            // Box Peringatan Overlimit (Melebihi Jatah Harian tapi Masih Ada Saldo)
+            if (_isOverlimit && !_isSaldoKurang) ...[
               const SizedBox(height: 14),
               Container(
                 padding: const EdgeInsets.all(12),
@@ -520,7 +602,7 @@ class _FastWithdrawalBottomSheetState extends State<FastWithdrawalBottomSheet> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Input nominal ${CurrencyFormatter.format(_nominal)} melampaui sisa kuota hari ini sebesar ${CurrencyFormatter.format(_nominal - _sisaJatah)}.',
+                      'Input nominal ${CurrencyFormatter.format(_nominal)} melampaui sisa kuota hari ini sebesar ${CurrencyFormatter.format(_nominal - _sisaJatah)}. Sisa saldo bulanan santri masih mencukupi.',
                       style: const TextStyle(color: Color(0xFFFDA4AF), fontSize: 10.5),
                     ),
                     const SizedBox(height: 8),
@@ -554,24 +636,75 @@ class _FastWithdrawalBottomSheetState extends State<FastWithdrawalBottomSheet> {
               ),
             ],
 
+            // Box Peringatan Saldo Bulanan Habis / Kurang (Otomatis Jadi Tunggakan Pondok)
+            if (_isSaldoKurang) ...[
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4C0519).withOpacity(0.9),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFFB7185), width: 1.5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFF43F5E).withOpacity(0.25),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.error_outline, color: Color(0xFFFB7185), size: 18),
+                        SizedBox(width: 6),
+                        Text(
+                          '🚨 Saldo Santri Kurang / Habis!',
+                          style: TextStyle(color: Color(0xFFFECDD3), fontSize: 12, fontWeight: FontWeight.w900),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Sisa saldo bulanan santri hanya ${CurrencyFormatter.format(_santri.saldoTotal)}. Pengambilan sebesar ${CurrencyFormatter.format(_nominal)} akan menghabiskan saldo menjadi Rp 0 dan kekurangannya (${CurrencyFormatter.format(_nominal - _santri.saldoTotal)}) otomatis ditalangi dari fisik brankas pondok serta dicatat sebagai TUNGGAKAN santri.',
+                      style: const TextStyle(color: Color(0xFFFDA4AF), fontSize: 10.5, height: 1.35),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
             const SizedBox(height: 18),
 
             // Tombol Simpan Pengambilan Uang
             SizedBox(
               width: double.infinity,
-              height: 48,
+              height: 52,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _isOverlimit ? const Color(0xFFF43F5E) : const Color(0xFF10B981),
+                  backgroundColor: _isSaldoKurang
+                      ? const Color(0xFFE11D48)
+                      : (_isOverlimit ? const Color(0xFFF43F5E) : const Color(0xFF10B981)),
                   foregroundColor: const Color(0xFF030712),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                   elevation: 6,
-                  shadowColor: (_isOverlimit ? const Color(0xFFF43F5E) : const Color(0xFF10B981)).withOpacity(0.4),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  shadowColor: (_isSaldoKurang
+                          ? const Color(0xFFE11D48)
+                          : (_isOverlimit ? const Color(0xFFF43F5E) : const Color(0xFF10B981)))
+                      .withOpacity(0.4),
                 ),
                 onPressed: _submit,
-                child: Text(
-                  _isOverlimit ? '⚠️ IZINKAN AMBIL MELEBIHI JATAH' : '✅ SIMPAN PENGAMBILAN UANG',
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    _isSaldoKurang
+                        ? '🚨 TALANGI DARI BRANKAS & CATAT TUNGGAKAN'
+                        : (_isOverlimit ? '⚠️ IZINKAN AMBIL MELEBIHI JATAH' : '✅ SIMPAN PENGAMBILAN UANG'),
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                  ),
                 ),
               ),
             ),
@@ -585,7 +718,10 @@ class _FastWithdrawalBottomSheetState extends State<FastWithdrawalBottomSheet> {
     final isSelected = _selectedWaktu == cat;
     return Expanded(
       child: InkWell(
-        onTap: () => setState(() => _selectedWaktu = cat),
+        onTap: () {
+          AppFeedback.tap();
+          setState(() => _selectedWaktu = cat);
+        },
         borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 9),

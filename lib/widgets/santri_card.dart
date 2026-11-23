@@ -1,7 +1,10 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../models/santri_status.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/time_category_helper.dart';
+import '../utils/app_feedback.dart';
+import 'quick_edit_santri_bottom_sheet.dart';
 
 class SantriCard extends StatelessWidget {
   final SantriStatusHariIni status;
@@ -159,28 +162,48 @@ class SantriCard extends StatelessWidget {
         child: Material(
           color: Colors.transparent,
           child: InkWell(
-            onTap: onDetailTap ?? onAmbilTap,
+            onTap: () {
+              AppFeedback.tap();
+              if (onDetailTap != null) {
+                onDetailTap!();
+              } else {
+                onAmbilTap();
+              }
+            },
             borderRadius: BorderRadius.circular(26),
             child: Padding(
               padding: const EdgeInsets.all(14),
               child: Row(
                 children: [
-                  Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF34D399), Color(0xFF38BDF8)],
+                  InkWell(
+                    onTap: () {
+                      AppFeedback.tap();
+                      QuickEditSantriBottomSheet.show(context, santri);
+                    },
+                    borderRadius: BorderRadius.circular(14),
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF34D399), Color(0xFF38BDF8)],
+                        ),
+                        borderRadius: BorderRadius.circular(14),
                       ),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      initials,
-                      style: const TextStyle(
-                        color: Color(0xFF04121A),
-                        fontWeight: FontWeight.w900,
-                        fontSize: 14,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(14),
+                        child: santri.fotoPath != null && File(santri.fotoPath!).existsSync()
+                            ? Image.file(File(santri.fotoPath!), fit: BoxFit.cover)
+                            : Center(
+                                child: Text(
+                                  initials,
+                                  style: const TextStyle(
+                                    color: Color(0xFF04121A),
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
                       ),
                     ),
                   ),
@@ -227,7 +250,10 @@ class SantriCard extends StatelessWidget {
                           Padding(
                             padding: const EdgeInsets.only(top: 4),
                             child: InkWell(
-                              onTap: onTunggakanTap,
+                              onTap: () {
+                                AppFeedback.tap();
+                                onTunggakanTap();
+                              },
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
@@ -247,7 +273,10 @@ class SantriCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   ElevatedButton(
-                    onPressed: onAmbilTap,
+                    onPressed: () {
+                      AppFeedback.tap();
+                      onAmbilTap();
+                    },
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                       minimumSize: Size.zero,
@@ -269,7 +298,14 @@ class SantriCard extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: onDetailTap ?? onAmbilTap,
+          onTap: () {
+            AppFeedback.tap();
+            if (onDetailTap != null) {
+              onDetailTap!();
+            } else {
+              onAmbilTap();
+            }
+          },
           borderRadius: BorderRadius.circular(26),
           child: Padding(
             padding: const EdgeInsets.all(12),
@@ -277,54 +313,93 @@ class SantriCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // 1. Baris Atas: Avatar, Kamar & Status Badge
+                // 1. Baris Atas: Avatar, Kamar & Status Badge + Quick Edit
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Row(
                       children: [
-                        Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0x55FFFFFF), Color(0x15FFFFFF)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
+                        InkWell(
+                          onTap: () {
+                            AppFeedback.tap();
+                            QuickEditSantriBottomSheet.show(context, santri);
+                          },
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0x55FFFFFF), Color(0x15FFFFFF)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              border: Border.all(color: Colors.white.withOpacity(0.3)),
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            border: Border.all(color: Colors.white.withOpacity(0.3)),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            initials,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 11,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(11),
+                              child: santri.fotoPath != null && File(santri.fotoPath!).existsSync()
+                                  ? Image.file(File(santri.fotoPath!), fit: BoxFit.cover)
+                                  : Center(
+                                      child: Text(
+                                        initials,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ),
                             ),
                           ),
                         ),
-                        const SizedBox(width: 6),
+                        const SizedBox(width: 5),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                           decoration: BoxDecoration(
                             color: Colors.black.withOpacity(0.4),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(10),
                             border: Border.all(color: Colors.white12),
                           ),
                           child: Text(
                             santri.kamar,
                             style: const TextStyle(
                               color: Color(0xFFE2E8F0),
-                              fontSize: 8.5,
+                              fontSize: 8,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
                         ),
                       ],
                     ),
-                    _buildStatusBadge(badge, status.jumlahAmbilHariIni),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildStatusBadge(badge, status.jumlahAmbilHariIni),
+                        const SizedBox(width: 4),
+                        InkWell(
+                          onTap: () {
+                            AppFeedback.tap();
+                            QuickEditSantriBottomSheet.show(context, santri);
+                          },
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            padding: const EdgeInsets.all(3),
+                            decoration: BoxDecoration(
+                              color: Colors.black45,
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: Colors.white24),
+                            ),
+                            child: const Icon(
+                              Icons.edit_outlined,
+                              size: 11,
+                              color: Color(0xFF7DD3FC),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
 
@@ -400,21 +475,28 @@ class SantriCard extends StatelessWidget {
                           color: const Color(0xFF0F172A),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: FractionallySizedBox(
-                          alignment: Alignment.centerLeft,
-                          widthFactor: (pct / 100).clamp(0.0, 1.0),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(10),
-                              gradient: const LinearGradient(
-                                colors: [
-                                  Color(0xFF10B981),
-                                  Color(0xFF06B6D4),
-                                  Color(0xFFD946EF),
-                                ],
+                        child: TweenAnimationBuilder<double>(
+                          tween: Tween<double>(begin: 0, end: (pct / 100).clamp(0.0, 1.0)),
+                          duration: const Duration(milliseconds: 500),
+                          curve: Curves.easeOutCubic,
+                          builder: (context, val, _) {
+                            return FractionallySizedBox(
+                              alignment: Alignment.centerLeft,
+                              widthFactor: val,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(10),
+                                  gradient: const LinearGradient(
+                                    colors: [
+                                      Color(0xFF10B981),
+                                      Color(0xFF06B6D4),
+                                      Color(0xFFD946EF),
+                                    ],
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
+                            );
+                          },
                         ),
                       ),
                     ],
@@ -500,7 +582,10 @@ class SantriCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       InkWell(
-                        onTap: onTunggakanTap,
+                        onTap: () {
+                          AppFeedback.tap();
+                          onTunggakanTap();
+                        },
                         borderRadius: BorderRadius.circular(10),
                         child: Container(
                           width: double.infinity,
@@ -557,43 +642,53 @@ class SantriCard extends StatelessWidget {
                   children: [
                     Expanded(
                       flex: 3,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 7),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [
-                              Color(0xFF34D399),
-                              Color(0xFF2DD4BF),
-                              Color(0xFF38BDF8),
+                      child: InkWell(
+                        onTap: () {
+                          AppFeedback.tap();
+                          onAmbilTap();
+                        },
+                        borderRadius: BorderRadius.circular(14),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 7),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [
+                                Color(0xFF34D399),
+                                Color(0xFF2DD4BF),
+                                Color(0xFF38BDF8),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(14),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF10B981).withOpacity(0.4),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              ),
                             ],
                           ),
-                          borderRadius: BorderRadius.circular(14),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF10B981).withOpacity(0.4),
-                              blurRadius: 8,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              '⚡ Ambil Uang',
-                              style: TextStyle(
-                                color: Color(0xFF030712),
-                                fontSize: 10,
-                                fontWeight: FontWeight.w900,
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                '⚡ Ambil Uang',
+                                style: TextStyle(
+                                  color: Color(0xFF030712),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w900,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
                     const SizedBox(width: 5),
                     InkWell(
-                      onTap: onTunggakanTap,
+                      onTap: () {
+                        AppFeedback.tap();
+                        onTunggakanTap();
+                      },
                       borderRadius: BorderRadius.circular(14),
                       child: Container(
                         width: 32,

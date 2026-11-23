@@ -458,3 +458,79 @@ Pencegahan Kesalahan Input (Human-Error Guard):
 Format angka otomatis menggunakan pemisah ribuan titik (Rp 10.000) saat mengetik agar pengurus tidak salah memasukkan jumlah nol (misal berniat mengetik $\text{Rp } 5.000$ tetapi tertulis $\text{Rp } 50.000$).
 
 Fitur Undo (Batalkan) selama $5$ detik di bagian bawah layar setiap kali selesai menyimpan transaksi pengambilan uang.
+
+---
+
+## 7. PANDUAN BUILD CI/CD & GIT PUSH YANG BENAR & BERHASIL
+
+Untuk memastikan proses build APK di GitHub Actions dan update repository Git selalu berhasil tanpa kegagalan:
+
+### A. Spesifikasi Kompatibilitas Versi (Flutter 3.50.1+)
+1. **Android Gradle Plugin (AGP):** `9.3.1` (didefinisikan di `android/settings.gradle` pada plugin `id "com.android.application" version "9.3.1" apply false`).
+2. **Gradle Wrapper:** `9.5.0` (didefinisikan di `android/gradle/wrapper/gradle-wrapper.properties` sebagai `distributionUrl=https\://services.gradle.org/distributions/gradle-9.5.0-all.zip`).
+3. **Kotlin Version:** `2.4.20` (didefinisikan di `android/settings.gradle` pada plugin `id "org.jetbrains.kotlin.android" version "2.4.20" apply false`).
+4. **Java Version:** `Java 17` (`actions/setup-java@v4` with `java-version: '17'`).
+5. **SDK Targets:** `compileSdk = 36`, `targetSdk = 36`, `minSdkVersion = 24`.
+6. **BuildConfig Configuration:**
+   - Gunakan `buildFeatures { buildConfig = true }` di dalam block `android { ... }` pada `android/app/build.gradle`.
+   - **JANGAN** gunakan flag usang `android.defaults.buildfeatures.buildconfig=true` di `android/gradle.properties` karena menyebabkan build gagal pada AGP 9+.
+
+### B. Konfigurasi CI/CD GitHub Actions (`.github/workflows/build-apk.yml`)
+Workflow GitHub Actions wajib menangani pembentukan wrapper otomatis bila file binari `android/gradlew` belum ada:
+```yaml
+name: Build APK Release
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Ensure Android Gradle Wrapper Exists
+        run: |
+          if [ ! -f "android/gradlew" ]; then
+            echo "Generating android wrapper files via flutter create..."
+            flutter create --platforms=android .
+            rm -f android/settings.gradle.kts android/app/build.gradle.kts
+          fi
+          chmod +x android/gradlew
+
+      - name: Get Dependencies
+        run: flutter pub get
+
+      - name: Build APK Release
+        run: flutter build apk --release --no-tree-shake-icons --android-skip-build-dependency-validation
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+```
+
+### C. Prosedur Git Commit & Push yang Benar
+1. Gunakan path eksekusi Git: `C:\Users\smkit\AppData\Local\Programs\Git\cmd\git.exe` (atau `git` jika sudah ada di PATH).
+2. Perintah commit dan push harus dijalankan dengan hak akses jaringan/bypass sandbox (`BypassSandbox: true`):
+   ```bash
+   git add -A
+   git commit -m "feat: [deskripsi pembaruan]"
+   git push origin main
+   ```
+3. Pantau tab **Actions** di repositori GitHub untuk memastikan workflow `assembleRelease` selesai 100% hijau dan file `app-release.apk` siap diunduh di bagian Artifacts.

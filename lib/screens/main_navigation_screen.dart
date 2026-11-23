@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/kas_santri_provider.dart';
 import '../widgets/undo_snackbar.dart';
+import '../utils/app_feedback.dart';
 import 'home_fast_withdrawal_screen.dart';
 import 'setoran/setoran_screen.dart';
 import 'transaksi/riwayat_transaksi_screen.dart';
@@ -93,13 +94,21 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     final isSelected = _currentIndex == index;
     return Expanded(
       child: InkWell(
-        onTap: () => setState(() => _currentIndex = index),
+        onTap: () {
+          AppFeedback.tap();
+          setState(() => _currentIndex = index);
+        },
         borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 3),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.symmetric(vertical: 4),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF10B981).withOpacity(0.16) : Colors.transparent,
+            color: isSelected ? const Color(0xFF10B981).withOpacity(0.18) : Colors.transparent,
             borderRadius: BorderRadius.circular(16),
+            border: isSelected
+                ? Border.all(color: const Color(0xFF34D399).withOpacity(0.4), width: 1)
+                : null,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,

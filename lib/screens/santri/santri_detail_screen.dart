@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/santri.dart';
@@ -288,12 +289,21 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> {
                           radius: 24,
                           backgroundColor: const Color(0xFF00796B),
                           foregroundColor: Colors.white,
-                          child: Text(
-                            santri.namaPanggilan.isNotEmpty
-                                ? santri.namaPanggilan[0].toUpperCase()
-                                : 'S',
-                            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                          ),
+                          child: santri.fotoPath != null && File(santri.fotoPath!).existsSync()
+                              ? ClipOval(
+                                  child: Image.file(
+                                    File(santri.fotoPath!),
+                                    width: 48,
+                                    height: 48,
+                                    fit: BoxFit.cover,
+                                  ),
+                                )
+                              : Text(
+                                  santri.namaPanggilan.isNotEmpty
+                                      ? santri.namaPanggilan[0].toUpperCase()
+                                      : 'S',
+                                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                                ),
                         ),
                         const SizedBox(width: 14),
                         Expanded(

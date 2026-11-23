@@ -21,24 +21,30 @@ class ReportService {
     required PengaturanAplikasi pengaturan,
   }) {
     final buffer = StringBuffer();
-    buffer.writeln('📋 *LAPORAN MUTASI UANG SAKU SANTRI*');
-    buffer.writeln('🏫 *${pengaturan.namaPondok}*');
-    buffer.writeln('━━━━━━━━━━━━━━━━━━━━━');
-    buffer.writeln('👤 *Nama Santri:* ${santri.namaLengkap} (${santri.namaPanggilan})');
-    buffer.writeln('🚪 *Kamar/Kelas:* ${santri.kamar}');
-    buffer.writeln('💰 *Sisa Saldo Terkini:* ${CurrencyFormatter.format(santri.saldoTotal)}');
-    buffer.writeln('📊 *Jatah Harian:* ${CurrencyFormatter.format(santri.jatahHarian)}/hari');
-    buffer.writeln('⏳ *Estimasi Cukup:* ±${santri.estimasiHari} hari ke depan');
+    final todayStr = DateFormatter.toLocalDateString(DateTime.now());
+
+    buffer.writeln('*Assalamu’alaikum Warahmatullahi Wabarakatuh* 🌸\n');
+    buffer.writeln('Yth. *Bapak/Ibu Wali Santri*');
+    buffer.writeln('dari ananda tercinta: *${santri.namaLengkap}* (${santri.namaPanggilan})');
+    buffer.writeln('Kamar / Asrama: *${santri.kamar}*\n');
+    buffer.writeln('Semoga Bapak/Ibu senantiasa dalam keadaan sehat wal afiat dan selalu dalam lindungan Allah SWT. Aamiin.\n');
+    buffer.writeln('Izin menyampaikan laporan rekapitulasi mutasi buku kas santri per $todayStr:\n');
+    buffer.writeln('💰 *STATUS TITIPAN & JATAH SANTRI:*');
+    buffer.writeln('• Sisa Saldo Titipan: *${CurrencyFormatter.format(santri.saldoTotal)}*');
+    buffer.writeln('• Standar Jatah Harian: *${CurrencyFormatter.format(santri.jatahHarian)} / hari*');
+    buffer.writeln('• Estimasi Ketahanan: ±*${santri.estimasiHari} hari* ke depan');
     if (santri.tunggakan > 0) {
       final ket = santri.catatanTunggakan.isNotEmpty ? ' (${santri.catatanTunggakan})' : '';
-      buffer.writeln('🚨 *Tunggakan:* ${CurrencyFormatter.format(santri.tunggakan)}$ket');
+      buffer.writeln('• 🚨 *Catatan Tunggakan/Talangan:* *${CurrencyFormatter.format(santri.tunggakan)}*$ket');
+    } else {
+      buffer.writeln('• ✅ *Status Administrasi:* Bersih / Bebas Tunggakan');
     }
     buffer.writeln('━━━━━━━━━━━━━━━━━━━━━');
     buffer.writeln('📜 *Riwayat Transaksi Terbaru:*');
 
-    final displayList = mutasiList.take(10).toList();
+    final displayList = mutasiList.take(8).toList();
     if (displayList.isEmpty) {
-      buffer.writeln('_Belum ada transaksi pada periode ini._');
+      buffer.writeln('  _Belum ada riwayat transaksi pada periode ini._');
     } else {
       for (var tx in displayList) {
         if (tx.isVoided) continue;
@@ -46,18 +52,19 @@ class ReportService {
         final waktu = DateFormatter.formatFullDateTime(tx.waktuAmbil);
         final nominal = CurrencyFormatter.format(tx.nominal);
         final ket = tx.catatan != null && tx.catatan!.isNotEmpty ? ' (${tx.catatan})' : '';
-        buffer.writeln('$icon $waktu');
-        buffer.writeln('   Nominal: $nominal$ket');
-        buffer.writeln('   Sisa: ${CurrencyFormatter.format(tx.saldoSetelahTransaksi)}');
+        buffer.writeln('  • $icon $waktu');
+        buffer.writeln('    Nominal: *$nominal*$ket | Sisa: ${CurrencyFormatter.format(tx.saldoSetelahTransaksi)}');
       }
     }
 
     buffer.writeln('━━━━━━━━━━━━━━━━━━━━━');
+    buffer.writeln('Demikian laporan buku mutasi ini kami sampaikan dengan amanah demi transparansi keuangan santri di *${pengaturan.namaPondok}*.\n');
+    buffer.writeln('*Jazakumullah Khairan Katsiran*');
+    buffer.writeln('*Wassalamu’alaikum Warahmatullahi Wabarakatuh* 🙏\n');
     buffer.writeln('Pengurus Kas: *${pengaturan.namaPengurus}*');
     if (pengaturan.kontakPengurus.isNotEmpty) {
       buffer.writeln('Kontak: ${pengaturan.kontakPengurus}');
     }
-    buffer.writeln('_Dicatat otomatis via Aplikasi Kas Santri_');
 
     return buffer.toString();
   }

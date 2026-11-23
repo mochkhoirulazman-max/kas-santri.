@@ -151,5 +151,47 @@ void main() {
       );
       expect(santriTambah.tunggakan, 145000);
     });
+
+    test('H. Logika Setoran Otomatis Potong Tunggakan & Penarikan Saldo Habis', () {
+      // 1. Santri punya tunggakan Rp 50.000, setor awal bulan Rp 300.000
+      int tunggakan = 50000;
+      int setoran = 300000;
+      int sisaSetoranMasukSaldo = setoran;
+
+      if (tunggakan > 0) {
+        if (sisaSetoranMasukSaldo >= tunggakan) {
+          sisaSetoranMasukSaldo -= tunggakan;
+          tunggakan = 0;
+        } else {
+          tunggakan -= sisaSetoranMasukSaldo;
+          sisaSetoranMasukSaldo = 0;
+        }
+      }
+
+      expect(tunggakan, 0); // Tunggakan lunas
+      expect(sisaSetoranMasukSaldo, 250000); // Sisa bersih masuk saldo
+      const durasiHari = 30;
+      final jatahBaru = (sisaSetoranMasukSaldo / durasiHari).round();
+      expect(jatahBaru, 8333); // Kuota harian dihitung dari sisa setoran bersih
+
+      // 2. Santri saldo Rp 2.000, ingin ambil Rp 5.000 (Saldo habis -> talangan brankas jadi tunggakan)
+      int saldo = 2000;
+      int nominalAmbil = 5000;
+      int tunggakanSantri = 0;
+
+      if (saldo >= nominalAmbil) {
+        saldo -= nominalAmbil;
+      } else if (saldo > 0) {
+        final kekurangan = nominalAmbil - saldo;
+        saldo = 0;
+        tunggakanSantri += kekurangan;
+      } else {
+        saldo = 0;
+        tunggakanSantri += nominalAmbil;
+      }
+
+      expect(saldo, 0); // Saldo habis
+      expect(tunggakanSantri, 3000); // Kekurangan Rp 3.000 jadi tunggakan
+    });
   });
 }

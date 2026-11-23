@@ -10,6 +10,7 @@ import '../widgets/santri_card.dart';
 import '../widgets/fast_withdrawal_bottom_sheet.dart';
 import '../widgets/tunggakan_bottom_sheet.dart';
 import '../widgets/tambah_santri_bottom_sheet.dart';
+import '../utils/app_feedback.dart';
 import 'pin_lock_screen.dart';
 
 class HomeFastWithdrawalScreen extends StatefulWidget {
@@ -223,7 +224,10 @@ class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen> {
                                 backgroundColor: const Color(0xFF10B981),
                                 foregroundColor: const Color(0xFF04121A),
                               ),
-                              onPressed: () => TambahSantriBottomSheet.show(context),
+                              onPressed: () {
+                                AppFeedback.tap();
+                                TambahSantriBottomSheet.show(context);
+                              },
                               child: const Row(
                                 children: [
                                   Icon(Icons.add, size: 14),
@@ -234,7 +238,10 @@ class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen> {
                             ),
                             const SizedBox(width: 6),
                             InkWell(
-                              onTap: _lockAppNow,
+                              onTap: () {
+                                AppFeedback.tap();
+                                _lockAppNow();
+                              },
                               borderRadius: BorderRadius.circular(12),
                               child: Container(
                                 width: 34,
@@ -348,7 +355,10 @@ class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen> {
                     ),
                     const SizedBox(width: 8),
                     InkWell(
-                      onTap: provider.toggleGridLayout,
+                      onTap: () {
+                        AppFeedback.tap();
+                        provider.toggleGridLayout();
+                      },
                       borderRadius: BorderRadius.circular(16),
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
@@ -467,7 +477,10 @@ class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen> {
     return Padding(
       padding: const EdgeInsets.only(right: 6),
       child: InkWell(
-        onTap: () => provider.setFilter(filterKey),
+        onTap: () {
+          AppFeedback.tap();
+          provider.setFilter(filterKey);
+        },
         borderRadius: BorderRadius.circular(20),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
