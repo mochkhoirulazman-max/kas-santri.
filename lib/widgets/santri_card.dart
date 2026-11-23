@@ -8,6 +8,7 @@ class SantriCard extends StatelessWidget {
   final bool isTwoCol;
   final VoidCallback onAmbilTap;
   final VoidCallback onTunggakanTap;
+  final VoidCallback? onDetailTap;
 
   const SantriCard({
     Key? key,
@@ -15,6 +16,7 @@ class SantriCard extends StatelessWidget {
     this.isTwoCol = true,
     required this.onAmbilTap,
     required this.onTunggakanTap,
+    this.onDetailTap,
   }) : super(key: key);
 
   String _getInitials(String name) {
@@ -157,7 +159,7 @@ class SantriCard extends StatelessWidget {
         child: Material(
           color: Colors.transparent,
           child: InkWell(
-            onTap: onAmbilTap,
+            onTap: onDetailTap ?? onAmbilTap,
             borderRadius: BorderRadius.circular(26),
             child: Padding(
               padding: const EdgeInsets.all(14),
@@ -267,7 +269,7 @@ class SantriCard extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: onAmbilTap,
+          onTap: onDetailTap ?? onAmbilTap,
           borderRadius: BorderRadius.circular(26),
           child: Padding(
             padding: const EdgeInsets.all(12),

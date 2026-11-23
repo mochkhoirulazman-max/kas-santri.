@@ -425,9 +425,9 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> {
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                  if (santri.catatanTunggakan != null && santri.catatanTunggakan!.isNotEmpty)
+                                  if (santri.catatanTunggakan.isNotEmpty)
                                     Text(
-                                      santri.catatanTunggakan!,
+                                      santri.catatanTunggakan,
                                       style: TextStyle(
                                         color: Colors.red.shade900,
                                         fontSize: 11,

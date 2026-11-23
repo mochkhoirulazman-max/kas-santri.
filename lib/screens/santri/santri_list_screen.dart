@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/kas_santri_provider.dart';
 import '../../widgets/santri_card.dart';
+import '../../widgets/fast_withdrawal_bottom_sheet.dart';
+import '../../widgets/tunggakan_bottom_sheet.dart';
 import 'santri_form_screen.dart';
 import 'santri_detail_screen.dart';
 
@@ -122,6 +124,9 @@ class _SantriListScreenState extends State<SantriListScreen> {
                   final status = filteredList[index];
                   return SantriCard(
                     status: status,
+                    isTwoCol: false,
+                    onAmbilTap: () => FastWithdrawalBottomSheet.show(context, status),
+                    onTunggakanTap: () => TunggakanBottomSheet.show(context, status.santri),
                     onDetailTap: () {
                       Navigator.push(
                         context,

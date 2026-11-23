@@ -305,6 +305,27 @@ class KasSantriProvider extends ChangeNotifier {
     await loadAllData();
   }
 
+  Future<void> editTransaksi(String id, int newNominal, String? note) async {
+    await _db.editTransaksi(id, newNominal, note);
+    await loadAllData();
+  }
+
+  Future<void> updateJatahKhusus(String santriId, int newJatah) async {
+    final santri = _allSantri.firstWhere((s) => s.id == santriId);
+    final updated = santri.copyWith(jatahHarian: newJatah);
+    await _db.updateSantri(updated);
+    await loadAllData();
+  }
+
+  Future<void> saveSantri(Santri santri, {bool isEdit = false}) async {
+    if (isEdit) {
+      await _db.updateSantri(santri);
+    } else {
+      await _db.insertSantri(santri);
+    }
+    await loadAllData();
+  }
+
   // ==================== SANTRI BARU & PENGATURAN ====================
 
   Future<void> tambahSantriBaru(Santri santri) async {

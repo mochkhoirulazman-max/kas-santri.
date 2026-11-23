@@ -1,4 +1,4 @@
-enum TipeSetoran { awalBulan, susulanTopup }
+enum TipeSetoran { awalBulan, susulanTopUp, susulanTopup }
 
 enum OpsiSetoranSusulan { tambahJatahHarian, perpanjangHari }
 

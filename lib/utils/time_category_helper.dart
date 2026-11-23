@@ -1,4 +1,4 @@
-enum TimeCategory { pagi, siang, sore, malam }
+enum TimeCategory { pagi, siang, sore, malam, setoran }
 
 class TimeCategoryHelper {
   /// Mengelompokkan waktu pengambilan:
@@ -29,8 +29,12 @@ class TimeCategoryHelper {
         return 'SORE';
       case TimeCategory.malam:
         return 'MALAM';
+      case TimeCategory.setoran:
+        return 'SETORAN';
     }
   }
+
+  static String getDbString(TimeCategory category) => toDbString(category);
 
   static TimeCategory fromDbString(String str) {
     switch (str.toUpperCase()) {
@@ -40,6 +44,8 @@ class TimeCategoryHelper {
         return TimeCategory.siang;
       case 'SORE':
         return TimeCategory.sore;
+      case 'SETORAN':
+        return TimeCategory.setoran;
       case 'MALAM':
       default:
         return TimeCategory.malam;
@@ -56,6 +62,8 @@ class TimeCategoryHelper {
         return 'Sore';
       case TimeCategory.malam:
         return 'Malam';
+      case TimeCategory.setoran:
+        return 'Setoran';
     }
   }
 
@@ -69,6 +77,8 @@ class TimeCategoryHelper {
         return '🌇';
       case TimeCategory.malam:
         return '🌙';
+      case TimeCategory.setoran:
+        return '📥';
     }
   }
 }

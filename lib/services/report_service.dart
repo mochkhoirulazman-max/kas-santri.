@@ -30,7 +30,7 @@ class ReportService {
     buffer.writeln('📊 *Jatah Harian:* ${CurrencyFormatter.format(santri.jatahHarian)}/hari');
     buffer.writeln('⏳ *Estimasi Cukup:* ±${santri.estimasiHari} hari ke depan');
     if (santri.tunggakan > 0) {
-      final ket = santri.catatanTunggakan != null && santri.catatanTunggakan!.isNotEmpty ? ' (${santri.catatanTunggakan})' : '';
+      final ket = santri.catatanTunggakan.isNotEmpty ? ' (${santri.catatanTunggakan})' : '';
       buffer.writeln('🚨 *Tunggakan:* ${CurrencyFormatter.format(santri.tunggakan)}$ket');
     }
     buffer.writeln('━━━━━━━━━━━━━━━━━━━━━');

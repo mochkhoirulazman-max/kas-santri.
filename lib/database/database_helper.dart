@@ -445,6 +445,68 @@ class DatabaseHelper {
     });
   }
 
+  Future<void> editTransaksi(String id, int newNominal, String? note) async {
+    final db = await database;
+    await db.transaction((txn) async {
+      final maps = await txn.query('transaksi_harian', where: 'id = ?', whereArgs: [id]);
+      if (maps.isEmpty) return;
+
+      final tx = TransaksiHarian.fromMap(maps.first);
+      final int diff = newNominal - tx.nominal;
+
+      await txn.update(
+        'transaksi_harian',
+        {
+          'nominal': newNominal,
+          'catatan': note,
+        },
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+
+      final santriMaps = await txn.query('santri', where: 'id = ?', whereArgs: [tx.santriId]);
+      if (santriMaps.isNotEmpty) {
+        final currentSaldo = santriMaps.first['saldo_total'] as int;
+        final updatedSaldo = tx.tipe == TipeTransaksi.pengambilan
+            ? currentSaldo - diff
+            : currentSaldo + diff;
+
+        await txn.update(
+          'santri',
+          {'saldo_total': updatedSaldo},
+          where: 'id = ?',
+          whereArgs: [tx.santriId],
+        );
+      }
+    });
+  }
+
+  Future<List<TransaksiHarian>> getBukuMutasiSantri(
+    String santriId, {
+    String? tanggalMulai,
+    String? tanggalSelesai,
+  }) async {
+    final db = await database;
+    String where = 'santri_id = ?';
+    List<dynamic> args = [santriId];
+
+    if (tanggalMulai != null && tanggalSelesai != null) {
+      where += ' AND tanggal_lokal BETWEEN ? AND ?';
+      args.addAll([tanggalMulai, tanggalSelesai]);
+    } else if (tanggalMulai != null) {
+      where += ' AND tanggal_lokal >= ?';
+      args.add(tanggalMulai);
+    }
+
+    final maps = await db.query(
+      'transaksi_harian',
+      where: where,
+      whereArgs: args,
+      orderBy: 'waktu_ambil DESC',
+    );
+    return maps.map((m) => TransaksiHarian.fromMap(m)).toList();
+  }
+
   Future<int> getTotalPengambilanHariIni(String santriId, String tanggalLokal) async {
     final db = await database;
     final result = await db.rawQuery('''

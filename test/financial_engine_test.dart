@@ -139,9 +139,9 @@ void main() {
       expect(santriSetelahCicil.tunggakan, 70000);
 
       // Simulasi pelunasan penuh
-      final santriLunas = santriSetelahCicil.copyWith(tunggakan: 0, catatanTunggakan: null);
+      final santriLunas = santriSetelahCicil.copyWith(tunggakan: 0, catatanTunggakan: '');
       expect(santriLunas.tunggakan, 0);
-      expect(santriLunas.catatanTunggakan, isNull);
+      expect(santriLunas.catatanTunggakan, '');
 
       // Simulasi tambah tunggakan baru
       const tambah = 25000;
