@@ -192,6 +192,7 @@ jobs:
             flutter create --platforms=android .
             rm -f android/*.gradle.kts android/app/*.gradle.kts
             rm -rf android/app/src/main/kotlin/com/pondok/kas_santri
+            sed -i 's/gradle-.*-bin.zip/gradle-8.10.2-bin.zip/g' android/gradle/wrapper/gradle-wrapper.properties || true
           fi
           chmod +x android/gradlew
 
@@ -199,7 +200,7 @@ jobs:
         run: flutter pub get
 
       - name: Build Release APK
-        run: flutter build apk --release --no-tree-shake-icons
+        run: flutter build apk --release --no-tree-shake-icons --android-skip-build-dependency-validation
 
       - name: Upload Release APK to Artifacts
         uses: actions/upload-artifact@v4
