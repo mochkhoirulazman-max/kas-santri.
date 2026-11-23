@@ -58,7 +58,7 @@ class QuickChipsWidget extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: Colors.amber.shade950,
+                      color: Colors.amber.shade900,
                     ),
                   ),
                 ],
