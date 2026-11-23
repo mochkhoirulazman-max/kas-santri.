@@ -210,7 +210,7 @@ class _QuickEditSantriBottomSheetState extends State<QuickEditSantriBottomSheet>
                                 ),
                         ),
                       ),
-                      PositionDirectional(
+                      PositionedDirectional(
                         bottom: 0,
                         end: 0,
                         child: InkWell(
