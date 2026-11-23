@@ -13,7 +13,6 @@ class PinLockScreen extends StatefulWidget {
 
 class _PinLockScreenState extends State<PinLockScreen> {
   String _pin = '';
-  bool _isLoading = false;
   String? _errorMessage;
 
   @override
@@ -69,7 +68,9 @@ class _PinLockScreenState extends State<PinLockScreen> {
   }
 
   Future<void> _onUnlockSuccess() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _errorMessage = null;
+    });
     await AuthService.instance.updateLastActive();
     if (!mounted) return;
 

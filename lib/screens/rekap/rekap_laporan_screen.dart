@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../database/database_helper.dart';
-import '../../models/transaksi.dart';
 import '../../providers/kas_santri_provider.dart';
-import '../../services/report_service.dart';
 import '../../utils/currency_formatter.dart';
 import '../../utils/date_formatter.dart';
-import '../../utils/time_category_helper.dart';
 
 class RekapLaporanScreen extends StatefulWidget {
   const RekapLaporanScreen({Key? key}) : super(key: key);
@@ -30,8 +27,6 @@ class _RekapLaporanScreenState extends State<RekapLaporanScreen> {
   int _selectedTahun = DateTime.now().year;
   Map<String, int> _rekapBulanan = {'pemasukan': 0, 'pengeluaran': 0, 'net': 0};
 
-  bool _isLoading = true;
-
   @override
   void initState() {
     super.initState();
@@ -39,7 +34,6 @@ class _RekapLaporanScreenState extends State<RekapLaporanScreen> {
   }
 
   Future<void> _loadData() async {
-    setState(() => _isLoading = true);
     final dateStr = DateFormatter.toLocalDateString(_selectedDate);
 
     // Load Rekap Harian
@@ -52,7 +46,7 @@ class _RekapLaporanScreenState extends State<RekapLaporanScreen> {
     _rekapBulanan = await DatabaseHelper.instance.getRekapBulanan(_selectedTahun, _selectedBulan);
 
     if (mounted) {
-      setState(() => _isLoading = false);
+      setState(() {});
     }
   }
 
