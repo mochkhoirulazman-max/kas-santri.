@@ -187,6 +187,12 @@ jobs:
 
       - name: Configure Android Gradle wrapper
         run: |
+          if [ ! -f "android/gradlew" ]; then
+            echo "Generating Android Gradle wrapper via Flutter..."
+            flutter create --platforms=android .
+            rm -f android/*.gradle.kts android/app/*.gradle.kts
+            rm -rf android/app/src/main/kotlin/com/pondok/kas_santri
+          fi
           chmod +x android/gradlew
 
       - name: Install dependencies
