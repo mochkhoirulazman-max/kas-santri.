@@ -145,12 +145,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Pilar 3: Java 17 Temurin static reference
-      - name: Set up Java 17
+      # Pilar 3: Java 21 Temurin (dibutuhkan oleh AGP 9.3.1 / Gradle 9.5)
+      - name: Set up Java 21
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
 
       # Pilar 3: Flutter Stable
       - name: Set up Flutter
