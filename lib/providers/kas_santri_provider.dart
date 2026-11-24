@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../models/santri.dart';
 import '../models/setoran.dart';
 import '../models/transaksi.dart';
 import '../models/pengaturan.dart';

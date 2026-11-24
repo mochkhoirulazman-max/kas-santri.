@@ -1,5 +1,10 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../providers/kas_santri_provider.dart';
 import '../../services/backup_service.dart';
 import '../../database/database_helper.dart';
@@ -17,7 +22,14 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
   Future<void> _handleExport() async {
     setState(() => _isProcessing = true);
     try {
-      final file = await BackupService.instance.exportBackupJson();
+      final dump = await DatabaseHelper.instance.dumpBackupJson();
+      final jsonStr = const JsonEncoder.withIndent('  ').convert(dump);
+      final dir = await getTemporaryDirectory();
+      final file = File(
+        '${dir.path}/backup_kas_santri_${DateTime.now().millisecondsSinceEpoch}.json',
+      );
+      await file.writeAsString(jsonStr);
+      await Share.shareXFiles([XFile(file.path)], text: 'Backup Kas Santri');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -60,18 +72,29 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
 
     setState(() => _isProcessing = true);
     try {
-      final success = await BackupService.instance.importBackupJson();
-      if (success) {
-        final provider = Provider.of<KasSantriProvider>(context, listen: false);
-        await provider.loadAllData();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Data kas santri berhasil dipulihkan 100%!'),
-              backgroundColor: Color(0xFF00796B),
-            ),
-          );
-        }
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+      );
+      if (result == null || result.files.single.path == null) return;
+
+      final file = File(result.files.single.path!);
+      final rawJson = await file.readAsString();
+      final validation = BackupService.validateJsonString(rawJson);
+      if (!validation.isValid || validation.parsedData == null) {
+        throw Exception(validation.errorMessage ?? 'File backup JSON tidak valid.');
+      }
+
+      if (!mounted) return;
+      final provider = Provider.of<KasSantriProvider>(context, listen: false);
+      await provider.restoreFromBackupJson(validation.parsedData!);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Data kas santri berhasil dipulihkan 100%!'),
+            backgroundColor: Color(0xFF00796B),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {

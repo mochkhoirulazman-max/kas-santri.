@@ -217,11 +217,12 @@ class SubscriptionService {
     }
 
     try {
-      final result = await Purchases.purchase(
-        PurchaseParams.package(offer.rcPackage!),
-      );
+      final dynamic result = await Purchases.purchasePackage(offer.rcPackage!);
+      final CustomerInfo customerInfo = result is CustomerInfo
+          ? result
+          : (result.customerInfo as CustomerInfo);
       final entitlement =
-          result.customerInfo.entitlements.active[AppConfig.entitlementId];
+          customerInfo.entitlements.active[AppConfig.entitlementId];
       if (entitlement != null) {
         return SubscriptionPurchaseResult(
           success: true,

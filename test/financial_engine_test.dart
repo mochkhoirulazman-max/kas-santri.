@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:kas_santri/config/app_config.dart';
 import 'package:kas_santri/models/pengaturan.dart';
-import 'package:kas_santri/models/santri.dart';
 import 'package:kas_santri/models/santri_status.dart';
 import 'package:kas_santri/models/transaksi.dart';
 import 'package:kas_santri/providers/kas_santri_provider.dart';
