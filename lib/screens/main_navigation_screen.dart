@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/kas_santri_provider.dart';
-import '../widgets/undo_snackbar.dart';
+import '../services/auth_service.dart';
 import '../utils/app_feedback.dart';
 import 'home_fast_withdrawal_screen.dart';
+import 'pin_lock_screen.dart';
 import 'setoran/setoran_screen.dart';
 import 'transaksi/riwayat_transaksi_screen.dart';
 import 'rekap/rekap_laporan_screen.dart';
@@ -16,7 +17,8 @@ class MainNavigationScreen extends StatefulWidget {
   State<MainNavigationScreen> createState() => _MainNavigationScreenState();
 }
 
-class _MainNavigationScreenState extends State<MainNavigationScreen> {
+class _MainNavigationScreenState extends State<MainNavigationScreen>
+    with WidgetsBindingObserver {
   int _currentIndex = 0;
 
   final List<Widget> _screens = [];
@@ -24,6 +26,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _screens.addAll([
       const HomeFastWithdrawalScreen(),
       SetoranScreen(onSaved: () => setState(() => _currentIndex = 0)),
@@ -31,10 +34,43 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       const RekapLaporanScreen(),
       const SettingsScreen(),
     ]);
+    Future.microtask(() {
+      if (mounted) {
+        Provider.of<KasSantriProvider>(context, listen: false)
+            .tryAutoBackupDriveInBackground();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      AuthService.instance.updateLastActive();
+    } else if (state == AppLifecycleState.resumed) {
+      _checkLockOnResume();
+    }
+  }
+
+  Future<void> _checkLockOnResume() async {
+    final shouldLock = await AuthService.instance.shouldLockApp();
+    if (shouldLock && mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const PinLockScreen(isUnlockingSession: true)),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final bottomSafe = MediaQuery.of(context).padding.bottom;
+
     return Scaffold(
       backgroundColor: const Color(0xFF060A12),
       body: Stack(
@@ -45,19 +81,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             children: _screens,
           ),
 
-          // Undo Bottom Banner (floating above bottom navigation)
-          const Positioned(
-            left: 12,
-            right: 12,
-            bottom: 74,
-            child: UndoBottomBanner(),
-          ),
-
           // Floating Glass Bottom Navigation Bar
           Positioned(
             left: 16,
             right: 16,
-            bottom: 12,
+            bottom: 12 + bottomSafe,
             child: Container(
               height: 62,
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),

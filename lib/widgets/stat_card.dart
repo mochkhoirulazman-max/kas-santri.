@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/app_feedback.dart';
@@ -10,8 +11,13 @@ class SafeVaultCard extends StatelessWidget {
   final int countTunggakan;
   final int jumlahSantri;
   final bool isHidden;
+  final bool isProUser;
+  final int kasLaciTunai;
+  final int rekeningBank;
   final VoidCallback onToggleHide;
   final VoidCallback onTunggakanTap;
+  final VoidCallback? onTarikTunaiTap;
+  final VoidCallback? onUpgradeProTap;
 
   const SafeVaultCard({
     Key? key,
@@ -22,8 +28,13 @@ class SafeVaultCard extends StatelessWidget {
     required this.countTunggakan,
     required this.jumlahSantri,
     required this.isHidden,
+    this.isProUser = false,
+    this.kasLaciTunai = 0,
+    this.rekeningBank = 0,
     required this.onToggleHide,
     required this.onTunggakanTap,
+    this.onTarikTunaiTap,
+    this.onUpgradeProTap,
   }) : super(key: key);
 
   @override
@@ -384,6 +395,165 @@ class SafeVaultCard extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+
+          const SizedBox(height: 10),
+
+          // Baris Mini Multi-Dompet: Kas Laci Tunai vs Rekening Bank (PRO)
+          _buildMultiDompetStrip(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMultiDompetStrip() {
+    final laciText = isHidden
+        ? 'Rp ••••'
+        : (isProUser ? CurrencyFormatter.format(kasLaciTunai) : 'Rp 666.000');
+    final bankText = isHidden
+        ? 'Rp ••••'
+        : (isProUser ? CurrencyFormatter.format(rekeningBank) : 'Rp 1.000.000');
+
+    final innerRow = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      decoration: BoxDecoration(
+        color: const Color(0xFF040812).withOpacity(0.75),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isProUser
+              ? const Color(0xFF34D399).withOpacity(0.35)
+              : const Color(0xFFFBBF24).withOpacity(0.35),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '💵 Kas Laci Tunai',
+                  style: TextStyle(color: Color(0xFF6EE7B7), fontSize: 8.5, fontWeight: FontWeight.w800),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    laciText,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w900,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(width: 1, height: 26, margin: const EdgeInsets.symmetric(horizontal: 8), color: Colors.white12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '🏦 Rekening Bank',
+                  style: TextStyle(color: Color(0xFF7DD3FC), fontSize: 8.5, fontWeight: FontWeight.w800),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    bankText,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w900,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (isProUser) ...[
+            const SizedBox(width: 6),
+            InkWell(
+              onTap: () {
+                AppFeedback.tap();
+                onTarikTunaiTap?.call();
+              },
+              borderRadius: BorderRadius.circular(11),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(colors: [Color(0xFFFBBF24), Color(0xFF34D399)]),
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: const Text(
+                  '⇄ Tarik ke Laci',
+                  style: TextStyle(
+                    color: Color(0xFF030712),
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+
+    if (isProUser) {
+      return innerRow;
+    }
+
+    return InkWell(
+      onTap: () {
+        AppFeedback.tap();
+        onUpgradeProTap?.call();
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: 3.5, sigmaY: 3.5),
+              child: Opacity(opacity: 0.55, child: innerRow),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xEE1E170A), Color(0xEE0B1324)],
+              ),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFFFBBF24), width: 1.1),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFF59E0B).withOpacity(0.3),
+                  blurRadius: 10,
+                ),
+              ],
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('🔒 👑 PRO', style: TextStyle(color: Color(0xFFFDE68A), fontSize: 10, fontWeight: FontWeight.w900)),
+                SizedBox(width: 6),
+                Text('Pisah Kas Laci vs Bank', style: TextStyle(color: Colors.white70, fontSize: 9.5, fontWeight: FontWeight.w700)),
+              ],
+            ),
           ),
         ],
       ),

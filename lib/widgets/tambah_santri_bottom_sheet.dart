@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../models/santri.dart';
 import '../providers/kas_santri_provider.dart';
+import '../screens/paywall_screen.dart';
+import '../utils/app_feedback.dart';
+import '../utils/currency_formatter.dart';
 
 class TambahSantriBottomSheet extends StatefulWidget {
   const TambahSantriBottomSheet({Key? key}) : super(key: key);
@@ -11,6 +14,7 @@ class TambahSantriBottomSheet extends StatefulWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => const TambahSantriBottomSheet(),
     );
@@ -23,9 +27,10 @@ class TambahSantriBottomSheet extends StatefulWidget {
 class _TambahSantriBottomSheetState extends State<TambahSantriBottomSheet> {
   final TextEditingController _namaController = TextEditingController();
   final TextEditingController _kamarController = TextEditingController(text: 'Kamar 1');
-  final TextEditingController _setoranController = TextEditingController(text: '300000');
-  final TextEditingController _jatahController = TextEditingController(text: '10000');
+  final TextEditingController _setoranController = TextEditingController(text: '300.000');
+  final TextEditingController _jatahController = TextEditingController(text: '10.000');
   final TextEditingController _tunggakanController = TextEditingController(text: '0');
+  String _sumberDompet = 'TUNAI';
 
   @override
   void dispose() {
@@ -40,6 +45,7 @@ class _TambahSantriBottomSheetState extends State<TambahSantriBottomSheet> {
   Future<void> _submit() async {
     final nama = _namaController.text.trim();
     if (nama.isEmpty) {
+      AppFeedback.alert();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Nama lengkap santri wajib diisi!'),
@@ -50,9 +56,9 @@ class _TambahSantriBottomSheetState extends State<TambahSantriBottomSheet> {
     }
 
     final kamar = _kamarController.text.trim().isNotEmpty ? _kamarController.text.trim() : 'Kamar 1';
-    final setoran = int.tryParse(_setoranController.text.trim()) ?? 0;
-    final jatah = int.tryParse(_jatahController.text.trim()) ?? 10000;
-    final tunggakan = int.tryParse(_tunggakanController.text.trim()) ?? 0;
+    final setoran = CurrencyFormatter.parse(_setoranController.text);
+    final jatah = CurrencyFormatter.parse(_jatahController.text);
+    final tunggakan = CurrencyFormatter.parse(_tunggakanController.text);
 
     final santri = Santri(
       id: const Uuid().v4(),
@@ -67,7 +73,20 @@ class _TambahSantriBottomSheetState extends State<TambahSantriBottomSheet> {
     );
 
     final provider = Provider.of<KasSantriProvider>(context, listen: false);
-    await provider.tambahSantriBaru(santri);
+    if (provider.hasReachedFreeSantriLimit) {
+      AppFeedback.alert();
+      if (mounted) {
+        Navigator.pop(context);
+        PaywallScreen.show(
+          context,
+          triggerFeature:
+              'Santri Tanpa Batas — Kuota Mode Gratis maksimal ${KasSantriProvider.maxFreeSantriQuota} santri aktif telah tercapai.',
+        );
+      }
+      return;
+    }
+    await provider.tambahSantriBaru(santri, sumberDompet: _sumberDompet);
+    AppFeedback.success();
 
     if (mounted) {
       Navigator.pop(context);
@@ -82,20 +101,26 @@ class _TambahSantriBottomSheetState extends State<TambahSantriBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFF0E1422),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-        border: Border(
-          top: BorderSide(color: Color(0x33FFFFFF), width: 1.5),
+    final kelipatan = Provider.of<KasSantriProvider>(context, listen: false).pengaturan.pembulatanJatah;
+    final bottomSafe = MediaQuery.of(context).padding.bottom;
+
+    return SafeArea(
+      top: true,
+      bottom: false,
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFF0E1422),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+          border: Border(
+            top: BorderSide(color: Color(0x33FFFFFF), width: 1.5),
+          ),
         ),
-      ),
-      padding: EdgeInsets.only(
-        top: 12,
-        left: 20,
-        right: 20,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-      ),
+        padding: EdgeInsets.only(
+          top: 12,
+          left: 20,
+          right: 20,
+          bottom: MediaQuery.of(context).viewInsets.bottom + bottomSafe + 24,
+        ),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -170,11 +195,13 @@ class _TambahSantriBottomSheetState extends State<TambahSantriBottomSheet> {
                       TextField(
                         controller: _setoranController,
                         keyboardType: TextInputType.number,
+                        inputFormatters: [RibuanInputFormatter()],
                         style: const TextStyle(color: Colors.white, fontSize: 13, fontFamily: 'monospace', fontWeight: FontWeight.bold),
-                        decoration: const InputDecoration(hintText: '300000'),
+                        decoration: const InputDecoration(prefixText: 'Rp ', hintText: '300.000'),
                         onChanged: (val) {
-                          final v = int.tryParse(val) ?? 0;
-                          _jatahController.text = (v ~/ 30).toString();
+                          final v = CurrencyFormatter.parse(val);
+                          final jatah = CurrencyFormatter.hitungJatahHarianBulat(v, 30, kelipatan: kelipatan);
+                          _jatahController.text = jatah > 0 ? CurrencyFormatter.formatWithoutSymbol(jatah) : '0';
                         },
                       ),
                     ],
@@ -196,8 +223,9 @@ class _TambahSantriBottomSheetState extends State<TambahSantriBottomSheet> {
                       TextField(
                         controller: _jatahController,
                         keyboardType: TextInputType.number,
+                        inputFormatters: [RibuanInputFormatter()],
                         style: const TextStyle(color: Color(0xFF34D399), fontSize: 13, fontFamily: 'monospace', fontWeight: FontWeight.bold),
-                        decoration: const InputDecoration(hintText: '10000'),
+                        decoration: const InputDecoration(prefixText: 'Rp ', hintText: '10.000'),
                       ),
                     ],
                   ),
@@ -212,8 +240,9 @@ class _TambahSantriBottomSheetState extends State<TambahSantriBottomSheet> {
                       TextField(
                         controller: _tunggakanController,
                         keyboardType: TextInputType.number,
+                        inputFormatters: [RibuanInputFormatter()],
                         style: const TextStyle(color: Color(0xFFFB7185), fontSize: 13, fontFamily: 'monospace', fontWeight: FontWeight.bold),
-                        decoration: const InputDecoration(hintText: '0'),
+                        decoration: const InputDecoration(prefixText: 'Rp ', hintText: '0'),
                       ),
                     ],
                   ),
@@ -221,7 +250,19 @@ class _TambahSantriBottomSheetState extends State<TambahSantriBottomSheet> {
               ],
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
+
+            const Text('SUMBER DOMPET SETORAN AWAL', style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                _buildDompetChip('💵 Kas Laci Tunai', 'TUNAI', const Color(0xFF34D399)),
+                const SizedBox(width: 8),
+                _buildDompetChip('🏦 Rekening Bank', 'REKENING', const Color(0xFF38BDF8)),
+              ],
+            ),
+
+            const SizedBox(height: 18),
 
             SizedBox(
               width: double.infinity,
@@ -239,6 +280,37 @@ class _TambahSantriBottomSheetState extends State<TambahSantriBottomSheet> {
               ),
             ),
           ],
+        ),
+      ),
+    ),
+    );
+  }
+
+  Widget _buildDompetChip(String label, String value, Color accent) {
+    final isSelected = _sumberDompet == value;
+    return Expanded(
+      child: InkWell(
+        onTap: () {
+          AppFeedback.tap();
+          setState(() => _sumberDompet = value);
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 9),
+          decoration: BoxDecoration(
+            color: isSelected ? accent.withOpacity(0.18) : const Color(0xFF060A14),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: isSelected ? accent : Colors.white12),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? accent : Colors.white60,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
         ),
       ),
     );

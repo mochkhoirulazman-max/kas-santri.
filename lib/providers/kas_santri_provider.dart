@@ -1,11 +1,19 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/santri.dart';
 import '../models/setoran.dart';
 import '../models/transaksi.dart';
 import '../models/pengaturan.dart';
 import '../models/santri_status.dart';
+import '../models/cash_opname_log.dart';
 import '../database/database_helper.dart';
+import '../config/app_config.dart';
+import '../services/auth_service.dart';
+import '../services/backup_service.dart';
+import '../services/google_drive_backup_service.dart';
+import '../services/subscription_service.dart';
+import 'package:uuid/uuid.dart';
 import '../utils/date_formatter.dart';
 import '../utils/time_category_helper.dart';
 
@@ -36,9 +44,61 @@ class KasSantriProvider extends ChangeNotifier {
   PengaturanAplikasi _pengaturan = PengaturanAplikasi();
   PengaturanAplikasi get pengaturan => _pengaturan;
 
+  /// Helper state global untuk status PRO (dipakai seluruh fitur berlabel 👑)
+  bool get isProUser => _pengaturan.isPro;
+
+  static const int maxFreeSantriQuota = AppConfig.maxFreeSantriQuota;
+
+  static bool isFreeQuotaReached({required bool isPro, required int activeCount}) {
+    return !isPro && activeCount >= maxFreeSantriQuota;
+  }
+
+  int get activeSantriCount => _allSantri.where((s) => s.statusAktif).length;
+
+  bool get hasReachedFreeSantriLimit =>
+      isFreeQuotaReached(isPro: isProUser, activeCount: activeSantriCount);
+
+  static const String _keyLastLocalChangeAt = 'kas_santri_last_local_change_at';
+  DateTime? _lastLocalChangeAt;
+
+  bool get hasUnbackedUpLocalChanges {
+    if (_allSantri.isEmpty && _totalBrankasFisik == 0) return false;
+    final lastBackupStr = _pengaturan.lastDriveBackupAt;
+    if (lastBackupStr == null || lastBackupStr.isEmpty) return true;
+    final lastBackup = DateTime.tryParse(lastBackupStr);
+    if (lastBackup == null) return true;
+    if (_lastLocalChangeAt == null) return false;
+    return _lastLocalChangeAt!.isAfter(lastBackup);
+  }
+
+  Future<void> markLocalDataChanged() async {
+    final now = DateTime.now();
+    _lastLocalChangeAt = now;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_keyLastLocalChangeAt, now.toIso8601String());
+    } catch (_) {}
+  }
+
   // Stat Summary
   int _totalBrankasFisik = 0;
   int get totalBrankasFisik => _totalBrankasFisik;
+
+  // Multi-Dompet PRO (Kas Laci Tunai vs Rekening Bank)
+  int _kasLaciTunai = 0;
+  int get kasLaciTunai => _kasLaciTunai;
+
+  int _rekeningBank = 0;
+  int get rekeningBank => _rekeningBank;
+
+  // Cash Opname PRO Logs
+  List<CashOpnameLog> _opnameLogs = [];
+  List<CashOpnameLog> get opnameLogs => _opnameLogs;
+
+  CashOpnameLog? get latestOpnameToday {
+    final todayStr = DateFormatter.toLocalDateString(DateTime.now());
+    return _opnameLogs.where((o) => o.tanggalLokal == todayStr).firstOrNull;
+  }
 
   int _totalPengeluaranHariIni = 0;
   int get totalPengeluaranHariIni => _totalPengeluaranHariIni;
@@ -74,11 +134,75 @@ class KasSantriProvider extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    await _db.seedDemoData();
+    _pengaturan = await _db.getPengaturan();
+    if (!_pengaturan.onboardingDone) {
+      final existingSantri = await _db.getAllSantri(onlyActive: false);
+      if (existingSantri.isNotEmpty) {
+        _pengaturan = _pengaturan.copyWith(onboardingDone: true);
+        await _db.updatePengaturan(_pengaturan);
+      }
+    }
     await loadAllData();
+    await syncSubscriptionEntitlement();
 
     _isLoading = false;
     notifyListeners();
+  }
+
+  Future<void> syncSubscriptionEntitlement() async {
+    try {
+      await SubscriptionService.instance.init();
+      final status = await SubscriptionService.instance.checkEntitlementStatus();
+      if (status.isPro && !_pengaturan.isPro) {
+        await activatePro(plan: status.planKey ?? 'YEARLY');
+      }
+    } catch (_) {}
+  }
+
+  Future<void> completeOnboarding({
+    required String namaPondok,
+    required String namaPengurus,
+    required int defaultJatahHarian,
+    required int pembulatanJatah,
+    required bool useSimulationData,
+  }) async {
+    final updated = _pengaturan.copyWith(
+      namaPondok: namaPondok.trim().isNotEmpty ? namaPondok.trim() : 'PPS MIFTAHUSSUNAN',
+      namaPengurus: namaPengurus.trim().isNotEmpty ? namaPengurus.trim() : 'Pengurus Kas & Keuangan',
+      defaultJatahHarian: defaultJatahHarian > 0 ? defaultJatahHarian : 10000,
+      pembulatanJatah: pembulatanJatah,
+      onboardingDone: true,
+    );
+    _pengaturan = updated;
+    await _db.updatePengaturan(updated);
+
+    if (useSimulationData) {
+      await _db.seedDemoData(force: true);
+    }
+    await loadAllData();
+  }
+
+  Future<void> activatePro({required String plan}) async {
+    final updated = _pengaturan.copyWith(isPro: true, proPlan: plan);
+    _pengaturan = updated;
+    await _db.updatePengaturan(updated);
+    notifyListeners();
+  }
+
+  Future<void> deactivatePro() async {
+    final updated = _pengaturan.copyWith(isPro: false, clearProPlan: true);
+    _pengaturan = updated;
+    await _db.updatePengaturan(updated);
+    notifyListeners();
+  }
+
+  /// Toggle uji coba sementara untuk menguji fitur PRO vs Gratis secara cepat
+  Future<void> toggleProPreview() async {
+    if (_pengaturan.isPro) {
+      await deactivatePro();
+    } else {
+      await activatePro(plan: 'YEARLY');
+    }
   }
 
   Future<void> loadAllData() async {
@@ -113,12 +237,24 @@ class KasSantriProvider extends ChangeNotifier {
     _santriStatusList = statuses;
     _totalKuotaHariIni = totalKuota;
 
-    // 2. Metrics & Brankas
+    // 2. Metrics, Brankas, Multi-Dompet & Cash Opname
     _totalBrankasFisik = await _db.getTotalSaldoBrankasFisik();
+    final saldoDompet = await _db.getSaldoDompet();
+    _kasLaciTunai = saldoDompet['tunai'] ?? 0;
+    _rekeningBank = saldoDompet['rekening'] ?? 0;
+    _opnameLogs = await _db.getCashOpnameLogs(limit: 15);
     _totalPengeluaranHariIni = await _db.getTotalPengeluaranHariIni(todayStr);
     _totalTunggakanPondok = await _db.getTotalTunggakanPondok();
     _rekapPagiSiang = await _db.getTotalPagiSiangHariIni(todayStr);
     _rekapSoreMalam = await _db.getTotalSoreMalamHariIni(todayStr);
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final lastChangeStr = prefs.getString(_keyLastLocalChangeAt);
+      if (lastChangeStr != null) {
+        _lastLocalChangeAt = DateTime.tryParse(lastChangeStr);
+      }
+    } catch (_) {}
 
     notifyListeners();
   }
@@ -159,6 +295,30 @@ class KasSantriProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  List<SantriStatusHariIni> get saldoKritisList {
+    final list = _santriStatusList
+        .where((item) => item.santri.estimasiHari < 3)
+        .toList();
+    list.sort((a, b) {
+      final hariCmp = a.santri.estimasiHari.compareTo(b.santri.estimasiHari);
+      if (hariCmp != 0) return hariCmp;
+      return a.santri.saldoTotal.compareTo(b.santri.saldoTotal);
+    });
+    return list;
+  }
+
+  SantriStatusHariIni? findStatusByQrCode(String rawCode) {
+    final code = rawCode.trim().toUpperCase();
+    if (code.isEmpty) return null;
+    for (final item in _santriStatusList) {
+      if (item.santri.qrCode.toUpperCase() == code ||
+          item.santri.id.toUpperCase() == code) {
+        return item;
+      }
+    }
+    return null;
+  }
+
   List<SantriStatusHariIni> get filteredSantriStatusList {
     return _santriStatusList.where((item) {
       // Filter kamar
@@ -170,6 +330,8 @@ class KasSantriProvider extends ChangeNotifier {
       // Filter status / tunggakan
       if (_activeFilter == 'TUNGGAKAN') {
         if (item.santri.tunggakan <= 0) return false;
+      } else if (_activeFilter == 'KRITIS') {
+        if (item.santri.estimasiHari >= 3) return false;
       } else if (_activeFilter == 'UTUH') {
         if (item.badgeStatus != BadgeStatusHariIni.utuh) return false;
       } else if (_activeFilter == 'SEBAGIAN') {
@@ -230,6 +392,7 @@ class KasSantriProvider extends ChangeNotifier {
       }
     });
 
+    await markLocalDataChanged();
     await loadAllData();
     return tx;
   }
@@ -245,6 +408,7 @@ class KasSantriProvider extends ChangeNotifier {
     _lastSantri = null;
     _undoCountdown = 0;
 
+    await markLocalDataChanged();
     await loadAllData();
   }
 
@@ -263,13 +427,46 @@ class KasSantriProvider extends ChangeNotifier {
     required int nominal,
     required String catatan,
     required bool isBayar,
+    String sumberDompet = 'TUNAI',
   }) async {
     await _db.kelolaTunggakan(
       santriId: santriId,
       nominal: nominal,
       catatan: catatan,
       isBayar: isBayar,
+      sumberDompet: sumberDompet,
     );
+    await markLocalDataChanged();
+    await loadAllData();
+  }
+
+  // ==================== MULTI-DOMPET & OPNAME (PRO) ====================
+
+  Future<void> tarikTunaiKeLaci({required int nominal, String? catatan}) async {
+    await _db.tarikTunaiKeLaci(nominal: nominal, catatan: catatan);
+    await markLocalDataChanged();
+    await loadAllData();
+  }
+
+  Future<void> simpanCashOpname({
+    required int totalSistem,
+    required int totalFisik,
+    required Map<int, int> rincianPecahan,
+    String? catatan,
+  }) async {
+    final now = DateTime.now();
+    final log = CashOpnameLog(
+      id: const Uuid().v4(),
+      tanggalLokal: DateFormatter.toLocalDateString(now),
+      totalSistem: totalSistem,
+      totalFisik: totalFisik,
+      selisih: totalFisik - totalSistem,
+      rincianPecahan: rincianPecahan,
+      catatan: catatan,
+      createdAt: now,
+    );
+    await _db.insertCashOpnameLog(log);
+    await markLocalDataChanged();
     await loadAllData();
   }
 
@@ -285,6 +482,8 @@ class KasSantriProvider extends ChangeNotifier {
     String? catatan,
     PerlakuanSisaSaldoLalu perlakuanSisa = PerlakuanSisaSaldoLalu.gabungBulanBaru,
     OpsiSetoranSusulan? opsiSusulan,
+    bool potongTunggakan = true,
+    String metodeBayar = 'TUNAI',
   }) async {
     await _db.catatSetoranBaru(
       santriId: santriId,
@@ -296,17 +495,22 @@ class KasSantriProvider extends ChangeNotifier {
       catatan: catatan,
       perlakuanSisa: perlakuanSisa,
       opsiSusulan: opsiSusulan,
+      potongTunggakan: potongTunggakan,
+      metodeBayar: metodeBayar,
     );
+    await markLocalDataChanged();
     await loadAllData();
   }
 
   Future<void> voidTransaksi(String id) async {
     await _db.voidTransaksi(id);
+    await markLocalDataChanged();
     await loadAllData();
   }
 
   Future<void> editTransaksi(String id, int newNominal, String? note) async {
     await _db.editTransaksi(id, newNominal, note);
+    await markLocalDataChanged();
     await loadAllData();
   }
 
@@ -314,11 +518,13 @@ class KasSantriProvider extends ChangeNotifier {
     final santri = _allSantri.firstWhere((s) => s.id == santriId);
     final updated = santri.copyWith(jatahHarian: newJatah);
     await _db.updateSantri(updated);
+    await markLocalDataChanged();
     await loadAllData();
   }
 
   Future<void> updateSantriFoto(String santriId, String? fotoPath) async {
     await _db.updateSantriFoto(santriId, fotoPath);
+    await markLocalDataChanged();
     await loadAllData();
   }
 
@@ -338,27 +544,31 @@ class KasSantriProvider extends ChangeNotifier {
       noWaWali: noWaWali,
       jatahHarian: jatahHarian,
     );
+    await markLocalDataChanged();
     await loadAllData();
   }
 
-  Future<void> saveSantri(Santri santri, {bool isEdit = false}) async {
+  Future<void> saveSantri(Santri santri, {bool isEdit = false, String sumberDompet = 'TUNAI'}) async {
     if (isEdit) {
       await _db.updateSantri(santri);
     } else {
-      await _db.insertSantri(santri);
+      await _db.insertSantri(santri, sumberDompet: sumberDompet);
     }
+    await markLocalDataChanged();
     await loadAllData();
   }
 
   Future<void> deleteSantri(String santriId) async {
     await _db.deleteSantri(santriId);
+    await markLocalDataChanged();
     await loadAllData();
   }
 
   // ==================== SANTRI BARU & PENGATURAN ====================
 
-  Future<void> tambahSantriBaru(Santri santri) async {
-    await _db.insertSantri(santri);
+  Future<void> tambahSantriBaru(Santri santri, {String sumberDompet = 'TUNAI'}) async {
+    await _db.insertSantri(santri, sumberDompet: sumberDompet);
+    await markLocalDataChanged();
     await loadAllData();
   }
 
@@ -370,6 +580,94 @@ class KasSantriProvider extends ChangeNotifier {
 
   Future<void> resetToInitialData() async {
     await _db.resetToInitialDemoData();
+    await markLocalDataChanged();
     await loadAllData();
+  }
+
+  // ==================== BACKUP, RESTORE & GOOGLE DRIVE (PRO) ====================
+
+  Future<void> restoreFromBackupJson(Map<String, dynamic> data) async {
+    await _db.restoreFromJson(data);
+    final restoredSettings = await _db.getPengaturan();
+    await AuthService.instance.syncRestoredPinToSecureStorage(restoredSettings.pinKeamanan);
+    await loadAllData();
+  }
+
+  Future<String?> connectGoogleDrive() async {
+    final account = await GoogleDriveBackupService.instance.signInInteractive();
+    if (account == null) return null;
+    final updated = _pengaturan.copyWith(driveAccountEmail: account.email);
+    _pengaturan = updated;
+    await _db.updatePengaturan(updated);
+    notifyListeners();
+    return account.email;
+  }
+
+  Future<void> disconnectGoogleDrive() async {
+    await GoogleDriveBackupService.instance.signOut();
+    final updated = _pengaturan.copyWith(
+      clearDriveAccount: true,
+      autoDriveBackup: false,
+    );
+    _pengaturan = updated;
+    await _db.updatePengaturan(updated);
+    notifyListeners();
+  }
+
+  Future<DateTime> backupToGoogleDriveNow() async {
+    var email = _pengaturan.driveAccountEmail;
+    if (email == null || email.isEmpty) {
+      email = await connectGoogleDrive();
+      if (email == null || email.isEmpty) {
+        throw Exception('Akun Google belum ditautkan.');
+      }
+    }
+    final payload = await _db.dumpBackupJson();
+    final uploadedAt = await GoogleDriveBackupService.instance.uploadBackupJson(payload);
+    final updated = _pengaturan.copyWith(
+      lastDriveBackupAt: uploadedAt.toIso8601String(),
+      driveAccountEmail: email,
+    );
+    _pengaturan = updated;
+    _lastLocalChangeAt = uploadedAt;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_keyLastLocalChangeAt, uploadedAt.toIso8601String());
+    } catch (_) {}
+    await _db.updatePengaturan(updated);
+    notifyListeners();
+    return uploadedAt;
+  }
+
+  Future<void> toggleAutoDriveBackup(bool enabled) async {
+    final updated = _pengaturan.copyWith(autoDriveBackup: enabled);
+    _pengaturan = updated;
+    await _db.updatePengaturan(updated);
+    notifyListeners();
+  }
+
+  Future<({BackupValidationResult validation, DateTime? modifiedTime})>
+      fetchGoogleDriveBackupForRestore() async {
+    return await GoogleDriveBackupService.instance.downloadAndValidateBackup();
+  }
+
+  Future<void> tryAutoBackupDriveInBackground() async {
+    final uploadedAt = await GoogleDriveBackupService.instance.runDailyAutoBackupIfDue(
+      settings: _pengaturan,
+      dumpPayload: _db.dumpBackupJson,
+    );
+    if (uploadedAt != null) {
+      final updated = _pengaturan.copyWith(
+        lastDriveBackupAt: uploadedAt.toIso8601String(),
+      );
+      _pengaturan = updated;
+      _lastLocalChangeAt = uploadedAt;
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_keyLastLocalChangeAt, uploadedAt.toIso8601String());
+      } catch (_) {}
+      await _db.updatePengaturan(updated);
+      notifyListeners();
+    }
   }
 }

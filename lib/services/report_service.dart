@@ -14,11 +14,40 @@ class ReportService {
   static final ReportService instance = ReportService._init();
   ReportService._init();
 
+  /// Normalisasi nomor WhatsApp Indonesia (08xxx -> 628xxx, hapus karakter non-digit)
+  static String normalizeWaPhone(String? rawPhone) {
+    if (rawPhone == null) return '';
+    var phone = rawPhone.replaceAll(RegExp(r'[^0-9]'), '');
+    if (phone.isEmpty) return '';
+    if (phone.startsWith('0')) {
+      phone = '62${phone.substring(1)}';
+    } else if (phone.startsWith('8')) {
+      phone = '62$phone';
+    }
+    return phone;
+  }
+
+  /// Membuka WhatsApp langsung ke nomor wali dengan pesan terisi otomatis
+  Future<bool> openWhatsAppDirect({
+    required String? rawPhone,
+    required String message,
+  }) async {
+    final phone = normalizeWaPhone(rawPhone);
+    if (phone.isEmpty) return false;
+    final uri = Uri.parse('https://wa.me/$phone?text=${Uri.encodeComponent(message)}');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+      return true;
+    }
+    return false;
+  }
+
   /// Menghasilkan format pesan teks WhatsApp rapi untuk wali santri
   String generateWhatsAppText({
     required Santri santri,
     required List<TransaksiHarian> mutasiList,
     required PengaturanAplikasi pengaturan,
+    bool isProUser = false,
   }) {
     final buffer = StringBuffer();
     final todayStr = DateFormatter.toLocalDateString(DateTime.now());
@@ -65,8 +94,35 @@ class ReportService {
     if (pengaturan.kontakPengurus.isNotEmpty) {
       buffer.writeln('Kontak: ${pengaturan.kontakPengurus}');
     }
+    if (!isProUser) {
+      buffer.writeln('\n_Dicatat dengan Kas-Santri_');
+    }
 
     return buffer.toString();
+  }
+
+  /// Pesan pengingat sopan saat saldo santri kritis (< 3 hari) atau memiliki tunggakan
+  String generateCriticalReminderText({
+    required Santri santri,
+    required String namaPondok,
+    required String namaPengurus,
+  }) {
+    final statusTunggakan = santri.tunggakan > 0
+        ? '• 🚨 Tunggakan Talangan: *${CurrencyFormatter.format(santri.tunggakan)}*${santri.catatanTunggakan.isNotEmpty ? ' (${santri.catatanTunggakan})' : ''}\n'
+        : '';
+    return '''*Assalamu’alaikum Warahmatullahi Wabarakatuh* 🌸
+
+Yth. *Bapak/Ibu Wali Santri* dari ananda *${santri.namaLengkap}* (${santri.kamar}),
+
+Menginformasikan dengan penuh takdzim bahwa saldo titipan uang saku ananda saat ini berada pada status *Kritis (< 3 Hari)*:
+• 💰 Sisa Saldo: *${CurrencyFormatter.format(santri.saldoTotal)}*
+• 📆 Estimasi Ketahanan: ±*${santri.estimasiHari} hari* (Jatah ${CurrencyFormatter.format(santri.jatahHarian)}/hari)
+$statusTunggakan
+Mohon kiranya Bapak/Ibu dapat menyiapkan setoran lanjutan agar kebutuhan harian ananda di *$namaPondok* tetap berjalan lancar.
+
+*Jazakumullah Khairan Katsiran*
+*Wassalamu’alaikum Warahmatullahi Wabarakatuh* 🙏
+— *$namaPengurus ($namaPondok)*''';
   }
 
   /// Kirim langsung via WhatsApp (jika nomor wali tersedia) atau Share Sheet

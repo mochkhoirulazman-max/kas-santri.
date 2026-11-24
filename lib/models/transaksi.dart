@@ -17,6 +17,7 @@ class TransaksiHarian {
   final OverlimitHandling? overlimitHandling;
   final int saldoSetelahTransaksi;
   final TipeTransaksi tipe;
+  final String sumberDompet; // 'TUNAI' atau 'REKENING'
 
   TransaksiHarian({
     required this.id,
@@ -31,6 +32,7 @@ class TransaksiHarian {
     this.overlimitHandling,
     this.saldoSetelahTransaksi = 0,
     this.tipe = TipeTransaksi.pengambilan,
+    this.sumberDompet = 'TUNAI',
   });
 
   Map<String, dynamic> toMap() {
@@ -43,7 +45,7 @@ class TransaksiHarian {
       'kategori_waktu': TimeCategoryHelper.toDbString(kategoriWaktu),
       'is_overlimit': isOverlimit ? 1 : 0,
       'catatan': catatan,
-      'is_voided': isVoided ? 1 : 0,
+      'is_void': isVoided ? 1 : 0,
       'overlimit_handling': overlimitHandling == OverlimitHandling.potongBesok
           ? 'POTONG_BESOK'
           : overlimitHandling == OverlimitHandling.hitungUlangRataRata
@@ -51,6 +53,7 @@ class TransaksiHarian {
               : null,
       'saldo_setelah_transaksi': saldoSetelahTransaksi,
       'tipe': tipe == TipeTransaksi.setoran ? 'SETORAN' : 'PENGAMBILAN',
+      'sumber_dompet': sumberDompet,
     };
   }
 
@@ -68,7 +71,7 @@ class TransaksiHarian {
       ),
       isOverlimit: (map['is_overlimit'] as int?) == 1,
       catatan: map['catatan'] as String?,
-      isVoided: (map['is_voided'] as int?) == 1,
+      isVoided: (map['is_void'] ?? map['is_voided']) == 1,
       overlimitHandling: map['overlimit_handling'] == 'POTONG_BESOK'
           ? OverlimitHandling.potongBesok
           : map['overlimit_handling'] == 'HITUNG_ULANG'
@@ -78,6 +81,10 @@ class TransaksiHarian {
       tipe: map['tipe'] == 'SETORAN'
           ? TipeTransaksi.setoran
           : TipeTransaksi.pengambilan,
+      sumberDompet: (map['sumber_dompet'] as String?) == 'REKENING' ||
+              (map['sumber_dompet'] as String?) == 'BANK'
+          ? 'REKENING'
+          : 'TUNAI',
     );
   }
 }

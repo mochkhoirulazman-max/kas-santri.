@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../../models/santri.dart';
 import '../../providers/kas_santri_provider.dart';
+import '../../utils/currency_formatter.dart';
+import '../paywall_screen.dart';
 
 class SantriFormScreen extends StatefulWidget {
   final Santri? santriToEdit;
@@ -35,8 +37,12 @@ class _SantriFormScreenState extends State<SantriFormScreen> {
     _namaPanggilanController = TextEditingController(text: s?.namaPanggilan ?? '');
     _kamarController = TextEditingController(text: s?.kamar ?? '');
     _noWaWaliController = TextEditingController(text: s?.noWaWali ?? '');
-    _jatahHarianController = TextEditingController(text: (s?.jatahHarian ?? defaultJatah).toString());
-    _saldoAwalController = TextEditingController(text: (s?.saldoTotal ?? 0).toString());
+    _jatahHarianController = TextEditingController(
+      text: CurrencyFormatter.formatWithoutSymbol(s?.jatahHarian ?? defaultJatah),
+    );
+    _saldoAwalController = TextEditingController(
+      text: CurrencyFormatter.formatWithoutSymbol(s?.saldoTotal ?? 0),
+    );
     _statusAktif = s?.statusAktif ?? true;
   }
 
@@ -56,6 +62,17 @@ class _SantriFormScreenState extends State<SantriFormScreen> {
 
     final provider = Provider.of<KasSantriProvider>(context, listen: false);
     final isEdit = widget.santriToEdit != null;
+    if (!isEdit && provider.hasReachedFreeSantriLimit) {
+      PaywallScreen.show(
+        context,
+        triggerFeature:
+            'Santri Tanpa Batas — Kuota Mode Gratis maksimal ${KasSantriProvider.maxFreeSantriQuota} santri aktif telah tercapai.',
+      );
+      return;
+    }
+
+    final parsedSaldo = CurrencyFormatter.parse(_saldoAwalController.text);
+    final parsedJatah = CurrencyFormatter.parse(_jatahHarianController.text);
 
     final santri = Santri(
       id: isEdit ? widget.santriToEdit!.id : const Uuid().v4(),
@@ -63,9 +80,9 @@ class _SantriFormScreenState extends State<SantriFormScreen> {
       namaPanggilan: _namaPanggilanController.text.trim(),
       kamar: _kamarController.text.trim(),
       noWaWali: _noWaWaliController.text.trim().isNotEmpty ? _noWaWaliController.text.trim() : null,
-      saldoTotal: int.tryParse(_saldoAwalController.text) ?? 0,
-      setoranAwal: widget.santriToEdit?.setoranAwal ?? (int.tryParse(_saldoAwalController.text) ?? 0),
-      jatahHarian: int.tryParse(_jatahHarianController.text) ?? 10000,
+      saldoTotal: parsedSaldo,
+      setoranAwal: widget.santriToEdit?.setoranAwal ?? parsedSaldo,
+      jatahHarian: parsedJatah > 0 ? parsedJatah : 10000,
       tunggakan: widget.santriToEdit?.tunggakan ?? 0,
       catatanTunggakan: widget.santriToEdit?.catatanTunggakan ?? '',
       statusAktif: _statusAktif,
@@ -96,10 +113,11 @@ class _SantriFormScreenState extends State<SantriFormScreen> {
       appBar: AppBar(
         title: Text(isEdit ? 'Edit Data Santri' : 'Tambah Santri Baru'),
       ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
+      body: SafeArea(
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
           children: [
             Card(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -183,6 +201,7 @@ class _SantriFormScreenState extends State<SantriFormScreen> {
                     TextFormField(
                       controller: _jatahHarianController,
                       keyboardType: TextInputType.number,
+                      inputFormatters: [RibuanInputFormatter()],
                       decoration: const InputDecoration(
                         labelText: 'Jatah Harian Standar (Rp) *',
                         prefixIcon: Icon(Icons.monetization_on_outlined),
@@ -190,8 +209,8 @@ class _SantriFormScreenState extends State<SantriFormScreen> {
                         helperText: 'Batas maksimal uang yang boleh diambil per hari',
                       ),
                       validator: (v) {
-                        final num = int.tryParse(v ?? '');
-                        if (num == null || num <= 0) return 'Jatah harian harus lebih dari 0';
+                        final num = CurrencyFormatter.parse(v ?? '');
+                        if (num <= 0) return 'Jatah harian harus lebih dari 0';
                         return null;
                       },
                     ),
@@ -200,6 +219,7 @@ class _SantriFormScreenState extends State<SantriFormScreen> {
                       TextFormField(
                         controller: _saldoAwalController,
                         keyboardType: TextInputType.number,
+                        inputFormatters: [RibuanInputFormatter()],
                         decoration: const InputDecoration(
                           labelText: 'Saldo Titipan Awal (Rp)',
                           prefixIcon: Icon(Icons.account_balance_wallet_outlined),
@@ -237,6 +257,7 @@ class _SantriFormScreenState extends State<SantriFormScreen> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

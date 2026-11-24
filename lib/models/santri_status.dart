@@ -66,6 +66,13 @@ class SantriStatusHariIni {
     return ratio;
   }
 
+  /// Rasio sisa kuota hari ini: 1.0 (100% penuh saat utuh) lalu menyusut ke 0.0 saat terpakai
+  double get remainingRatio {
+    if (jatahHariIni <= 0) return 0.0;
+    final ratio = sisaJatahHariIni / jatahHariIni;
+    return ratio.clamp(0.0, 1.0);
+  }
+
   /// Ringkasan teks pengambilan hari ini, contoh:
   /// "Hari ini sudah ambil 2x: Pagi 2rb, Siang 5rb"
   String get ringkasanAmbilHariIni {

@@ -41,3 +41,8 @@ migrate_working_dir/
 
 # Exceptions to above rules.
 !**/android/gradle/wrapper/gradle-wrapper.jar
+
+# Android Release Signing Secrets (Never commit to Git)
+android/key.properties
+*.jks
+*.keystore

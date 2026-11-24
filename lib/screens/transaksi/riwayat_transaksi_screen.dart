@@ -6,6 +6,8 @@ import '../../providers/kas_santri_provider.dart';
 import '../../utils/currency_formatter.dart';
 import '../../utils/time_category_helper.dart';
 import '../../utils/app_feedback.dart';
+import '../../services/yayasan_export_service.dart';
+import '../paywall_screen.dart';
 
 class RiwayatTransaksiScreen extends StatefulWidget {
   const RiwayatTransaksiScreen({Key? key}) : super(key: key);
@@ -24,6 +26,54 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
   void initState() {
     super.initState();
     _fetch();
+  }
+
+  Future<void> _exportFromMutasi({required bool isExcel}) async {
+    AppFeedback.tap();
+    final provider = Provider.of<KasSantriProvider>(context, listen: false);
+    if (!provider.isProUser) {
+      await PaywallScreen.show(
+        context,
+        triggerFeature: isExcel
+            ? 'Ekspor Laporan Excel Multi-Sheet (.xlsx)'
+            : 'Ekspor Laporan Resmi PDF Berkop Logo',
+      );
+      return;
+    }
+    try {
+      if (isExcel) {
+        await YayasanExportService.instance.exportExcelMultiSheet(
+          pengaturan: provider.pengaturan,
+          santriList: provider.allSantri,
+          totalBrankasFisik: provider.totalBrankasFisik,
+          kasLaciTunai: provider.kasLaciTunai,
+          rekeningBank: provider.rekeningBank,
+          totalTunggakanPondok: provider.totalTunggakanPondok,
+          opnameLogs: provider.opnameLogs,
+          period: ExportPeriod.semua,
+        );
+      } else {
+        await YayasanExportService.instance.exportPdfResmiYayasan(
+          pengaturan: provider.pengaturan,
+          santriList: provider.allSantri,
+          totalBrankasFisik: provider.totalBrankasFisik,
+          kasLaciTunai: provider.kasLaciTunai,
+          rekeningBank: provider.rekeningBank,
+          totalTunggakanPondok: provider.totalTunggakanPondok,
+          period: ExportPeriod.semua,
+        );
+      }
+      AppFeedback.success();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal mengekspor laporan: $e'),
+            backgroundColor: const Color(0xFFE11D48),
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _fetch() async {
@@ -81,15 +131,18 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
   Widget build(BuildContext context) {
     final provider = Provider.of<KasSantriProvider>(context);
     final santriList = provider.allSantri.where((s) => s.statusAktif).toList();
+    final bottomSafe = MediaQuery.of(context).padding.bottom;
 
-    return RefreshIndicator(
-      onRefresh: () async {
-        await provider.loadAllData();
-        await _fetch();
-      },
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 44, 16, 115),
-        children: [
+    return SafeArea(
+      bottom: false,
+      child: RefreshIndicator(
+        onRefresh: () async {
+          await provider.loadAllData();
+          await _fetch();
+        },
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(16, 12, 16, 115 + bottomSafe),
+          children: [
           // Filter Card
           Container(
             padding: const EdgeInsets.all(16),
@@ -141,6 +194,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                     Expanded(
                       child: DropdownButtonFormField<String>(
                         value: _selectedSantriId,
+                        isExpanded: true,
                         dropdownColor: const Color(0xFF090E1A),
                         style: const TextStyle(color: Colors.white, fontSize: 11),
                         decoration: const InputDecoration(
@@ -148,7 +202,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                           contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                         ),
                         items: [
-                          const DropdownMenuItem(value: 'ALL', child: Text('Semua Santri')),
+                          const DropdownMenuItem(value: 'ALL', child: Text('Semua Santri', overflow: TextOverflow.ellipsis)),
                           ...santriList.map((s) => DropdownMenuItem(value: s.id, child: Text(s.namaLengkap, overflow: TextOverflow.ellipsis))),
                         ],
                         onChanged: (val) {
@@ -163,6 +217,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                     Expanded(
                       child: DropdownButtonFormField<String>(
                         value: _selectedWaktu,
+                        isExpanded: true,
                         dropdownColor: const Color(0xFF090E1A),
                         style: const TextStyle(color: Colors.white, fontSize: 11),
                         decoration: const InputDecoration(
@@ -183,6 +238,61 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                             _fetch();
                           }
                         },
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 10),
+
+                // Tombol Pintasan Ekspor Resmi PRO
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => _exportFromMutasi(isExcel: true),
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: const Color(0xFF064E3B).withOpacity(0.45),
+                          side: BorderSide(
+                            color: provider.isProUser
+                                ? const Color(0xFF34D399).withOpacity(0.6)
+                                : const Color(0xFFFBBF24).withOpacity(0.5),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: Text(
+                          provider.isProUser ? '📊 Excel (.xlsx)' : '📊 Excel 👑',
+                          style: TextStyle(
+                            color: provider.isProUser ? const Color(0xFF6EE7B7) : const Color(0xFFFDE68A),
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => _exportFromMutasi(isExcel: false),
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1E1B4B).withOpacity(0.45),
+                          side: BorderSide(
+                            color: provider.isProUser
+                                ? const Color(0xFF38BDF8).withOpacity(0.6)
+                                : const Color(0xFFFBBF24).withOpacity(0.5),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: Text(
+                          provider.isProUser ? '📄 PDF Resmi' : '📄 PDF Resmi 👑',
+                          style: TextStyle(
+                            color: provider.isProUser ? const Color(0xFF67E8F9) : const Color(0xFFFDE68A),
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -258,16 +368,18 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Row(
+                                Text(
+                                  namaSantri,
+                                  style: const TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w800),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 3),
+                                Wrap(
+                                  spacing: 4,
+                                  runSpacing: 4,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
                                   children: [
-                                    Flexible(
-                                      child: Text(
-                                        namaSantri,
-                                        style: const TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w800),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 6),
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                                       decoration: BoxDecoration(
@@ -282,7 +394,6 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                                     ),
                                     if (tx.isOverlimit)
                                       Container(
-                                        margin: const EdgeInsets.only(left: 4),
                                         padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                                         decoration: BoxDecoration(
                                           color: const Color(0xFFF43F5E).withOpacity(0.3),
@@ -296,7 +407,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                                       ),
                                   ],
                                 ),
-                                const SizedBox(height: 2),
+                                const SizedBox(height: 3),
                                 Text(
                                   tx.catatan != null && tx.catatan!.isNotEmpty ? tx.catatan! : (isMasuk ? 'Setoran' : 'Jajan Harian'),
                                   style: const TextStyle(color: Colors.white54, fontSize: 10.5),
@@ -352,6 +463,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
             }).toList(),
         ],
       ),
+    ),
     );
   }
 }

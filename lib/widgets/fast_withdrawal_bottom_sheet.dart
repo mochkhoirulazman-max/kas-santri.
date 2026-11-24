@@ -21,6 +21,7 @@ class FastWithdrawalBottomSheet extends StatefulWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => FastWithdrawalBottomSheet(statusSantri: status),
     );
@@ -67,7 +68,8 @@ class _FastWithdrawalBottomSheetState extends State<FastWithdrawalBottomSheet> {
 
     final sisa = widget.statusSantri.sisaJatahHariIni;
     if (sisa > 0) {
-      _nominalController.text = (sisa >= 2000 ? 2000 : sisa).toString();
+      final initialVal = sisa >= 2000 ? 2000 : sisa;
+      _nominalController.text = CurrencyFormatter.formatWithoutSymbol(initialVal);
     }
   }
 
@@ -78,7 +80,7 @@ class _FastWithdrawalBottomSheetState extends State<FastWithdrawalBottomSheet> {
     super.dispose();
   }
 
-  int get _nominal => int.tryParse(_nominalController.text.trim()) ?? 0;
+  int get _nominal => CurrencyFormatter.parse(_nominalController.text);
   Santri get _santri => widget.statusSantri.santri;
   int get _sisaJatah => widget.statusSantri.sisaJatahHariIni;
   bool get _isOverlimit => _nominal > _sisaJatah;
@@ -88,14 +90,15 @@ class _FastWithdrawalBottomSheetState extends State<FastWithdrawalBottomSheet> {
     AppFeedback.tap();
     setState(() {
       final cur = _nominal;
-      _nominalController.text = (cur + amount).toString();
+      _nominalController.text = CurrencyFormatter.formatWithoutSymbol(cur + amount);
     });
   }
 
   void _pasSisa() {
     AppFeedback.tap();
     setState(() {
-      _nominalController.text = (_sisaJatah > 0 ? _sisaJatah : 0).toString();
+      final val = _sisaJatah > 0 ? _sisaJatah : 0;
+      _nominalController.text = val > 0 ? CurrencyFormatter.formatWithoutSymbol(val) : '0';
     });
   }
 
@@ -139,105 +142,125 @@ class _FastWithdrawalBottomSheetState extends State<FastWithdrawalBottomSheet> {
     }
 
     if (mounted) {
+      final messenger = ScaffoldMessenger.of(context);
+      final kekurangan = _nominal - _santri.saldoTotal;
+      final isKurang = _isSaldoKurang;
+      final nominalTransaksi = _nominal;
+      final namaSantri = _santri.namaLengkap;
+      final bottomMargin = MediaQuery.of(context).padding.bottom + 84;
+
       Navigator.pop(context);
-      if (_isSaldoKurang) {
-        final kekurangan = _nominal - _santri.saldoTotal;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Pengambilan dicatat! Saldo habis, ${CurrencyFormatter.format(kekurangan < 0 ? 0 : kekurangan)} otomatis ditalangi dari brankas & masuk tunggakan santri.',
-            ),
-            backgroundColor: const Color(0xFFE11D48),
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 5),
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.fromLTRB(16, 0, 16, bottomMargin),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          backgroundColor: isKurang ? const Color(0xFFE11D48) : const Color(0xFF0F172A),
+          content: Text(
+            isKurang
+                ? 'Dicatat! Saldo habis, ${CurrencyFormatter.format(kekurangan < 0 ? 0 : kekurangan)} masuk tunggakan $namaSantri.'
+                : 'Ambil ${CurrencyFormatter.format(nominalTransaksi)} ($namaSantri) berhasil dicatat.',
+            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
           ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Pengambilan ${CurrencyFormatter.format(_nominal)} (${_santri.namaLengkap}) berhasil dicatat.'),
-            backgroundColor: const Color(0xFF10B981),
+          action: SnackBarAction(
+            label: 'Batalkan (Undo)',
+            textColor: const Color(0xFFFBBF24),
+            onPressed: () async {
+              await provider.undoLastTransaction();
+              messenger.showSnackBar(
+                const SnackBar(
+                  content: Text('Transaksi dibatalkan & saldo dikembalikan.'),
+                  backgroundColor: Color(0xFFF59E0B),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            },
           ),
-        );
-      }
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final sisaSetelah = _sisaJatah - _nominal;
-    final pct = widget.statusSantri.jatahHariIni > 0
-        ? (((widget.statusSantri.totalAmbilHariIni + _nominal) / widget.statusSantri.jatahHariIni) * 100).clamp(0, 100).toInt()
-        : 100;
+    final remainingRatio = widget.statusSantri.jatahHariIni > 0
+        ? (sisaSetelah / widget.statusSantri.jatahHariIni).clamp(0.0, 1.0)
+        : 0.0;
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFF0E1422),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-        border: Border(
-          top: BorderSide(color: Color(0x33FFFFFF), width: 1.5),
+    return SafeArea(
+      top: true,
+      bottom: false,
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFF0E1422),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+          border: Border(
+            top: BorderSide(color: Color(0x33FFFFFF), width: 1.5),
+          ),
         ),
-      ),
-      padding: EdgeInsets.only(
-        top: 12,
-        left: 20,
-        right: 20,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-      ),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Handle Bar
-            Center(
-              child: Container(
-                width: 44,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.white24,
-                  borderRadius: BorderRadius.circular(10),
+        padding: EdgeInsets.only(
+          top: 12,
+          left: 20,
+          right: 20,
+          bottom: MediaQuery.of(context).viewInsets.bottom + MediaQuery.of(context).padding.bottom + 24,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Handle Bar
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 14),
+              const SizedBox(height: 14),
 
-            // Header Modal: Avatar, Nama, Kamar & Close
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF10B981).withOpacity(0.18),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: const Color(0xFF10B981).withOpacity(0.35),
-                        ),
-                      ),
-                      alignment: Alignment.center,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(15),
-                        child: _santri.fotoPath != null && File(_santri.fotoPath!).existsSync()
-                            ? Image.file(
-                                File(_santri.fotoPath!),
-                                width: 44,
-                                height: 44,
-                                fit: BoxFit.cover,
-                              )
-                            : Text(
-                                _getInitials(_santri.namaLengkap),
-                                style: const TextStyle(
-                                  color: Color(0xFF34D399),
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 15,
-                                ),
-                              ),
+              // Header Modal: Avatar, Nama, Kamar & Close
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF10B981).withOpacity(0.18),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFF10B981).withOpacity(0.35),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Column(
+                    alignment: Alignment.center,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(15),
+                      child: _santri.fotoPath != null && File(_santri.fotoPath!).existsSync()
+                          ? Image.file(
+                              File(_santri.fotoPath!),
+                              width: 44,
+                              height: 44,
+                              fit: BoxFit.cover,
+                            )
+                          : Text(
+                              _getInitials(_santri.namaLengkap),
+                              style: const TextStyle(
+                                color: Color(0xFF34D399),
+                                fontWeight: FontWeight.w900,
+                                fontSize: 15,
+                              ),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Container(
@@ -259,140 +282,156 @@ class _FastWithdrawalBottomSheetState extends State<FastWithdrawalBottomSheet> {
                             fontSize: 16,
                             fontWeight: FontWeight.w900,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close, color: Colors.white60, size: 20),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 14),
+
+              // Panel Live Simulasi Sisa Jatah Hari Ini (terpisah rapi & tidak menempel)
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF060B14),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white12),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          flex: 6,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'SISA JATAH HARI INI',
+                                style: TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  CurrencyFormatter.format(_sisaJatah < 0 ? 0 : _sisaJatah),
+                                  style: const TextStyle(
+                                    color: Color(0xFF34D399),
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w900,
+                                    fontFamily: 'monospace',
+                                  ),
+                                ),
+                              ),
+                              if (_nominal > 0) ...[
+                                const SizedBox(height: 3),
+                                Text(
+                                  '→ Sisa ${CurrencyFormatter.format(sisaSetelah < 0 ? 0 : sisaSetelah)}',
+                                  style: TextStyle(
+                                    color: _isOverlimit ? const Color(0xFFFB7185) : const Color(0xFF7DD3FC),
+                                    fontSize: 11,
+                                    fontFamily: 'monospace',
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        Container(
+                          width: 1,
+                          height: 44,
+                          margin: const EdgeInsets.symmetric(horizontal: 10),
+                          color: Colors.white12,
+                        ),
+                        Expanded(
+                          flex: 5,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              const Text(
+                                'TOTAL SALDO',
+                                style: TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerRight,
+                                child: Text(
+                                  CurrencyFormatter.format(_santri.saldoTotal),
+                                  style: const TextStyle(
+                                    color: Color(0xFFE2E8F0),
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w900,
+                                    fontFamily: 'monospace',
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      height: 6,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0F172A),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: FractionallySizedBox(
+                        alignment: Alignment.centerLeft,
+                        widthFactor: remainingRatio,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(10),
+                            gradient: LinearGradient(
+                              colors: _isOverlimit
+                                  ? [const Color(0xFFF43F5E), const Color(0xFFE11D48)]
+                                  : [const Color(0xFF10B981), const Color(0xFF06B6D4)],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          widget.statusSantri.transaksiHariIni.isNotEmpty
+                              ? 'Hari ini: ${widget.statusSantri.transaksiHariIni.length}x ambil'
+                              : 'Hari ini: Belum ada pengambilan',
+                          style: const TextStyle(color: Color(0xFF7DD3FC), fontSize: 10.5),
+                        ),
+                        Text(
+                          'Kuota: ${CurrencyFormatter.format(_santri.jatahHarian)}/hr',
+                          style: const TextStyle(color: Colors.white54, fontSize: 10.5, fontFamily: 'monospace'),
                         ),
                       ],
                     ),
                   ],
                 ),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close, color: Colors.white60, size: 20),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 14),
-
-            // Panel Live Simulasi Sisa Jatah Hari Ini
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: const Color(0xFF060B14),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white12),
               ),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'SISA JATAH HARI INI',
-                            style: TextStyle(
-                              color: Colors.white54,
-                              fontSize: 9.5,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const SizedBox(height: 3),
-                          Row(
-                            children: [
-                              Text(
-                                CurrencyFormatter.format(_sisaJatah < 0 ? 0 : _sisaJatah),
-                                style: const TextStyle(
-                                  color: Color(0xFF34D399),
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w900,
-                                  fontFamily: 'monospace',
-                                ),
-                              ),
-                              if (_nominal > 0)
-                                Padding(
-                                  padding: const EdgeInsets.only(left: 6),
-                                  child: Text(
-                                    '→ Sisa ${CurrencyFormatter.format(sisaSetelah < 0 ? 0 : sisaSetelah)}',
-                                    style: TextStyle(
-                                      color: _isOverlimit ? const Color(0xFFFB7185) : Colors.white60,
-                                      fontSize: 11,
-                                      fontFamily: 'monospace',
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          const Text(
-                            'TOTAL SALDO',
-                            style: TextStyle(
-                              color: Colors.white54,
-                              fontSize: 9.5,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            CurrencyFormatter.format(_santri.saldoTotal),
-                            style: const TextStyle(
-                              color: Color(0xFFE2E8F0),
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
-                              fontFamily: 'monospace',
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Container(
-                    height: 6,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0F172A),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: FractionallySizedBox(
-                      alignment: Alignment.centerLeft,
-                      widthFactor: (pct / 100).clamp(0.0, 1.0),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(10),
-                          gradient: LinearGradient(
-                            colors: _isOverlimit
-                                ? [const Color(0xFFF43F5E), const Color(0xFFE11D48)]
-                                : [const Color(0xFF10B981), const Color(0xFF06B6D4)],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        widget.statusSantri.transaksiHariIni.isNotEmpty
-                            ? 'Hari ini: ${widget.statusSantri.transaksiHariIni.length}x ambil'
-                            : 'Hari ini: Belum ada pengambilan',
-                        style: const TextStyle(color: Color(0xFF7DD3FC), fontSize: 10.5),
-                      ),
-                      Text(
-                        'Kuota: ${CurrencyFormatter.format(_santri.jatahHarian)}/hr',
-                        style: const TextStyle(color: Colors.white54, fontSize: 10.5, fontFamily: 'monospace'),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
 
             const SizedBox(height: 14),
 
@@ -437,6 +476,7 @@ class _FastWithdrawalBottomSheetState extends State<FastWithdrawalBottomSheet> {
             TextField(
               controller: _nominalController,
               keyboardType: TextInputType.number,
+              inputFormatters: [RibuanInputFormatter()],
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 22,
@@ -711,6 +751,7 @@ class _FastWithdrawalBottomSheetState extends State<FastWithdrawalBottomSheet> {
           ],
         ),
       ),
+    ),
     );
   }
 

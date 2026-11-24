@@ -1,17 +1,19 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import '../models/santri_status.dart';
 import '../providers/kas_santri_provider.dart';
-import '../services/auth_service.dart';
 import '../widgets/stat_card.dart';
 import '../widgets/santri_card.dart';
 import '../widgets/fast_withdrawal_bottom_sheet.dart';
 import '../widgets/tunggakan_bottom_sheet.dart';
 import '../widgets/tambah_santri_bottom_sheet.dart';
+import '../widgets/tarik_tunai_bottom_sheet.dart';
 import '../utils/app_feedback.dart';
-import 'pin_lock_screen.dart';
+import 'paywall_screen.dart';
+import 'santri/qr_scanner_screen.dart';
 
 class HomeFastWithdrawalScreen extends StatefulWidget {
   const HomeFastWithdrawalScreen({Key? key}) : super(key: key);
@@ -20,20 +22,40 @@ class HomeFastWithdrawalScreen extends StatefulWidget {
   State<HomeFastWithdrawalScreen> createState() => _HomeFastWithdrawalScreenState();
 }
 
-class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen> {
+class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   bool _showBanner = true;
+  late AnimationController _crownGlowController;
+
+  @override
+  void initState() {
+    super.initState();
+    _crownGlowController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+  }
 
   @override
   void dispose() {
+    _crownGlowController.dispose();
     _searchController.dispose();
     super.dispose();
   }
 
   Future<void> _pickLogo() async {
+    final provider = Provider.of<KasSantriProvider>(context, listen: false);
+    if (!provider.isProUser) {
+      AppFeedback.alert();
+      await PaywallScreen.show(
+        context,
+        triggerFeature: 'Kustomisasi Logo Pondok Resmi',
+      );
+      return;
+    }
     final result = await FilePicker.platform.pickFiles(type: FileType.image);
     if (result != null && result.files.single.path != null) {
-      final provider = Provider.of<KasSantriProvider>(context, listen: false);
       await provider.updateLogoPath(result.files.single.path);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -46,20 +68,44 @@ class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen> {
     }
   }
 
-  Future<void> _lockAppNow() async {
-    await AuthService.instance.lockSession();
-    if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const PinLockScreen(isUnlockingSession: true)),
-    );
+  Future<void> _scanQrAndOpenWithdrawal() async {
+    AppFeedback.tap();
+    final provider = Provider.of<KasSantriProvider>(context, listen: false);
+    if (!provider.isProUser) {
+      await PaywallScreen.show(
+        context,
+        triggerFeature: 'Scan QR Kartu Santri (Mode Antrean Kilat 1 Detik)',
+      );
+      return;
+    }
+
+    final scannedCode = await QrScannerScreen.scan(context);
+    if (scannedCode == null || !mounted) return;
+
+    final status = provider.findStatusByQrCode(scannedCode);
+    if (status == null) {
+      AppFeedback.alert();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('QR Code "$scannedCode" tidak cocok dengan santri aktif.'),
+          backgroundColor: const Color(0xFFE11D48),
+        ),
+      );
+      return;
+    }
+
+    AppFeedback.success();
+    FastWithdrawalBottomSheet.show(context, status);
   }
 
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<KasSantriProvider>(context);
     final isTwoCol = provider.pengaturan.isTwoColGrid;
+    final isPro = provider.pengaturan.isPro;
     final filteredList = provider.filteredSantriStatusList;
+    final bottomSafe = MediaQuery.of(context).padding.bottom;
+    final nowStr = DateFormat('dd MMM yyyy • HH:mm', 'id_ID').format(DateTime.now());
 
     return Stack(
       children: [
@@ -89,180 +135,262 @@ class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen> {
           ),
         ),
 
-        CustomScrollView(
-          slivers: [
-            // Status bar info & Header
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 44, 16, 8),
-                child: Column(
-                  children: [
-                    // Status bar mobile
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          '23 Nov 2026 • 16:00',
-                          style: TextStyle(
-                            color: Color(0xFF38BDF8),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            fontFamily: 'monospace',
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF10B981).withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: const Color(0xFF10B981).withOpacity(0.35)),
-                          ),
-                          child: Row(
-                            children: const [
-                              Icon(Icons.circle, size: 6, color: Color(0xFF34D399)),
-                              SizedBox(width: 4),
-                              Text(
-                                'Sistem Aktif',
-                                style: TextStyle(
-                                  color: Color(0xFF34D399),
-                                  fontSize: 9.5,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    // Header Utama: Logo, Judul & Tombol Aksi
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            // Logo Tap-to-Change
-                            InkWell(
-                              onTap: _pickLogo,
-                              borderRadius: BorderRadius.circular(16),
-                              child: Container(
-                                width: 44,
-                                height: 44,
-                                padding: const EdgeInsets.all(2),
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [Color(0xFF34D399), Color(0xFF38BDF8), Color(0xFFD946EF)],
-                                  ),
-                                  borderRadius: BorderRadius.circular(16),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(0xFF10B981).withOpacity(0.4),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 3),
-                                    ),
-                                  ],
-                                ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(14),
-                                  child: Container(
-                                    color: const Color(0xFF030712),
-                                    padding: const EdgeInsets.all(2),
-                                    child: provider.pengaturan.logoPath != null &&
-                                            File(provider.pengaturan.logoPath!).existsSync()
-                                        ? Image.file(
-                                            File(provider.pengaturan.logoPath!),
-                                            fit: BoxFit.contain,
-                                          )
-                                        : Image.asset(
-                                            'logo.png',
-                                            fit: BoxFit.contain,
-                                            errorBuilder: (_, __, ___) => const Center(
-                                              child: Text('PPS', style: TextStyle(color: Color(0xFF34D399), fontWeight: FontWeight.bold, fontSize: 11)),
-                                            ),
-                                          ),
-                                  ),
-                                ),
-                              ),
+        SafeArea(
+          bottom: false,
+          child: CustomScrollView(
+            slivers: [
+              // Status bar info & Header
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+                  child: Column(
+                    children: [
+                      // Status bar mobile real-time
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            nowStr,
+                            style: const TextStyle(
+                              color: Color(0xFF38BDF8),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              fontFamily: 'monospace',
                             ),
-                            const SizedBox(width: 10),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: const [
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF10B981).withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: const Color(0xFF10B981).withOpacity(0.35)),
+                            ),
+                            child: const Row(
+                              children: [
+                                Icon(Icons.circle, size: 6, color: Color(0xFF34D399)),
+                                SizedBox(width: 4),
                                 Text(
-                                  'KAS & KEUANGAN SANTRI',
+                                  'Sistem Aktif',
                                   style: TextStyle(
                                     color: Color(0xFF34D399),
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 1.2,
-                                  ),
-                                ),
-                                SizedBox(height: 1),
-                                Text(
-                                  'PPS MIFTAHUSSUNAN',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 15.5,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: -0.2,
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w800,
                                   ),
                                 ),
                               ],
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
+                      ),
 
-                        // Tombol "+ Santri" & "🔒"
-                        Row(
-                          children: [
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                backgroundColor: const Color(0xFF10B981),
-                                foregroundColor: const Color(0xFF04121A),
-                              ),
-                              onPressed: () {
-                                AppFeedback.tap();
-                                TambahSantriBottomSheet.show(context);
-                              },
-                              child: const Row(
-                                children: [
-                                  Icon(Icons.add, size: 14),
-                                  SizedBox(width: 2),
-                                  Text('+ Santri', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900)),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            InkWell(
-                              onTap: () {
-                                AppFeedback.tap();
-                                _lockAppNow();
-                              },
-                              borderRadius: BorderRadius.circular(12),
-                              child: Container(
-                                width: 34,
-                                height: 34,
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.06),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.white12),
+                      const SizedBox(height: 10),
+
+                      // Header Utama: Logo, Judul & Tombol "+ Santri" + Ikon Mahkota Freemium
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Row(
+                              children: [
+                                // Logo Tap-to-Change
+                                InkWell(
+                                  onTap: _pickLogo,
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Container(
+                                    width: 44,
+                                    height: 44,
+                                    padding: const EdgeInsets.all(2),
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [Color(0xFF34D399), Color(0xFF38BDF8), Color(0xFFD946EF)],
+                                      ),
+                                      borderRadius: BorderRadius.circular(16),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: const Color(0xFF10B981).withOpacity(0.4),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 3),
+                                        ),
+                                      ],
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(14),
+                                      child: Container(
+                                        color: const Color(0xFF030712),
+                                        padding: const EdgeInsets.all(2),
+                                        child: provider.pengaturan.logoPath != null &&
+                                                File(provider.pengaturan.logoPath!).existsSync()
+                                            ? Image.file(
+                                                File(provider.pengaturan.logoPath!),
+                                                fit: BoxFit.contain,
+                                              )
+                                            : Image.asset(
+                                                'logo.jpg',
+                                                fit: BoxFit.contain,
+                                                errorBuilder: (_, __, ___) => const Center(
+                                                  child: Text(
+                                                    'PPS',
+                                                    style: TextStyle(
+                                                      color: Color(0xFF34D399),
+                                                      fontWeight: FontWeight.bold,
+                                                      fontSize: 11,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                                alignment: Alignment.center,
-                                child: const Text('🔒', style: TextStyle(fontSize: 14)),
-                              ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'KAS & KEUANGAN SANTRI',
+                                        style: TextStyle(
+                                          color: Color(0xFF34D399),
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: 1.1,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 1),
+                                      Text(
+                                        provider.pengaturan.namaPondok,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: -0.2,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
+                          ),
+                          const SizedBox(width: 8),
+
+                          // Tombol "+ Santri" & Ikon Mahkota Freemium (👑)
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+                                  minimumSize: Size.zero,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  backgroundColor: const Color(0xFF10B981),
+                                  foregroundColor: const Color(0xFF04121A),
+                                ),
+                                onPressed: () {
+                                  if (provider.hasReachedFreeSantriLimit) {
+                                    AppFeedback.alert();
+                                    PaywallScreen.show(
+                                      context,
+                                      triggerFeature:
+                                          'Santri Tanpa Batas — Kuota Mode Gratis maksimal ${KasSantriProvider.maxFreeSantriQuota} santri aktif telah tercapai.',
+                                    );
+                                    return;
+                                  }
+                                  AppFeedback.tap();
+                                  TambahSantriBottomSheet.show(context);
+                                },
+                                child: const Text(
+                                  '+ Santri',
+                                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              AnimatedBuilder(
+                                animation: _crownGlowController,
+                                builder: (context, child) {
+                                  final glowOpacity = 0.25 + (_crownGlowController.value * 0.35);
+                                  return InkWell(
+                                    onTap: () {
+                                      AppFeedback.tap();
+                                      if (isPro) {
+                                        PaywallScreen.showActiveSubscriptionSheet(context);
+                                      } else {
+                                        PaywallScreen.show(context);
+                                      }
+                                    },
+                                    borderRadius: BorderRadius.circular(13),
+                                    child: Stack(
+                                      clipBehavior: Clip.none,
+                                      children: [
+                                        Container(
+                                          width: 38,
+                                          height: 36,
+                                          decoration: BoxDecoration(
+                                            gradient: const LinearGradient(
+                                              colors: [Color(0xFF1E170A), Color(0xFF0A0E17)],
+                                              begin: Alignment.topLeft,
+                                              end: Alignment.bottomRight,
+                                            ),
+                                            borderRadius: BorderRadius.circular(13),
+                                            border: Border.all(
+                                              color: isPro
+                                                  ? const Color(0xFF34D399)
+                                                  : const Color(0xFFFBBF24).withOpacity(0.85),
+                                              width: 1.3,
+                                            ),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: (isPro
+                                                        ? const Color(0xFF10B981)
+                                                        : const Color(0xFFF59E0B))
+                                                    .withOpacity(glowOpacity),
+                                                blurRadius: 10,
+                                                spreadRadius: 0.5,
+                                              ),
+                                            ],
+                                          ),
+                                          alignment: Alignment.center,
+                                          child: const Text('👑', style: TextStyle(fontSize: 16)),
+                                        ),
+                                        Positioned(
+                                          top: -5,
+                                          right: -4,
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                            decoration: BoxDecoration(
+                                              gradient: isPro
+                                                  ? const LinearGradient(colors: [Color(0xFF10B981), Color(0xFF34D399)])
+                                                  : const LinearGradient(colors: [Color(0xFFF59E0B), Color(0xFFFDE047)]),
+                                              borderRadius: BorderRadius.circular(7),
+                                              border: Border.all(color: const Color(0xFF060A12), width: 1),
+                                            ),
+                                            child: Text(
+                                              isPro ? '✓' : 'PRO',
+                                              style: const TextStyle(
+                                                color: Color(0xFF030712),
+                                                fontSize: 7.5,
+                                                fontWeight: FontWeight.w900,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
 
             // Hero Card: Total Uang Titipan (Brankas Fisik)
             SliverToBoxAdapter(
@@ -274,8 +402,16 @@ class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen> {
                 countTunggakan: provider.countSantriTunggakan,
                 jumlahSantri: provider.allSantri.where((s) => s.statusAktif).length,
                 isHidden: provider.pengaturan.hideBalance,
+                isProUser: provider.isProUser,
+                kasLaciTunai: provider.kasLaciTunai,
+                rekeningBank: provider.rekeningBank,
                 onToggleHide: provider.toggleHideBalance,
                 onTunggakanTap: () => provider.setFilter('TUNGGAKAN'),
+                onTarikTunaiTap: () => TarikTunaiBottomSheet.show(context),
+                onUpgradeProTap: () => PaywallScreen.show(
+                  context,
+                  triggerFeature: 'Multi-Dompet: Pisah Kas Laci Tunai vs Rekening Bank',
+                ),
               ),
             ),
 
@@ -353,7 +489,42 @@ class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen> {
                         onChanged: (val) => provider.setSearchQuery(val),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
+                    InkWell(
+                      onTap: _scanQrAndOpenWithdrawal,
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                        decoration: BoxDecoration(
+                          gradient: isPro
+                              ? const LinearGradient(colors: [Color(0xFF064E3B), Color(0xFF0E7490)])
+                              : null,
+                          color: isPro ? null : const Color(0xFF0F172A),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: isPro
+                                ? const Color(0xFF34D399).withOpacity(0.7)
+                                : const Color(0xFFFBBF24).withOpacity(0.55),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text('📷', style: TextStyle(fontSize: 12)),
+                            const SizedBox(width: 4),
+                            Text(
+                              isPro ? 'QR' : 'QR 👑',
+                              style: TextStyle(
+                                color: isPro ? const Color(0xFF6EE7B7) : const Color(0xFFFDE68A),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
                     InkWell(
                       onTap: () {
                         AppFeedback.tap();
@@ -393,6 +564,13 @@ class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                   children: [
                     _buildFilterPill('✨ Semua', 'ALL', provider),
+                    _buildFilterPill(
+                      isPro ? '⚠️ Saldo Kritis (<3 Hr)' : '⚠️ Saldo Kritis (<3 Hr) 👑',
+                      'KRITIS',
+                      provider,
+                      isProGated: true,
+                      isAmber: true,
+                    ),
                     _buildFilterPill('🚨 Ada Tunggakan', 'TUNGGAKAN', provider, isRed: true),
                     _buildFilterPill('🟢 Utuh', 'UTUH', provider),
                     _buildFilterPill('🔵 Sebagian', 'SEBAGIAN', provider),
@@ -426,7 +604,7 @@ class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen> {
               )
             else if (isTwoCol)
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 115),
+                padding: EdgeInsets.fromLTRB(16, 4, 16, 115 + bottomSafe),
                 sliver: SliverGrid(
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
@@ -450,7 +628,7 @@ class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen> {
               )
             else
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(0, 4, 0, 115),
+                padding: EdgeInsets.fromLTRB(0, 4, 0, 115 + bottomSafe),
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (ctx, idx) {
@@ -468,17 +646,32 @@ class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen> {
               ),
           ],
         ),
+        ),
       ],
     );
   }
 
-  Widget _buildFilterPill(String label, String filterKey, KasSantriProvider provider, {bool isRed = false}) {
+  Widget _buildFilterPill(
+    String label,
+    String filterKey,
+    KasSantriProvider provider, {
+    bool isRed = false,
+    bool isAmber = false,
+    bool isProGated = false,
+  }) {
     final isSelected = provider.activeFilter == filterKey;
     return Padding(
       padding: const EdgeInsets.only(right: 6),
       child: InkWell(
         onTap: () {
           AppFeedback.tap();
+          if (isProGated && !provider.isProUser) {
+            PaywallScreen.show(
+              context,
+              triggerFeature: 'Pantau Santri Saldo Kritis (< 3 Hari)',
+            );
+            return;
+          }
           provider.setFilter(filterKey);
         },
         borderRadius: BorderRadius.circular(20),
@@ -488,19 +681,30 @@ class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen> {
             gradient: isSelected
                 ? (isRed
                     ? const LinearGradient(colors: [Color(0xFFF43F5E), Color(0xFFD946EF)])
-                    : const LinearGradient(colors: [Color(0xFF34D399), Color(0xFF38BDF8)]))
+                    : (isAmber
+                        ? const LinearGradient(colors: [Color(0xFFFBBF24), Color(0xFFF97316)])
+                        : const LinearGradient(colors: [Color(0xFF34D399), Color(0xFF38BDF8)])))
                 : null,
-            color: isSelected ? null : (isRed ? const Color(0xFF3F0A18).withOpacity(0.5) : const Color(0xFF0F172A)),
+            color: isSelected
+                ? null
+                : (isRed
+                    ? const Color(0xFF3F0A18).withOpacity(0.5)
+                    : (isAmber ? const Color(0xFF451A03).withOpacity(0.55) : const Color(0xFF0F172A))),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: isSelected
                   ? Colors.transparent
-                  : (isRed ? const Color(0xFFFB7185).withOpacity(0.4) : Colors.white12),
+                  : (isRed
+                      ? const Color(0xFFFB7185).withOpacity(0.4)
+                      : (isAmber ? const Color(0xFFFBBF24).withOpacity(0.45) : Colors.white12)),
             ),
             boxShadow: isSelected
                 ? [
                     BoxShadow(
-                      color: (isRed ? const Color(0xFFF43F5E) : const Color(0xFF10B981)).withOpacity(0.4),
+                      color: (isRed
+                              ? const Color(0xFFF43F5E)
+                              : (isAmber ? const Color(0xFFF59E0B) : const Color(0xFF10B981)))
+                          .withOpacity(0.4),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -511,7 +715,11 @@ class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen> {
           child: Text(
             label,
             style: TextStyle(
-              color: isSelected ? const Color(0xFF030712) : (isRed ? const Color(0xFFFECDD3) : Colors.white70),
+              color: isSelected
+                  ? const Color(0xFF030712)
+                  : (isRed
+                      ? const Color(0xFFFECDD3)
+                      : (isAmber ? const Color(0xFFFDE68A) : Colors.white70)),
               fontSize: 10.5,
               fontWeight: isSelected ? FontWeight.w900 : FontWeight.w700,
             ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/santri.dart';
 import '../providers/kas_santri_provider.dart';
+import '../utils/app_feedback.dart';
 import '../utils/currency_formatter.dart';
 
 class TunggakanBottomSheet extends StatefulWidget {
@@ -16,6 +17,7 @@ class TunggakanBottomSheet extends StatefulWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => TunggakanBottomSheet(santri: santri),
     );
@@ -29,13 +31,14 @@ class _TunggakanBottomSheetState extends State<TunggakanBottomSheet> {
   final TextEditingController _nominalController = TextEditingController();
   final TextEditingController _catatanController = TextEditingController();
   bool _isBayarMode = true; // true = Bayar / Cicil, false = Tambah Tunggakan
+  String _sumberDompet = 'TUNAI';
 
   @override
   void initState() {
     super.initState();
     _isBayarMode = widget.santri.tunggakan > 0;
     if (_isBayarMode) {
-      _nominalController.text = widget.santri.tunggakan.toString();
+      _nominalController.text = CurrencyFormatter.formatWithoutSymbol(widget.santri.tunggakan);
     }
   }
 
@@ -46,11 +49,12 @@ class _TunggakanBottomSheetState extends State<TunggakanBottomSheet> {
     super.dispose();
   }
 
-  int get _nominal => int.tryParse(_nominalController.text.trim()) ?? 0;
+  int get _nominal => CurrencyFormatter.parse(_nominalController.text);
 
   void _isiLunas() {
+    AppFeedback.tap();
     setState(() {
-      _nominalController.text = widget.santri.tunggakan.toString();
+      _nominalController.text = CurrencyFormatter.formatWithoutSymbol(widget.santri.tunggakan);
     });
   }
 
@@ -71,6 +75,7 @@ class _TunggakanBottomSheetState extends State<TunggakanBottomSheet> {
       nominal: _nominal,
       catatan: _catatanController.text.trim(),
       isBayar: _isBayarMode,
+      sumberDompet: _sumberDompet,
     );
 
     if (mounted) {
@@ -90,20 +95,24 @@ class _TunggakanBottomSheetState extends State<TunggakanBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF101324),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-        border: Border(
-          top: BorderSide(color: const Color(0xFFF43F5E).withOpacity(0.4), width: 1.5),
+    final bottomSafe = MediaQuery.of(context).padding.bottom;
+    return SafeArea(
+      top: true,
+      bottom: false,
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF101324),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          border: Border(
+            top: BorderSide(color: const Color(0xFFF43F5E).withOpacity(0.4), width: 1.5),
+          ),
         ),
-      ),
-      padding: EdgeInsets.only(
-        top: 12,
-        left: 20,
-        right: 20,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-      ),
+        padding: EdgeInsets.only(
+          top: 12,
+          left: 20,
+          right: 20,
+          bottom: MediaQuery.of(context).viewInsets.bottom + bottomSafe + 24,
+        ),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -299,6 +308,7 @@ class _TunggakanBottomSheetState extends State<TunggakanBottomSheet> {
             TextField(
               controller: _nominalController,
               keyboardType: TextInputType.number,
+              inputFormatters: [RibuanInputFormatter()],
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 20,
@@ -313,13 +323,29 @@ class _TunggakanBottomSheetState extends State<TunggakanBottomSheet> {
                   fontWeight: FontWeight.w900,
                   fontFamily: 'monospace',
                 ),
-                hintText: '50000',
+                hintText: '50.000',
                 filled: true,
                 fillColor: const Color(0xFF060A14),
               ),
             ),
 
             const SizedBox(height: 12),
+
+            if (_isBayarMode) ...[
+              const Text(
+                'DOMPET PENERIMA PEMBAYARAN',
+                style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.5),
+              ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  _buildDompetChip('💵 Kas Laci Tunai', 'TUNAI', const Color(0xFF34D399)),
+                  const SizedBox(width: 8),
+                  _buildDompetChip('🏦 Rekening Bank', 'REKENING', const Color(0xFF38BDF8)),
+                ],
+              ),
+              const SizedBox(height: 12),
+            ],
 
             // Input Catatan / Keterangan
             const Text(
@@ -361,6 +387,37 @@ class _TunggakanBottomSheetState extends State<TunggakanBottomSheet> {
               ),
             ),
           ],
+        ),
+      ),
+    ),
+    );
+  }
+
+  Widget _buildDompetChip(String label, String value, Color accent) {
+    final isSelected = _sumberDompet == value;
+    return Expanded(
+      child: InkWell(
+        onTap: () {
+          AppFeedback.tap();
+          setState(() => _sumberDompet = value);
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 9),
+          decoration: BoxDecoration(
+            color: isSelected ? accent.withOpacity(0.18) : const Color(0xFF060A14),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: isSelected ? accent : Colors.white12),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? accent : Colors.white60,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
         ),
       ),
     );

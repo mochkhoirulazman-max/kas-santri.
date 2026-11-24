@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../database/database_helper.dart';
@@ -7,37 +8,106 @@ import '../database/database_helper.dart';
 class AuthService {
   static final AuthService instance = AuthService._init();
   final LocalAuthentication _localAuth = LocalAuthentication();
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage(
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  );
 
   AuthService._init();
 
   static const String keyLastActive = 'auth_last_active_time';
   static const String keyIsUnlocked = 'auth_is_session_unlocked';
+  static const String keySecurePinHash = 'kas_santri_secure_pin_hash';
 
-  /// Hash PIN 4-6 digit dengan SHA-256
+  /// Validasi format PIN harus 4–6 digit angka
+  static bool isValidPinFormat(String pin) {
+    return RegExp(r'^\d{4,6}$').hasMatch(pin);
+  }
+
+  /// Hash PIN 4-6 digit dengan salted SHA-256
   String hashPin(String pin) {
-    final bytes = utf8.encode(pin);
+    final bytes = utf8.encode('ks_v25_pin:$pin');
     final digest = sha256.convert(bytes);
     return digest.toString();
   }
 
-  /// Verifikasi kecocokan input PIN dengan hash di database atau default 1234
-  Future<bool> verifyPin(String pin) async {
-    if (pin == '1234') return true;
-    final settings = await DatabaseHelper.instance.getPengaturan();
-    if (settings.pinKeamanan == null || settings.pinKeamanan!.isEmpty) {
-      return true;
-    }
-    final hashed = hashPin(pin);
-    return hashed == settings.pinKeamanan || settings.pinKeamanan == '1234' || settings.pinKeamanan == pin;
+  /// Hash kompatibilitas versi lama (unsalted SHA-256)
+  String hashLegacyPin(String pin) {
+    final bytes = utf8.encode(pin);
+    return sha256.convert(bytes).toString();
   }
 
-  /// Simpan atau ubah PIN baru
+  Future<String?> _readSecurePinHash() async {
+    try {
+      final val = await _secureStorage.read(key: keySecurePinHash);
+      if (val != null && val.trim().isNotEmpty) return val.trim();
+    } catch (_) {}
+    return null;
+  }
+
+  Future<void> _writeSecurePinHash(String? hash) async {
+    try {
+      if (hash == null || hash.isEmpty) {
+        await _secureStorage.delete(key: keySecurePinHash);
+      } else {
+        await _secureStorage.write(key: keySecurePinHash, value: hash);
+      }
+    } catch (_) {}
+  }
+
+  /// Sinkronkan hash PIN hasil restore ke flutter_secure_storage
+  Future<void> syncRestoredPinToSecureStorage(String? restoredPinHash) async {
+    await _writeSecurePinHash(restoredPinHash);
+  }
+
+  /// Cek apakah kunci PIN aktif di secure storage atau database
+  Future<bool> hasPin() async {
+    final secureHash = await _readSecurePinHash();
+    if (secureHash != null && secureHash.isNotEmpty) return true;
+    final settings = await DatabaseHelper.instance.getPengaturan();
+    return settings.pinKeamanan != null && settings.pinKeamanan!.isNotEmpty;
+  }
+
+  /// Verifikasi kecocokan input PIN dengan hash di flutter_secure_storage / DB
+  Future<bool> verifyPin(String pin) async {
+    final secureHash = await _readSecurePinHash();
+    final settings = await DatabaseHelper.instance.getPengaturan();
+    final stored = secureHash ?? settings.pinKeamanan;
+
+    if (stored == null || stored.isEmpty) {
+      return true;
+    }
+
+    final salted = hashPin(pin);
+    final legacy = hashLegacyPin(pin);
+    final matched = stored == salted || stored == legacy || stored == pin;
+
+    if (matched && secureHash == null) {
+      await _writeSecurePinHash(salted);
+      await DatabaseHelper.instance.updatePengaturan(
+        settings.copyWith(pinKeamanan: salted),
+      );
+    }
+    return matched;
+  }
+
+  /// Simpan atau ubah PIN baru (null untuk menonaktifkan kunci PIN)
   Future<void> setPin(String? newPin) async {
     final settings = await DatabaseHelper.instance.getPengaturan();
-    final updated = settings.copyWith(
-      pinKeamanan: (newPin != null && newPin.isNotEmpty) ? hashPin(newPin) : null,
-    );
-    await DatabaseHelper.instance.updatePengaturan(updated);
+    if (newPin != null && newPin.isNotEmpty) {
+      if (!isValidPinFormat(newPin)) {
+        throw const FormatException('PIN harus berupa 4–6 digit angka.');
+      }
+      final hashed = hashPin(newPin);
+      await _writeSecurePinHash(hashed);
+      await DatabaseHelper.instance.updatePengaturan(
+        settings.copyWith(pinKeamanan: hashed),
+      );
+    } else {
+      await _writeSecurePinHash(null);
+      await DatabaseHelper.instance.updatePengaturan(
+        settings.copyWith(clearPin: true, isBiometricEnabled: false),
+      );
+    }
   }
 
   /// Periksa ketersediaan biometrik di perangkat
@@ -71,8 +141,8 @@ class AuthService {
 
   /// Cek apakah sesi saat ini terkunci berdasarkan autoLockMinutes
   Future<bool> shouldLockApp() async {
-    final settings = await DatabaseHelper.instance.getPengaturan();
-    if (settings.pinKeamanan == null || settings.pinKeamanan!.isEmpty) {
+    final pinActive = await hasPin();
+    if (!pinActive) {
       return false;
     }
 
@@ -80,6 +150,7 @@ class AuthService {
     final isUnlocked = prefs.getBool(keyIsUnlocked) ?? false;
     if (!isUnlocked) return true;
 
+    final settings = await DatabaseHelper.instance.getPengaturan();
     final lastActiveStr = prefs.getString(keyLastActive);
     if (lastActiveStr == null) return true;
 

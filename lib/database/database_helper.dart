@@ -5,9 +5,11 @@ import '../models/santri.dart';
 import '../models/setoran.dart';
 import '../models/transaksi.dart';
 import '../models/pengaturan.dart';
+import '../models/cash_opname_log.dart';
 import '../utils/time_category_helper.dart';
 import '../utils/date_formatter.dart';
 import '../utils/currency_formatter.dart';
+import '../services/backup_service.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -27,14 +29,138 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _createDB,
+      onUpgrade: _upgradeDB,
       onOpen: (db) async {
-        try {
-          await db.execute('ALTER TABLE santri ADD COLUMN foto_path TEXT;');
-        } catch (_) {}
+        await _ensureColumnsAndIndexes(db);
       },
     );
+  }
+
+  Future<void> _addColumnIfNotExists(Database db, String table, String columnDef) async {
+    try {
+      await db.execute('ALTER TABLE $table ADD COLUMN $columnDef;');
+    } catch (_) {}
+  }
+
+  Future<void> _ensureColumnsAndIndexes(Database db) async {
+    await _addColumnIfNotExists(db, 'santri', 'foto_path TEXT');
+    await _addColumnIfNotExists(db, 'santri', 'qr_code TEXT');
+    await _addColumnIfNotExists(db, 'setoran_bulanan', "metode_bayar TEXT NOT NULL DEFAULT 'TUNAI'");
+    await _addColumnIfNotExists(db, 'setoran_bulanan', 'potong_tunggakan INTEGER NOT NULL DEFAULT 0');
+    await _addColumnIfNotExists(db, 'setoran_bulanan', 'nominal_potong_tunggakan INTEGER NOT NULL DEFAULT 0');
+    await _addColumnIfNotExists(db, 'transaksi_harian', 'is_void INTEGER NOT NULL DEFAULT 0');
+    await _addColumnIfNotExists(db, 'transaksi_harian', "sumber_dompet TEXT NOT NULL DEFAULT 'TUNAI'");
+    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'pembulatan_jatah INTEGER NOT NULL DEFAULT 500');
+    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'is_pro INTEGER NOT NULL DEFAULT 0');
+    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'pro_plan TEXT');
+    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'onboarding_done INTEGER NOT NULL DEFAULT 0');
+    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'last_drive_backup_at TEXT');
+    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'auto_drive_backup INTEGER NOT NULL DEFAULT 0');
+    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'drive_account_email TEXT');
+    try {
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_tx_santri_tgl ON transaksi_harian (santri_id, tanggal_lokal, is_void);');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_santri_qr ON santri (qr_code);');
+    } catch (_) {}
+    await _backfillQrCodes(db);
+  }
+
+  Future<void> _backfillQrCodes(Database db) async {
+    try {
+      final rows = await db.query(
+        'santri',
+        columns: ['id', 'qr_code'],
+        where: "qr_code IS NULL OR TRIM(qr_code) = ''",
+      );
+      for (final row in rows) {
+        final id = row['id'] as String?;
+        if (id != null && id.isNotEmpty) {
+          await db.update(
+            'santri',
+            {'qr_code': Santri.generateQrCode(id)},
+            where: 'id = ?',
+            whereArgs: [id],
+          );
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _upgradeDB(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await _addColumnIfNotExists(db, 'santri', 'foto_path TEXT');
+      await _addColumnIfNotExists(db, 'santri', 'qr_code TEXT');
+      await _addColumnIfNotExists(db, 'setoran_bulanan', "metode_bayar TEXT NOT NULL DEFAULT 'TUNAI'");
+      await _addColumnIfNotExists(db, 'setoran_bulanan', 'potong_tunggakan INTEGER NOT NULL DEFAULT 0');
+      await _addColumnIfNotExists(db, 'setoran_bulanan', 'nominal_potong_tunggakan INTEGER NOT NULL DEFAULT 0');
+
+      await _addColumnIfNotExists(db, 'transaksi_harian', 'is_void INTEGER NOT NULL DEFAULT 0');
+      await _addColumnIfNotExists(db, 'transaksi_harian', "sumber_dompet TEXT NOT NULL DEFAULT 'TUNAI'");
+      try {
+        await db.execute('UPDATE transaksi_harian SET is_void = is_voided WHERE is_voided IS NOT NULL;');
+      } catch (_) {}
+
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS tunggakan_log (
+          id TEXT PRIMARY KEY,
+          santri_id TEXT NOT NULL,
+          tipe TEXT NOT NULL,
+          nominal INTEGER NOT NULL,
+          saldo_tunggakan_setelah INTEGER NOT NULL DEFAULT 0,
+          catatan TEXT,
+          created_at TEXT NOT NULL,
+          FOREIGN KEY (santri_id) REFERENCES santri (id) ON DELETE CASCADE
+        )
+      ''');
+
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS mutasi_dompet (
+          id TEXT PRIMARY KEY,
+          jenis_dompet TEXT NOT NULL DEFAULT 'TUNAI',
+          tipe TEXT NOT NULL,
+          nominal INTEGER NOT NULL,
+          referensi_id TEXT,
+          catatan TEXT,
+          tanggal_lokal TEXT NOT NULL,
+          created_at TEXT NOT NULL
+        )
+      ''');
+
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS cash_opname_logs (
+          id TEXT PRIMARY KEY,
+          tanggal_lokal TEXT NOT NULL,
+          total_sistem INTEGER NOT NULL DEFAULT 0,
+          total_fisik INTEGER NOT NULL DEFAULT 0,
+          selisih INTEGER NOT NULL DEFAULT 0,
+          rincian_pecahan_json TEXT,
+          catatan TEXT,
+          created_at TEXT NOT NULL
+        )
+      ''');
+
+      await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'pembulatan_jatah INTEGER NOT NULL DEFAULT 500');
+      await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'is_pro INTEGER NOT NULL DEFAULT 0');
+      await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'pro_plan TEXT');
+      await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'onboarding_done INTEGER NOT NULL DEFAULT 0');
+      await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'last_drive_backup_at TEXT');
+      await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'auto_drive_backup INTEGER NOT NULL DEFAULT 0');
+      await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'drive_account_email TEXT');
+
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_tx_santri_tgl ON transaksi_harian (santri_id, tanggal_lokal, is_void);');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_tunggakan_log_santri ON tunggakan_log (santri_id);');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_mutasi_dompet_tanggal ON mutasi_dompet (tanggal_lokal);');
+
+      // Jika pengguna sudah memiliki data santri dari v1, langsung tandai onboarding selesai
+      try {
+        final existing = await db.rawQuery('SELECT COUNT(*) as cnt FROM santri');
+        final count = (existing.first['cnt'] as num?)?.toInt() ?? 0;
+        if (count > 0) {
+          await db.execute('UPDATE pengaturan_aplikasi SET onboarding_done = 1 WHERE id = 1;');
+        }
+      } catch (_) {}
+    }
   }
 
   Future<void> _createDB(Database db, int version) async {
@@ -52,6 +178,7 @@ class DatabaseHelper {
         tunggakan INTEGER NOT NULL DEFAULT 0,
         catatan_tunggakan TEXT DEFAULT '',
         foto_path TEXT,
+        qr_code TEXT,
         status_aktif INTEGER NOT NULL DEFAULT 1,
         created_at TEXT NOT NULL
       )
@@ -69,6 +196,9 @@ class DatabaseHelper {
         tanggal_setor TEXT NOT NULL,
         catatan TEXT,
         perlakuan_sisa TEXT,
+        metode_bayar TEXT NOT NULL DEFAULT 'TUNAI',
+        potong_tunggakan INTEGER NOT NULL DEFAULT 0,
+        nominal_potong_tunggakan INTEGER NOT NULL DEFAULT 0,
         FOREIGN KEY (santri_id) REFERENCES santri (id) ON DELETE CASCADE
       )
     ''');
@@ -84,15 +214,58 @@ class DatabaseHelper {
         kategori_waktu TEXT NOT NULL,
         is_overlimit INTEGER NOT NULL DEFAULT 0,
         catatan TEXT,
-        is_voided INTEGER NOT NULL DEFAULT 0,
+        is_void INTEGER NOT NULL DEFAULT 0,
         overlimit_handling TEXT,
         saldo_setelah_transaksi INTEGER NOT NULL DEFAULT 0,
         tipe TEXT NOT NULL DEFAULT 'PENGAMBILAN',
+        sumber_dompet TEXT NOT NULL DEFAULT 'TUNAI',
         FOREIGN KEY (santri_id) REFERENCES santri (id) ON DELETE CASCADE
       )
     ''');
 
-    // 4. Tabel pengaturan_aplikasi (Singleton id = 1)
+    // 4. Tabel tunggakan_log
+    await db.execute('''
+      CREATE TABLE tunggakan_log (
+        id TEXT PRIMARY KEY,
+        santri_id TEXT NOT NULL,
+        tipe TEXT NOT NULL,
+        nominal INTEGER NOT NULL,
+        saldo_tunggakan_setelah INTEGER NOT NULL DEFAULT 0,
+        catatan TEXT,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (santri_id) REFERENCES santri (id) ON DELETE CASCADE
+      )
+    ''');
+
+    // 5. Tabel mutasi_dompet
+    await db.execute('''
+      CREATE TABLE mutasi_dompet (
+        id TEXT PRIMARY KEY,
+        jenis_dompet TEXT NOT NULL DEFAULT 'TUNAI',
+        tipe TEXT NOT NULL,
+        nominal INTEGER NOT NULL,
+        referensi_id TEXT,
+        catatan TEXT,
+        tanggal_lokal TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      )
+    ''');
+
+    // 6. Tabel cash_opname_logs
+    await db.execute('''
+      CREATE TABLE cash_opname_logs (
+        id TEXT PRIMARY KEY,
+        tanggal_lokal TEXT NOT NULL,
+        total_sistem INTEGER NOT NULL DEFAULT 0,
+        total_fisik INTEGER NOT NULL DEFAULT 0,
+        selisih INTEGER NOT NULL DEFAULT 0,
+        rincian_pecahan_json TEXT,
+        catatan TEXT,
+        created_at TEXT NOT NULL
+      )
+    ''');
+
+    // 7. Tabel pengaturan_aplikasi (Singleton id = 1)
     await db.execute('''
       CREATE TABLE pengaturan_aplikasi (
         id INTEGER PRIMARY KEY,
@@ -102,18 +275,25 @@ class DatabaseHelper {
         default_jatah_harian INTEGER NOT NULL DEFAULT 10000,
         default_durasi_hari INTEGER NOT NULL DEFAULT 30,
         mode_sisa_harian TEXT NOT NULL DEFAULT 'KETAT',
-        pin_keamanan TEXT DEFAULT '1234',
+        pin_keamanan TEXT,
         is_biometric_enabled INTEGER NOT NULL DEFAULT 0,
         auto_lock_minutes INTEGER NOT NULL DEFAULT 1,
         logo_path TEXT,
         is_two_col_grid INTEGER NOT NULL DEFAULT 1,
-        hide_balance INTEGER NOT NULL DEFAULT 0
+        hide_balance INTEGER NOT NULL DEFAULT 0,
+        pembulatan_jatah INTEGER NOT NULL DEFAULT 500,
+        is_pro INTEGER NOT NULL DEFAULT 0,
+        pro_plan TEXT,
+        onboarding_done INTEGER NOT NULL DEFAULT 0,
+        last_drive_backup_at TEXT,
+        auto_drive_backup INTEGER NOT NULL DEFAULT 0,
+        drive_account_email TEXT
       )
     ''');
 
-    // Indeks untuk kecepatan & performa query < 100ms
+    // Composite & supporting indexes untuk performa query < 100ms
     await db.execute(
-      'CREATE INDEX idx_transaksi_santri_tanggal ON transaksi_harian (santri_id, tanggal_lokal);',
+      'CREATE INDEX idx_tx_santri_tgl ON transaksi_harian (santri_id, tanggal_lokal, is_void);',
     );
     await db.execute(
       'CREATE INDEX idx_transaksi_tanggal ON transaksi_harian (tanggal_lokal);',
@@ -130,6 +310,12 @@ class DatabaseHelper {
     await db.execute(
       'CREATE INDEX idx_setoran_santri ON setoran_bulanan (santri_id);',
     );
+    await db.execute(
+      'CREATE INDEX idx_tunggakan_log_santri ON tunggakan_log (santri_id);',
+    );
+    await db.execute(
+      'CREATE INDEX idx_mutasi_dompet_tanggal ON mutasi_dompet (tanggal_lokal);',
+    );
 
     // Inisialisasi data pengaturan bawaan
     await db.insert('pengaturan_aplikasi', {
@@ -140,12 +326,19 @@ class DatabaseHelper {
       'default_jatah_harian': 10000,
       'default_durasi_hari': 30,
       'mode_sisa_harian': 'KETAT',
-      'pin_keamanan': '1234',
+      'pin_keamanan': null,
       'is_biometric_enabled': 0,
       'auto_lock_minutes': 1,
       'logo_path': null,
       'is_two_col_grid': 1,
       'hide_balance': 0,
+      'pembulatan_jatah': 500,
+      'is_pro': 0,
+      'pro_plan': null,
+      'onboarding_done': 0,
+      'last_drive_backup_at': null,
+      'auto_drive_backup': 0,
+      'drive_account_email': null,
     });
   }
 
@@ -171,9 +364,34 @@ class DatabaseHelper {
     return null;
   }
 
-  Future<int> insertSantri(Santri santri) async {
+  String _normalizeDompet(String raw) {
+    final upper = raw.toUpperCase().trim();
+    if (upper == 'REKENING' || upper == 'BANK' || upper == 'TRANSFER') {
+      return 'REKENING';
+    }
+    return 'TUNAI';
+  }
+
+  Future<int> insertSantri(Santri santri, {String sumberDompet = 'TUNAI'}) async {
     final db = await database;
-    return await db.insert('santri', santri.toMap());
+    final dompet = _normalizeDompet(sumberDompet);
+    await db.transaction((txn) async {
+      await txn.insert('santri', santri.toMap());
+      if (santri.saldoTotal > 0) {
+        final now = DateTime.now();
+        await txn.insert('mutasi_dompet', {
+          'id': const Uuid().v4(),
+          'jenis_dompet': dompet,
+          'tipe': 'MASUK',
+          'nominal': santri.saldoTotal,
+          'referensi_id': santri.id,
+          'catatan': 'Saldo Awal ${santri.namaLengkap}',
+          'tanggal_lokal': DateFormatter.toLocalDateString(now),
+          'created_at': now.toIso8601String(),
+        });
+      }
+    });
+    return 1;
   }
 
   Future<int> updateSantri(Santri santri) async {
@@ -232,6 +450,7 @@ class DatabaseHelper {
   Future<void> deleteSantri(String santriId) async {
     final db = await database;
     await db.transaction((txn) async {
+      await txn.delete('tunggakan_log', where: 'santri_id = ?', whereArgs: [santriId]);
       await txn.delete('transaksi_harian', where: 'santri_id = ?', whereArgs: [santriId]);
       await txn.delete('setoran_bulanan', where: 'santri_id = ?', whereArgs: [santriId]);
       await txn.delete('santri', where: 'id = ?', whereArgs: [santriId]);
@@ -253,41 +472,69 @@ class DatabaseHelper {
     required int nominal,
     required String catatan,
     required bool isBayar,
+    String sumberDompet = 'TUNAI',
   }) async {
     final db = await database;
-    final santriMaps = await db.query('santri', where: 'id = ?', whereArgs: [santriId]);
-    if (santriMaps.isEmpty) return;
+    final dompet = _normalizeDompet(sumberDompet);
+    await db.transaction((txn) async {
+      final santriMaps = await txn.query('santri', where: 'id = ?', whereArgs: [santriId]);
+      if (santriMaps.isEmpty) return;
 
-    final santri = Santri.fromMap(santriMaps.first);
-    int newTunggakan = santri.tunggakan;
-    String newCatatan = santri.catatanTunggakan;
+      final santri = Santri.fromMap(santriMaps.first);
+      int newTunggakan = santri.tunggakan;
+      String newCatatan = santri.catatanTunggakan;
 
-    if (isBayar) {
-      newTunggakan = (santri.tunggakan - nominal);
-      if (newTunggakan < 0) newTunggakan = 0;
-      if (newTunggakan == 0) {
-        newCatatan = '';
-      } else if (catatan.trim().isNotEmpty) {
-        newCatatan = catatan.trim();
+      if (isBayar) {
+        newTunggakan = (santri.tunggakan - nominal);
+        if (newTunggakan < 0) newTunggakan = 0;
+        if (newTunggakan == 0) {
+          newCatatan = '';
+        } else if (catatan.trim().isNotEmpty) {
+          newCatatan = catatan.trim();
+        }
+      } else {
+        newTunggakan = santri.tunggakan + nominal;
+        if (catatan.trim().isNotEmpty) {
+          newCatatan = catatan.trim();
+        } else if (newCatatan.isEmpty) {
+          newCatatan = 'Tunggakan Kasbon / Pondok';
+        }
       }
-    } else {
-      newTunggakan = santri.tunggakan + nominal;
-      if (catatan.trim().isNotEmpty) {
-        newCatatan = catatan.trim();
-      } else if (newCatatan.isEmpty) {
-        newCatatan = 'Tunggakan Kasbon / Pondok';
-      }
-    }
 
-    await db.update(
-      'santri',
-      {
-        'tunggakan': newTunggakan,
-        'catatan_tunggakan': newCatatan,
-      },
-      where: 'id = ?',
-      whereArgs: [santriId],
-    );
+      await txn.update(
+        'santri',
+        {
+          'tunggakan': newTunggakan,
+          'catatan_tunggakan': newCatatan,
+        },
+        where: 'id = ?',
+        whereArgs: [santriId],
+      );
+
+      final now = DateTime.now();
+      await txn.insert('tunggakan_log', {
+        'id': const Uuid().v4(),
+        'santri_id': santriId,
+        'tipe': isBayar ? 'BAYAR' : 'TAMBAH',
+        'nominal': nominal,
+        'saldo_tunggakan_setelah': newTunggakan,
+        'catatan': catatan.trim().isNotEmpty ? catatan.trim() : newCatatan,
+        'created_at': now.toIso8601String(),
+      });
+
+      if (isBayar && nominal > 0) {
+        await txn.insert('mutasi_dompet', {
+          'id': const Uuid().v4(),
+          'jenis_dompet': dompet,
+          'tipe': 'MASUK',
+          'nominal': nominal,
+          'referensi_id': santriId,
+          'catatan': 'Pelunasan Tunggakan ${santri.namaLengkap}',
+          'tanggal_lokal': DateFormatter.toLocalDateString(now),
+          'created_at': now.toIso8601String(),
+        });
+      }
+    });
   }
 
   Future<int> getTotalTunggakanPondok() async {
@@ -320,6 +567,8 @@ class DatabaseHelper {
     String? catatan,
     PerlakuanSisaSaldoLalu perlakuanSisa = PerlakuanSisaSaldoLalu.gabungBulanBaru,
     OpsiSetoranSusulan? opsiSusulan,
+    bool potongTunggakan = true,
+    String metodeBayar = 'TUNAI',
   }) async {
     final db = await database;
     final setoranId = const Uuid().v4();
@@ -338,7 +587,10 @@ class DatabaseHelper {
     );
 
     await db.transaction((txn) async {
-      await txn.insert('setoran_bulanan', setoran.toMap());
+      final pengaturanMaps = await txn.query('pengaturan_aplikasi', where: 'id = 1');
+      final kelipatanPembulatan = pengaturanMaps.isNotEmpty
+          ? ((pengaturanMaps.first['pembulatan_jatah'] as num?)?.toInt() ?? 500)
+          : 500;
 
       final santriMaps = await txn.query('santri', where: 'id = ?', whereArgs: [santriId]);
       if (santriMaps.isEmpty) throw Exception('Santri tidak ditemukan');
@@ -349,21 +601,33 @@ class DatabaseHelper {
       String catatanTunggakanBaru = currentSantri.catatanTunggakan;
       int saldoBaru = currentSantri.saldoTotal;
       int jatahBaru = currentSantri.jatahHarian;
+      int nominalPotongTunggakan = 0;
       String logPotongTunggakan = '';
 
-      // Jika santri memiliki tunggakan, setoran otomatis memotong tunggakan terlebih dahulu
-      if (tunggakanBaru > 0) {
+      // Saklar opsional potong tunggakan dari setoran
+      if (potongTunggakan && tunggakanBaru > 0) {
         if (sisaSetoranMasukSaldo >= tunggakanBaru) {
-          final nominalLunas = tunggakanBaru;
+          nominalPotongTunggakan = tunggakanBaru;
           sisaSetoranMasukSaldo -= tunggakanBaru;
           tunggakanBaru = 0;
           catatanTunggakanBaru = '';
-          logPotongTunggakan = ' (Potong Lunas Tunggakan ${CurrencyFormatter.format(nominalLunas)})';
+          logPotongTunggakan = ' (Potong Lunas Tunggakan ${CurrencyFormatter.format(nominalPotongTunggakan)})';
         } else {
+          nominalPotongTunggakan = sisaSetoranMasukSaldo;
           tunggakanBaru -= sisaSetoranMasukSaldo;
-          logPotongTunggakan = ' (Potong Cicil Tunggakan ${CurrencyFormatter.format(sisaSetoranMasukSaldo)})';
+          logPotongTunggakan = ' (Potong Cicil Tunggakan ${CurrencyFormatter.format(nominalPotongTunggakan)})';
           sisaSetoranMasukSaldo = 0;
         }
+
+        await txn.insert('tunggakan_log', {
+          'id': const Uuid().v4(),
+          'santri_id': santriId,
+          'tipe': 'POTONG_SETORAN',
+          'nominal': nominalPotongTunggakan,
+          'saldo_tunggakan_setelah': tunggakanBaru,
+          'catatan': catatan ?? 'Potong otomatis dari setoran',
+          'created_at': DateTime.now().toIso8601String(),
+        });
       }
 
       if (tipeSetoran == TipeSetoran.awalBulan) {
@@ -373,7 +637,11 @@ class DatabaseHelper {
           saldoBaru += sisaSetoranMasukSaldo;
         }
         if (durasiHari > 0 && sisaSetoranMasukSaldo > 0) {
-          jatahBaru = (sisaSetoranMasukSaldo / durasiHari).round();
+          jatahBaru = CurrencyFormatter.hitungJatahHarianBulat(
+            sisaSetoranMasukSaldo,
+            durasiHari,
+            kelipatan: kelipatanPembulatan,
+          );
         } else if (sisaSetoranMasukSaldo == 0) {
           jatahBaru = currentSantri.jatahHarian;
         } else {
@@ -382,10 +650,24 @@ class DatabaseHelper {
       } else {
         saldoBaru += sisaSetoranMasukSaldo;
         if (opsiSusulan == OpsiSetoranSusulan.tambahJatahHarian) {
-          final tambahanJatah = durasiHari > 0 ? (sisaSetoranMasukSaldo / durasiHari).round() : 0;
+          final tambahanJatah = durasiHari > 0
+              ? CurrencyFormatter.hitungJatahHarianBulat(
+                  sisaSetoranMasukSaldo,
+                  durasiHari,
+                  kelipatan: kelipatanPembulatan,
+                )
+              : 0;
           jatahBaru += tambahanJatah;
         }
       }
+
+      final dompet = _normalizeDompet(metodeBayar);
+      final setoranMap = setoran.toMap();
+      setoranMap['jatah_harian_hitung'] = jatahBaru;
+      setoranMap['metode_bayar'] = dompet;
+      setoranMap['potong_tunggakan'] = (potongTunggakan && nominalPotongTunggakan > 0) ? 1 : 0;
+      setoranMap['nominal_potong_tunggakan'] = nominalPotongTunggakan;
+      await txn.insert('setoran_bulanan', setoranMap);
 
       await txn.update(
         'santri',
@@ -400,20 +682,33 @@ class DatabaseHelper {
       );
 
       final now = DateTime.now();
+      final tglStr = DateFormatter.toLocalDateString(tanggalSetor);
       final transaksiMutasi = TransaksiHarian(
         id: transaksiId,
         santriId: santriId,
         nominal: nominalSetoran,
         waktuAmbil: now,
-        tanggalLokal: DateFormatter.toLocalDateString(tanggalSetor),
+        tanggalLokal: tglStr,
         kategoriWaktu: TimeCategory.setoran,
         catatan: (catatan != null && catatan.isNotEmpty)
             ? '$catatan$logPotongTunggakan'
             : (tipeSetoran == TipeSetoran.awalBulan ? 'Setoran Awal Bulan$logPotongTunggakan' : 'Top-Up Susulan$logPotongTunggakan'),
         saldoSetelahTransaksi: saldoBaru,
         tipe: TipeTransaksi.setoran,
+        sumberDompet: dompet,
       );
       await txn.insert('transaksi_harian', transaksiMutasi.toMap());
+
+      await txn.insert('mutasi_dompet', {
+        'id': const Uuid().v4(),
+        'jenis_dompet': dompet,
+        'tipe': 'MASUK',
+        'nominal': nominalSetoran,
+        'referensi_id': transaksiId,
+        'catatan': 'Setoran ${currentSantri.namaLengkap}',
+        'tanggal_lokal': tglStr,
+        'created_at': now.toIso8601String(),
+      });
     });
 
     return setoran;
@@ -457,6 +752,7 @@ class DatabaseHelper {
       int saldoBaru = santri.saldoTotal;
       int tunggakanBaru = santri.tunggakan;
       String catatanTunggakanBaru = santri.catatanTunggakan;
+      int tambahanTunggakan = 0;
 
       if (santri.saldoTotal >= nominal) {
         // Cukup saldo: potong saldo bulanan
@@ -466,6 +762,7 @@ class DatabaseHelper {
         final int kekurangan = nominal - santri.saldoTotal;
         saldoBaru = 0;
         tunggakanBaru += kekurangan;
+        tambahanTunggakan = kekurangan;
         catatanTunggakanBaru = catatanTunggakanBaru.isEmpty
             ? 'Talangan Kas Pondok'
             : '$catatanTunggakanBaru, Talangan Kas';
@@ -473,6 +770,7 @@ class DatabaseHelper {
         // Saldo bulanan sudah 0: seluruhnya jadi tunggakan talangan dari kas pondok
         saldoBaru = 0;
         tunggakanBaru += nominal;
+        tambahanTunggakan = nominal;
         catatanTunggakanBaru = catatanTunggakanBaru.isEmpty
             ? 'Talangan Kas Pondok'
             : catatanTunggakanBaru;
@@ -491,9 +789,33 @@ class DatabaseHelper {
         overlimitHandling: overlimitHandling,
         saldoSetelahTransaksi: saldoBaru,
         tipe: TipeTransaksi.pengambilan,
+        sumberDompet: 'TUNAI',
       );
 
       await txn.insert('transaksi_harian', transaksi.toMap());
+
+      if (tambahanTunggakan > 0) {
+        await txn.insert('tunggakan_log', {
+          'id': const Uuid().v4(),
+          'santri_id': santriId,
+          'tipe': 'TALANGAN_SALDO',
+          'nominal': tambahanTunggakan,
+          'saldo_tunggakan_setelah': tunggakanBaru,
+          'catatan': catatan ?? 'Talangan Kas Pondok',
+          'created_at': waktu.toIso8601String(),
+        });
+      }
+
+      await txn.insert('mutasi_dompet', {
+        'id': const Uuid().v4(),
+        'jenis_dompet': 'TUNAI',
+        'tipe': 'KELUAR',
+        'nominal': nominal,
+        'referensi_id': id,
+        'catatan': 'Pengambilan ${santri.namaLengkap}${catatan != null && catatan.isNotEmpty ? " ($catatan)" : ""}',
+        'tanggal_lokal': tanggalLokal,
+        'created_at': waktu.toIso8601String(),
+      });
 
       Map<String, dynamic> updateData = {
         'saldo_total': saldoBaru,
@@ -504,7 +826,15 @@ class DatabaseHelper {
       if (isOverlimit && overlimitHandling == OverlimitHandling.hitungUlangRataRata) {
         const sisaHariPeriode = 20;
         if (saldoBaru > 0) {
-          final jatahBaru = (saldoBaru / sisaHariPeriode).round();
+          final pengaturanMaps = await txn.query('pengaturan_aplikasi', where: 'id = 1');
+          final kelipatan = pengaturanMaps.isNotEmpty
+              ? ((pengaturanMaps.first['pembulatan_jatah'] as num?)?.toInt() ?? 500)
+              : 500;
+          final jatahBaru = CurrencyFormatter.hitungJatahHarianBulat(
+            saldoBaru,
+            sisaHariPeriode,
+            kelipatan: kelipatan,
+          );
           updateData['jatah_harian'] = jatahBaru;
         }
       }
@@ -530,12 +860,14 @@ class DatabaseHelper {
 
       await txn.update(
         'transaksi_harian',
-        {'is_voided': 1},
+        {'is_void': 1},
         where: 'id = ?',
         whereArgs: [transaksiId],
       );
 
       final santriMaps = await txn.query('santri', where: 'id = ?', whereArgs: [tx.santriId]);
+      final now = DateTime.now();
+      final dompetAsal = _normalizeDompet(tx.sumberDompet);
       if (santriMaps.isNotEmpty) {
         final currentSantri = Santri.fromMap(santriMaps.first);
         if (tx.tipe == TipeTransaksi.pengambilan) {
@@ -543,14 +875,17 @@ class DatabaseHelper {
           int tunggakanBaru = currentSantri.tunggakan;
           String catatanTunggakanBaru = currentSantri.catatanTunggakan;
           int saldoBaru = currentSantri.saldoTotal;
+          int nominalRollbackTunggakan = 0;
 
           // Batalkan tunggakan terlebih dahulu jika ada tunggakan
           if (tunggakanBaru > 0) {
             if (sisaRefund >= tunggakanBaru) {
+              nominalRollbackTunggakan = tunggakanBaru;
               sisaRefund -= tunggakanBaru;
               tunggakanBaru = 0;
               catatanTunggakanBaru = '';
             } else {
+              nominalRollbackTunggakan = sisaRefund;
               tunggakanBaru -= sisaRefund;
               sisaRefund = 0;
             }
@@ -567,8 +902,31 @@ class DatabaseHelper {
             where: 'id = ?',
             whereArgs: [tx.santriId],
           );
+
+          await txn.insert('mutasi_dompet', {
+            'id': const Uuid().v4(),
+            'jenis_dompet': dompetAsal,
+            'tipe': 'MASUK',
+            'nominal': tx.nominal,
+            'referensi_id': tx.id,
+            'catatan': 'Void Pengambilan ${currentSantri.namaLengkap}',
+            'tanggal_lokal': DateFormatter.toLocalDateString(now),
+            'created_at': now.toIso8601String(),
+          });
+
+          if (nominalRollbackTunggakan > 0) {
+            await txn.insert('tunggakan_log', {
+              'id': const Uuid().v4(),
+              'santri_id': tx.santriId,
+              'tipe': 'ROLLBACK_VOID',
+              'nominal': nominalRollbackTunggakan,
+              'saldo_tunggakan_setelah': tunggakanBaru,
+              'catatan': 'Pembatalan transaksi ${tx.id}',
+              'created_at': now.toIso8601String(),
+            });
+          }
         } else {
-          // Void setoran: kurangi saldo yang sempat disetor
+          // Void setoran: kurangi saldo yang sempat disetor dan tarik balik dari dompet asal
           final int restoredSaldo = (currentSantri.saldoTotal - tx.nominal).clamp(0, double.infinity).toInt();
           await txn.update(
             'santri',
@@ -576,6 +934,17 @@ class DatabaseHelper {
             where: 'id = ?',
             whereArgs: [tx.santriId],
           );
+
+          await txn.insert('mutasi_dompet', {
+            'id': const Uuid().v4(),
+            'jenis_dompet': dompetAsal,
+            'tipe': 'KELUAR',
+            'nominal': tx.nominal,
+            'referensi_id': tx.id,
+            'catatan': 'Void Setoran ${currentSantri.namaLengkap}',
+            'tanggal_lokal': DateFormatter.toLocalDateString(now),
+            'created_at': now.toIso8601String(),
+          });
         }
       }
     });
@@ -650,7 +1019,7 @@ class DatabaseHelper {
       FROM transaksi_harian 
       WHERE santri_id = ? 
         AND tanggal_lokal = ? 
-        AND is_voided = 0 
+        AND is_void = 0 
         AND tipe = 'PENGAMBILAN'
     ''', [santriId, tanggalLokal]);
 
@@ -662,7 +1031,7 @@ class DatabaseHelper {
     final db = await database;
     final maps = await db.query(
       'transaksi_harian',
-      where: 'santri_id = ? AND tanggal_lokal = ? AND is_voided = 0 AND tipe = "PENGAMBILAN"',
+      where: 'santri_id = ? AND tanggal_lokal = ? AND is_void = 0 AND tipe = "PENGAMBILAN"',
       whereArgs: [santriId, tanggalLokal],
       orderBy: 'waktu_ambil ASC',
     );
@@ -675,7 +1044,7 @@ class DatabaseHelper {
     int? limit,
   }) async {
     final db = await database;
-    String where = 'is_voided = 0';
+    String where = 'is_void = 0';
     List<dynamic> args = [];
 
     if (santriId != null && santriId.isNotEmpty && santriId != 'ALL') {
@@ -704,7 +1073,7 @@ class DatabaseHelper {
     return await db.rawQuery('''
       SELECT santri_id, MAX(waktu_ambil) as latest_time
       FROM transaksi_harian
-      WHERE is_voided = 0
+      WHERE is_void = 0
       GROUP BY santri_id
       ORDER BY latest_time DESC
       LIMIT ?
@@ -728,7 +1097,7 @@ class DatabaseHelper {
       SELECT SUM(nominal) as total 
       FROM transaksi_harian 
       WHERE tanggal_lokal = ? 
-        AND is_voided = 0 
+        AND is_void = 0 
         AND tipe = 'PENGAMBILAN'
     ''', [tanggalLokal]);
 
@@ -742,7 +1111,7 @@ class DatabaseHelper {
       SELECT SUM(nominal) as total 
       FROM transaksi_harian 
       WHERE tanggal_lokal = ? 
-        AND is_voided = 0 
+        AND is_void = 0 
         AND tipe = 'PENGAMBILAN'
         AND kategori_waktu IN ('PAGI', 'SIANG')
     ''', [tanggalLokal]);
@@ -757,7 +1126,7 @@ class DatabaseHelper {
       SELECT SUM(nominal) as total 
       FROM transaksi_harian 
       WHERE tanggal_lokal = ? 
-        AND is_voided = 0 
+        AND is_void = 0 
         AND tipe = 'PENGAMBILAN'
         AND kategori_waktu IN ('SORE', 'MALAM')
     ''', [tanggalLokal]);
@@ -772,7 +1141,7 @@ class DatabaseHelper {
       SELECT COUNT(DISTINCT santri_id) as count 
       FROM transaksi_harian 
       WHERE tanggal_lokal = ? 
-        AND is_voided = 0 
+        AND is_void = 0 
         AND tipe = 'PENGAMBILAN'
     ''', [tanggalLokal]);
 
@@ -785,7 +1154,7 @@ class DatabaseHelper {
     final maps = await db.rawQuery('''
       SELECT kategori_waktu, SUM(nominal) as total
       FROM transaksi_harian
-      WHERE tanggal_lokal = ? AND is_voided = 0 AND tipe = 'PENGAMBILAN'
+      WHERE tanggal_lokal = ? AND is_void = 0 AND tipe = 'PENGAMBILAN'
       GROUP BY kategori_waktu
     ''', [tanggalLokal]);
 
@@ -810,7 +1179,7 @@ class DatabaseHelper {
       SELECT t.*, s.nama_lengkap, s.nama_panggilan, s.kamar
       FROM transaksi_harian t
       JOIN santri s ON t.santri_id = s.id
-      WHERE t.tanggal_lokal = ? AND t.is_voided = 0
+      WHERE t.tanggal_lokal = ? AND t.is_void = 0
       ORDER BY t.waktu_ambil DESC
     ''', [tanggalLokal]);
   }
@@ -823,7 +1192,7 @@ class DatabaseHelper {
     final resPengeluaran = await db.rawQuery('''
       SELECT SUM(nominal) as total
       FROM transaksi_harian
-      WHERE tanggal_lokal LIKE ? AND is_voided = 0 AND tipe = 'PENGAMBILAN'
+      WHERE tanggal_lokal LIKE ? AND is_void = 0 AND tipe = 'PENGAMBILAN'
     ''', [prefix]);
 
     final resPemasukan = await db.rawQuery('''
@@ -869,52 +1238,155 @@ class DatabaseHelper {
     final santriList = await db.query('santri');
     final setoranList = await db.query('setoran_bulanan');
     final transaksiList = await db.query('transaksi_harian');
+    final tunggakanLogList = await db.query('tunggakan_log');
+    final mutasiDompetList = await db.query('mutasi_dompet');
+    final cashOpnameList = await db.query('cash_opname_logs');
     final pengaturanList = await db.query('pengaturan_aplikasi');
 
     return {
-      'version': 2,
+      'version': 25,
       'exported_at': DateTime.now().toIso8601String(),
       'santri': santriList,
       'setoran_bulanan': setoranList,
       'transaksi_harian': transaksiList,
+      'tunggakan_log': tunggakanLogList,
+      'mutasi_dompet': mutasiDompetList,
+      'cash_opname_logs': cashOpnameList,
       'pengaturan_aplikasi': pengaturanList,
     };
   }
 
+  Future<Set<String>> _getTableColumns(Transaction txn, String tableName) async {
+    final info = await txn.rawQuery('PRAGMA table_info($tableName)');
+    return info.map((e) => e['name'].toString()).toSet();
+  }
+
+  Map<String, dynamic> _filterRowColumns(
+    Map<String, dynamic> row,
+    Set<String> allowedCols,
+  ) {
+    final filtered = <String, dynamic>{};
+    for (final entry in row.entries) {
+      if (allowedCols.contains(entry.key)) {
+        filtered[entry.key] = entry.value;
+      }
+    }
+    return filtered;
+  }
+
   Future<void> restoreFromJson(Map<String, dynamic> data) async {
+    final validation = BackupService.validateBackupMap(data);
+    if (!validation.isValid) {
+      throw FormatException(validation.errorMessage ?? 'Struktur backup JSON tidak valid.');
+    }
+
     final db = await database;
     await db.transaction((txn) async {
+      await txn.delete('tunggakan_log');
+      await txn.delete('mutasi_dompet');
+      await txn.delete('cash_opname_logs');
       await txn.delete('transaksi_harian');
       await txn.delete('setoran_bulanan');
       await txn.delete('santri');
       await txn.delete('pengaturan_aplikasi');
 
-      if (data['santri'] != null) {
-        for (var row in data['santri'] as List) {
-          await txn.insert('santri', Map<String, dynamic>.from(row));
+      final santriCols = await _getTableColumns(txn, 'santri');
+      for (var row in (data['santri'] as List)) {
+        final map = Map<String, dynamic>.from(row as Map);
+        final id = map['id']?.toString() ?? '';
+        if (id.isNotEmpty &&
+            (map['qr_code'] == null || map['qr_code'].toString().trim().isEmpty)) {
+          map['qr_code'] = Santri.generateQrCode(id);
         }
+        await txn.insert(
+          'santri',
+          _filterRowColumns(map, santriCols),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
       }
-      if (data['setoran_bulanan'] != null) {
-        for (var row in data['setoran_bulanan'] as List) {
-          await txn.insert('setoran_bulanan', Map<String, dynamic>.from(row));
+
+      final setoranCols = await _getTableColumns(txn, 'setoran_bulanan');
+      for (var row in (data['setoran_bulanan'] as List)) {
+        final map = Map<String, dynamic>.from(row as Map);
+        await txn.insert(
+          'setoran_bulanan',
+          _filterRowColumns(map, setoranCols),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      }
+
+      final txCols = await _getTableColumns(txn, 'transaksi_harian');
+      for (var row in (data['transaksi_harian'] as List)) {
+        final map = Map<String, dynamic>.from(row as Map);
+        if (map.containsKey('is_voided') && !map.containsKey('is_void')) {
+          map['is_void'] = map['is_voided'];
+          map.remove('is_voided');
         }
+        await txn.insert(
+          'transaksi_harian',
+          _filterRowColumns(map, txCols),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
       }
-      if (data['transaksi_harian'] != null) {
-        for (var row in data['transaksi_harian'] as List) {
-          await txn.insert('transaksi_harian', Map<String, dynamic>.from(row));
-        }
+
+      final tunggakanCols = await _getTableColumns(txn, 'tunggakan_log');
+      for (var row in (data['tunggakan_log'] as List)) {
+        final map = Map<String, dynamic>.from(row as Map);
+        await txn.insert(
+          'tunggakan_log',
+          _filterRowColumns(map, tunggakanCols),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
       }
-      if (data['pengaturan_aplikasi'] != null) {
-        for (var row in data['pengaturan_aplikasi'] as List) {
-          await txn.insert('pengaturan_aplikasi', Map<String, dynamic>.from(row));
+
+      final dompetCols = await _getTableColumns(txn, 'mutasi_dompet');
+      for (var row in (data['mutasi_dompet'] as List)) {
+        final map = Map<String, dynamic>.from(row as Map);
+        await txn.insert(
+          'mutasi_dompet',
+          _filterRowColumns(map, dompetCols),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      }
+
+      final opnameCols = await _getTableColumns(txn, 'cash_opname_logs');
+      for (var row in (data['cash_opname_logs'] as List)) {
+        final map = Map<String, dynamic>.from(row as Map);
+        await txn.insert(
+          'cash_opname_logs',
+          _filterRowColumns(map, opnameCols),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      }
+
+      final pengCols = await _getTableColumns(txn, 'pengaturan_aplikasi');
+      final pengList = data['pengaturan_aplikasi'] as List;
+      if (pengList.isEmpty) {
+        await txn.insert('pengaturan_aplikasi', {
+          ...PengaturanAplikasi(onboardingDone: true).toMap(),
+        });
+      } else {
+        for (var row in pengList) {
+          final map = Map<String, dynamic>.from(row as Map);
+          map['onboarding_done'] = map['onboarding_done'] ?? 1;
+          await txn.insert(
+            'pengaturan_aplikasi',
+            _filterRowColumns(map, pengCols),
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
         }
       }
     });
+    await _backfillQrCodes(db);
   }
 
   Future<void> resetToInitialDemoData() async {
     final db = await database;
+    final currentPengaturan = await getPengaturan();
     await db.transaction((txn) async {
+      await txn.delete('tunggakan_log');
+      await txn.delete('mutasi_dompet');
+      await txn.delete('cash_opname_logs');
       await txn.delete('transaksi_harian');
       await txn.delete('setoran_bulanan');
       await txn.delete('santri');
@@ -929,12 +1401,19 @@ class DatabaseHelper {
       'default_jatah_harian': 10000,
       'default_durasi_hari': 30,
       'mode_sisa_harian': 'KETAT',
-      'pin_keamanan': '1234',
+      'pin_keamanan': null,
       'is_biometric_enabled': 0,
       'auto_lock_minutes': 1,
       'logo_path': null,
       'is_two_col_grid': 1,
       'hide_balance': 0,
+      'pembulatan_jatah': 500,
+      'is_pro': currentPengaturan.isPro ? 1 : 0,
+      'pro_plan': currentPengaturan.proPlan,
+      'onboarding_done': 1,
+      'last_drive_backup_at': currentPengaturan.lastDriveBackupAt,
+      'auto_drive_backup': currentPengaturan.autoDriveBackup ? 1 : 0,
+      'drive_account_email': currentPengaturan.driveAccountEmail,
     });
 
     await seedDemoData(force: true);
@@ -1096,5 +1575,201 @@ class DatabaseHelper {
     for (var tx in [txAhmadPagi, txAhmadSiang, txRizkyPagi, txRizkySiang, txBilalPagi, txNaufalPagi]) {
       await db.insert('transaksi_harian', tx.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
     }
+
+    // Seed Multi-Dompet awal (total Rp 1.666.000 = Rp 666.000 Kas Laci Tunai + Rp 1.000.000 Rekening Bank)
+    await db.delete('mutasi_dompet');
+    await db.insert('mutasi_dompet', {
+      'id': 'dompet_demo_tunai',
+      'jenis_dompet': 'TUNAI',
+      'tipe': 'MASUK',
+      'nominal': 666000,
+      'referensi_id': 'SEED',
+      'catatan': 'Saldo Awal Kas Laci Tunai',
+      'tanggal_lokal': today,
+      'created_at': now.toIso8601String(),
+    });
+    await db.insert('mutasi_dompet', {
+      'id': 'dompet_demo_rekening',
+      'jenis_dompet': 'REKENING',
+      'tipe': 'MASUK',
+      'nominal': 1000000,
+      'referensi_id': 'SEED',
+      'catatan': 'Saldo Awal Rekening Bank (BSI/BRI)',
+      'tanggal_lokal': today,
+      'created_at': now.toIso8601String(),
+    });
+  }
+
+  // ==================== MULTI-DOMPET & CASH OPNAME (PRO) ====================
+
+  Future<Map<String, int>> getSaldoDompet() async {
+    final db = await database;
+    final countRes = await db.rawQuery('SELECT COUNT(*) as cnt FROM mutasi_dompet');
+    final cnt = (countRes.first['cnt'] as num?)?.toInt() ?? 0;
+
+    if (cnt == 0) {
+      final totalBrankas = await getTotalSaldoBrankasFisik();
+      if (totalBrankas > 0) {
+        final now = DateTime.now();
+        await db.insert('mutasi_dompet', {
+          'id': const Uuid().v4(),
+          'jenis_dompet': 'TUNAI',
+          'tipe': 'MASUK',
+          'nominal': totalBrankas,
+          'referensi_id': 'SALDO_AWAL',
+          'catatan': 'Inisialisasi Kas Laci Tunai',
+          'tanggal_lokal': DateFormatter.toLocalDateString(now),
+          'created_at': now.toIso8601String(),
+        });
+      }
+    }
+
+    final rows = await db.query('mutasi_dompet');
+    int tunai = 0;
+    int rekening = 0;
+
+    for (final row in rows) {
+      final jenis = _normalizeDompet(row['jenis_dompet'] as String? ?? 'TUNAI');
+      final tipe = (row['tipe'] as String? ?? 'MASUK').toUpperCase();
+      final nominal = (row['nominal'] as num?)?.toInt() ?? 0;
+
+      if (tipe == 'TARIK_TUNAI') {
+        rekening -= nominal;
+        tunai += nominal;
+      } else if (tipe == 'MASUK') {
+        if (jenis == 'REKENING') {
+          rekening += nominal;
+        } else {
+          tunai += nominal;
+        }
+      } else if (tipe == 'KELUAR') {
+        if (jenis == 'REKENING') {
+          rekening -= nominal;
+        } else {
+          tunai -= nominal;
+        }
+      }
+    }
+
+    return {
+      'tunai': tunai,
+      'rekening': rekening,
+    };
+  }
+
+  Future<void> tarikTunaiKeLaci({required int nominal, String? catatan}) async {
+    if (nominal <= 0) {
+      throw Exception('Nominal tarik tunai harus lebih dari Rp 0');
+    }
+    final saldo = await getSaldoDompet();
+    final saldoBank = saldo['rekening'] ?? 0;
+    if (nominal > saldoBank) {
+      throw Exception('Saldo Rekening Bank tidak mencukupi (${CurrencyFormatter.format(saldoBank)})');
+    }
+
+    final db = await database;
+    final now = DateTime.now();
+    await db.insert('mutasi_dompet', {
+      'id': const Uuid().v4(),
+      'jenis_dompet': 'TUNAI',
+      'tipe': 'TARIK_TUNAI',
+      'nominal': nominal,
+      'referensi_id': 'ATM_LACI',
+      'catatan': (catatan != null && catatan.trim().isNotEmpty)
+          ? catatan.trim()
+          : 'Tarik Tunai Bank ke Kas Laci',
+      'tanggal_lokal': DateFormatter.toLocalDateString(now),
+      'created_at': now.toIso8601String(),
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> getRecentTarikTunaiLogs({int limit = 5}) async {
+    final db = await database;
+    return await db.query(
+      'mutasi_dompet',
+      where: "tipe = 'TARIK_TUNAI'",
+      orderBy: 'created_at DESC',
+      limit: limit,
+    );
+  }
+
+  Future<void> insertCashOpnameLog(CashOpnameLog log) async {
+    final db = await database;
+    await db.insert('cash_opname_logs', log.toMap());
+  }
+
+  Future<List<CashOpnameLog>> getCashOpnameLogs({int limit = 15}) async {
+    final db = await database;
+    final maps = await db.query(
+      'cash_opname_logs',
+      orderBy: 'created_at DESC',
+      limit: limit,
+    );
+    return maps.map((m) => CashOpnameLog.fromMap(m)).toList();
+  }
+
+  Future<Santri?> getSantriByQrCode(String rawCode) async {
+    final code = rawCode.trim().toUpperCase();
+    if (code.isEmpty) return null;
+    final db = await database;
+    final maps = await db.query(
+      'santri',
+      where: '(UPPER(qr_code) = ? OR UPPER(id) = ?) AND status_aktif = 1',
+      whereArgs: [code, code],
+      limit: 1,
+    );
+    if (maps.isEmpty) return null;
+    return Santri.fromMap(maps.first);
+  }
+
+  Future<List<Map<String, dynamic>>> getTransaksiByDateRange({
+    String? tanggalMulai,
+    String? tanggalSelesai,
+  }) async {
+    final db = await database;
+    final conditions = <String>[];
+    final args = <dynamic>[];
+    if (tanggalMulai != null && tanggalMulai.isNotEmpty) {
+      conditions.add('t.tanggal_lokal >= ?');
+      args.add(tanggalMulai);
+    }
+    if (tanggalSelesai != null && tanggalSelesai.isNotEmpty) {
+      conditions.add('t.tanggal_lokal <= ?');
+      args.add(tanggalSelesai);
+    }
+    final whereClause =
+        conditions.isEmpty ? '' : 'WHERE ${conditions.join(' AND ')}';
+    return await db.rawQuery('''
+      SELECT t.*, s.nama_lengkap, s.kamar
+      FROM transaksi_harian t
+      LEFT JOIN santri s ON t.santri_id = s.id
+      $whereClause
+      ORDER BY t.created_at DESC
+    ''', args);
+  }
+
+  Future<List<Map<String, dynamic>>> getAllMutasiDompet({
+    String? tanggalMulai,
+    String? tanggalSelesai,
+  }) async {
+    final db = await database;
+    final conditions = <String>[];
+    final args = <dynamic>[];
+    if (tanggalMulai != null && tanggalMulai.isNotEmpty) {
+      conditions.add('tanggal_lokal >= ?');
+      args.add(tanggalMulai);
+    }
+    if (tanggalSelesai != null && tanggalSelesai.isNotEmpty) {
+      conditions.add('tanggal_lokal <= ?');
+      args.add(tanggalSelesai);
+    }
+    final whereClause =
+        conditions.isEmpty ? null : conditions.join(' AND ');
+    return await db.query(
+      'mutasi_dompet',
+      where: whereClause,
+      whereArgs: args.isEmpty ? null : args,
+      orderBy: 'created_at DESC',
+    );
   }
 }

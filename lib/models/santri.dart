@@ -10,8 +10,16 @@ class Santri {
   final int tunggakan;
   final String catatanTunggakan;
   final String? fotoPath;
+  final String qrCode;
   final bool statusAktif;
   final DateTime createdAt;
+
+  static String generateQrCode(String id) {
+    final clean = id.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toUpperCase();
+    if (clean.isEmpty) return 'KS-SANTRI';
+    final suffix = clean.length > 12 ? clean.substring(0, 12) : clean;
+    return 'KS-$suffix';
+  }
 
   Santri({
     required this.id,
@@ -25,9 +33,13 @@ class Santri {
     this.tunggakan = 0,
     this.catatanTunggakan = '',
     this.fotoPath,
+    String? qrCode,
     this.statusAktif = true,
     DateTime? createdAt,
-  }) : createdAt = createdAt ?? DateTime.now();
+  })  : qrCode = (qrCode != null && qrCode.trim().isNotEmpty)
+            ? qrCode.trim()
+            : generateQrCode(id),
+        createdAt = createdAt ?? DateTime.now();
 
   /// Estimasi berapa hari sisa saldo dapat mencukupi
   /// Estimasi Hari = floor(saldoTotal / jatahHarian)
@@ -49,6 +61,7 @@ class Santri {
     int? tunggakan,
     String? catatanTunggakan,
     String? fotoPath,
+    String? qrCode,
     bool? statusAktif,
     DateTime? createdAt,
   }) {
@@ -64,6 +77,7 @@ class Santri {
       tunggakan: tunggakan ?? this.tunggakan,
       catatanTunggakan: catatanTunggakan ?? this.catatanTunggakan,
       fotoPath: fotoPath ?? this.fotoPath,
+      qrCode: qrCode ?? this.qrCode,
       statusAktif: statusAktif ?? this.statusAktif,
       createdAt: createdAt ?? this.createdAt,
     );
@@ -82,14 +96,16 @@ class Santri {
       'tunggakan': tunggakan,
       'catatan_tunggakan': catatanTunggakan,
       'foto_path': fotoPath,
+      'qr_code': qrCode,
       'status_aktif': statusAktif ? 1 : 0,
       'created_at': createdAt.toIso8601String(),
     };
   }
 
   factory Santri.fromMap(Map<String, dynamic> map) {
+    final id = map['id'] as String;
     return Santri(
-      id: map['id'] as String,
+      id: id,
       namaLengkap: map['nama_lengkap'] as String,
       namaPanggilan: map['nama_panggilan'] as String? ?? '',
       kamar: map['kamar'] as String,
@@ -100,6 +116,7 @@ class Santri {
       tunggakan: (map['tunggakan'] as num?)?.toInt() ?? 0,
       catatanTunggakan: map['catatan_tunggakan'] as String? ?? '',
       fotoPath: map['foto_path'] as String?,
+      qrCode: map['qr_code'] as String?,
       statusAktif: (map['status_aktif'] as int?) == 1,
       createdAt: map['created_at'] != null
           ? DateTime.tryParse(map['created_at'].toString()) ?? DateTime.now()

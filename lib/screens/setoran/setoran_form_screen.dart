@@ -22,6 +22,7 @@ class _SetoranFormScreenState extends State<SetoranFormScreen> {
   TipeSetoran _tipeSetoran = TipeSetoran.awalBulan;
   OpsiSetoranSusulan _opsiSusulan = OpsiSetoranSusulan.tambahJatahHarian;
   PerlakuanSisaSaldoLalu _perlakuanSisa = PerlakuanSisaSaldoLalu.gabungBulanBaru;
+  String _sumberDompet = 'TUNAI';
 
   final TextEditingController _nominalController = TextEditingController();
   final TextEditingController _durasiHariController = TextEditingController(text: '30');
@@ -47,14 +48,15 @@ class _SetoranFormScreenState extends State<SetoranFormScreen> {
     super.dispose();
   }
 
-  // Hitung otomatis jatah harian = Setoran / Durasi
+  // Hitung otomatis jatah harian dengan pembulatan ke bawah
   void _calculateAutoQuota() {
     final nominal = CurrencyFormatter.parse(_nominalController.text);
     final durasi = int.tryParse(_durasiHariController.text) ?? 30;
+    final kelipatan = Provider.of<KasSantriProvider>(context, listen: false).pengaturan.pembulatanJatah;
 
     if (nominal > 0 && durasi > 0) {
-      final jatah = (nominal / durasi).round();
-      _jatahHitungController.text = jatah.toString();
+      final jatah = CurrencyFormatter.hitungJatahHarianBulat(nominal, durasi, kelipatan: kelipatan);
+      _jatahHitungController.text = CurrencyFormatter.formatWithoutSymbol(jatah);
     }
   }
 
@@ -69,9 +71,15 @@ class _SetoranFormScreenState extends State<SetoranFormScreen> {
 
     final nominal = CurrencyFormatter.parse(_nominalController.text);
     final durasi = int.tryParse(_durasiHariController.text) ?? 30;
-    final jatah = int.tryParse(_jatahHitungController.text) ?? (nominal / durasi).round();
-
+    final parsedJatah = CurrencyFormatter.parse(_jatahHitungController.text);
     final provider = Provider.of<KasSantriProvider>(context, listen: false);
+    final jatah = parsedJatah > 0
+        ? parsedJatah
+        : CurrencyFormatter.hitungJatahHarianBulat(
+            nominal,
+            durasi,
+            kelipatan: provider.pengaturan.pembulatanJatah,
+          );
 
     await provider.catatSetoran(
       santriId: _selectedSantriId!,
@@ -83,6 +91,7 @@ class _SetoranFormScreenState extends State<SetoranFormScreen> {
       catatan: _catatanController.text.trim().isNotEmpty ? _catatanController.text.trim() : null,
       perlakuanSisa: _perlakuanSisa,
       opsiSusulan: _tipeSetoran == TipeSetoran.susulanTopup ? _opsiSusulan : null,
+      metodeBayar: _sumberDompet,
     );
 
     if (mounted) {
@@ -113,10 +122,11 @@ class _SetoranFormScreenState extends State<SetoranFormScreen> {
       appBar: AppBar(
         title: const Text('Catat Setoran Uang Masuk'),
       ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
+      body: SafeArea(
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
           children: [
             // Pilih Santri
             Card(
@@ -216,12 +226,31 @@ class _SetoranFormScreenState extends State<SetoranFormScreen> {
                       },
                     ),
 
+                    const SizedBox(height: 12),
+
+                    // Sumber Dompet Masuk
+                    DropdownButtonFormField<String>(
+                      value: _sumberDompet,
+                      decoration: const InputDecoration(
+                        labelText: 'Dompet Tujuan Masuk *',
+                        prefixIcon: Icon(Icons.account_balance_wallet_outlined),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'TUNAI', child: Text('💵 Kas Laci Tunai')),
+                        DropdownMenuItem(value: 'REKENING', child: Text('🏦 Rekening Bank (Transfer)')),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) setState(() => _sumberDompet = val);
+                      },
+                    ),
+
                     const SizedBox(height: 16),
 
                     // Input Nominal Setoran
                     TextFormField(
                       controller: _nominalController,
                       keyboardType: TextInputType.number,
+                      inputFormatters: [RibuanInputFormatter()],
                       decoration: const InputDecoration(
                         labelText: 'Nominal Setoran (Rp) *',
                         prefixIcon: Icon(Icons.attach_money),
@@ -263,14 +292,15 @@ class _SetoranFormScreenState extends State<SetoranFormScreen> {
                           child: TextFormField(
                             controller: _jatahHitungController,
                             keyboardType: TextInputType.number,
+                            inputFormatters: [RibuanInputFormatter()],
                             decoration: const InputDecoration(
                               labelText: 'Jatah / Hari *',
                               prefixText: 'Rp ',
-                              helperText: 'Otomatis = Setoran / Durasi',
+                              helperText: 'Otomatis pembulatan bawah',
                             ),
                             validator: (v) {
-                              final j = int.tryParse(v ?? '');
-                              if (j == null || j <= 0) return 'Jatah tidak valid';
+                              final j = CurrencyFormatter.parse(v ?? '');
+                              if (j <= 0) return 'Jatah tidak valid';
                               return null;
                             },
                           ),
@@ -391,6 +421,7 @@ class _SetoranFormScreenState extends State<SetoranFormScreen> {
             const SizedBox(height: 40),
           ],
         ),
+      ),
       ),
     );
   }

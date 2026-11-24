@@ -28,6 +28,12 @@ dependencies:
 
   # Hardware & Security
   local_auth: ^2.2.0
+  flutter_secure_storage: ^9.2.2
+
+  # Cloud Backup (Google Drive PRO)
+  google_sign_in: ^6.2.1
+  googleapis: ^13.2.0
+  http: ^1.2.2
 
   # Sharing, Files & Export
   share_plus: ^9.0.0
@@ -35,6 +41,15 @@ dependencies:
   file_picker: ^8.0.5
   pdf: ^3.10.8
   printing: ^5.13.1
+  excel: ^4.0.6
+  screenshot: ^3.0.0
+
+  # QR Code Scanner & Generator
+  mobile_scanner: ^6.0.2
+  qr_flutter: ^4.1.0
+
+  # Monetization / Google Play Billing (RevenueCat)
+  purchases_flutter: ^8.4.0
 
 dev_dependencies:
   flutter_test:
@@ -45,5 +60,5 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - logo.png
+    - logo.jpg
 

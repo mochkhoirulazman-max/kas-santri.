@@ -1,9 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../models/santri.dart';
 import '../models/santri_status.dart';
-import '../providers/kas_santri_provider.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/time_category_helper.dart';
 import '../utils/app_feedback.dart';
@@ -153,7 +150,7 @@ class SantriCard extends StatelessWidget {
     final santri = status.santri;
     final initials = _getInitials(santri.namaLengkap);
     final sisaJatah = status.sisaJatahHariIni;
-    final pct = (status.progressRatio * 100).clamp(0, 100).toInt();
+    final remainingRatio = status.remainingRatio;
     final badge = status.badgeStatus;
     final txList = status.transaksiHariIni;
 
@@ -287,27 +284,6 @@ class SantriCard extends StatelessWidget {
                     ),
                     child: const Text('⚡ Ambil', style: TextStyle(fontSize: 11)),
                   ),
-                  const SizedBox(width: 6),
-                  InkWell(
-                    onTap: () {
-                      AppFeedback.tap();
-                      _confirmDelete(context, santri);
-                    },
-                    borderRadius: BorderRadius.circular(10),
-                    child: Container(
-                      padding: const EdgeInsets.all(7),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF4C0519).withOpacity(0.6),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0xFFFB7185).withOpacity(0.5)),
-                      ),
-                      child: const Icon(
-                        Icons.delete_outline_rounded,
-                        size: 16,
-                        color: Color(0xFFFDA4AF),
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -337,66 +313,72 @@ class SantriCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // 1. Baris Atas: Avatar, Kamar & Status Badge + Quick Edit
+                // 1. Baris Atas: Avatar, Kamar & Status Badge + Ikon Pensil Edit (rapi di dalam padding)
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        InkWell(
-                          onTap: () {
-                            AppFeedback.tap();
-                            QuickEditSantriBottomSheet.show(context, santri);
-                          },
-                          borderRadius: BorderRadius.circular(12),
-                          child: Container(
-                            width: 32,
-                            height: 32,
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0x55FFFFFF), Color(0x15FFFFFF)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
+                    Expanded(
+                      child: Row(
+                        children: [
+                          InkWell(
+                            onTap: () {
+                              AppFeedback.tap();
+                              QuickEditSantriBottomSheet.show(context, santri);
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              width: 30,
+                              height: 30,
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Color(0x55FFFFFF), Color(0x15FFFFFF)],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                border: Border.all(color: Colors.white.withOpacity(0.3)),
+                                borderRadius: BorderRadius.circular(11),
                               ),
-                              border: Border.all(color: Colors.white.withOpacity(0.3)),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(11),
-                              child: santri.fotoPath != null && File(santri.fotoPath!).existsSync()
-                                  ? Image.file(File(santri.fotoPath!), fit: BoxFit.cover)
-                                  : Center(
-                                      child: Text(
-                                        initials,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w900,
-                                          fontSize: 11,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: santri.fotoPath != null && File(santri.fotoPath!).existsSync()
+                                    ? Image.file(File(santri.fotoPath!), fit: BoxFit.cover)
+                                    : Center(
+                                        child: Text(
+                                          initials,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w900,
+                                            fontSize: 10.5,
+                                          ),
                                         ),
                                       ),
-                                    ),
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 5),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.4),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.white12),
-                          ),
-                          child: Text(
-                            santri.kamar,
-                            style: const TextStyle(
-                              color: Color(0xFFE2E8F0),
-                              fontSize: 8,
-                              fontWeight: FontWeight.w700,
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.4),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: Colors.white12),
+                              ),
+                              child: Text(
+                                santri.kamar,
+                                style: const TextStyle(
+                                  color: Color(0xFFE2E8F0),
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 4),
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -409,37 +391,16 @@ class SantriCard extends StatelessWidget {
                           },
                           borderRadius: BorderRadius.circular(8),
                           child: Container(
-                            padding: const EdgeInsets.all(3),
+                            padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
                               color: Colors.black45,
-                              borderRadius: BorderRadius.circular(6),
+                              borderRadius: BorderRadius.circular(7),
                               border: Border.all(color: Colors.white24),
                             ),
                             child: const Icon(
                               Icons.edit_outlined,
                               size: 11,
                               color: Color(0xFF7DD3FC),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        InkWell(
-                          onTap: () {
-                            AppFeedback.tap();
-                            _confirmDelete(context, santri);
-                          },
-                          borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            padding: const EdgeInsets.all(3),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF4C0519).withOpacity(0.65),
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: const Color(0xFFFB7185).withOpacity(0.5)),
-                            ),
-                            child: const Icon(
-                              Icons.delete_outline_rounded,
-                              size: 11,
-                              color: Color(0xFFFDA4AF),
                             ),
                           ),
                         ),
@@ -521,7 +482,7 @@ class SantriCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: TweenAnimationBuilder<double>(
-                          tween: Tween<double>(begin: 0, end: (pct / 100).clamp(0.0, 1.0)),
+                          tween: Tween<double>(begin: remainingRatio, end: remainingRatio),
                           duration: const Duration(milliseconds: 500),
                           curve: Curves.easeOutCubic,
                           builder: (context, val, _) {
@@ -753,73 +714,6 @@ class SantriCard extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  void _confirmDelete(BuildContext context, Santri santri) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF0F172A),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(22),
-          side: const BorderSide(color: Color(0xFFF43F5E), width: 1.2),
-        ),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: const Color(0xFF4C0519),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Text('🗑️', style: TextStyle(fontSize: 18)),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'Hapus ${santri.namaLengkap}?',
-                style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w900),
-              ),
-            ),
-          ],
-        ),
-        content: Text(
-          'Apakah Anda yakin ingin menghapus santri ${santri.namaLengkap} (${santri.kamar}) dari daftar? Seluruh data saldo, tunggakan, dan riwayat mutasi akan dihapus permanen.',
-          style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              AppFeedback.tap();
-              Navigator.pop(ctx);
-            },
-            child: const Text('Batal', style: TextStyle(color: Colors.white60)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE11D48),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            onPressed: () async {
-              Navigator.pop(ctx);
-              AppFeedback.tap();
-              final provider = Provider.of<KasSantriProvider>(context, listen: false);
-              await provider.deleteSantri(santri.id);
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Santri ${santri.namaLengkap} berhasil dihapus dari daftar.'),
-                    backgroundColor: const Color(0xFFE11D48),
-                  ),
-                );
-              }
-            },
-            child: const Text('Ya, Hapus Santri', style: TextStyle(fontWeight: FontWeight.bold)),
-          ),
-        ],
       ),
     );
   }

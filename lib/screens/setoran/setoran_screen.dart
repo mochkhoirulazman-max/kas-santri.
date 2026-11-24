@@ -18,7 +18,9 @@ class SetoranScreen extends StatefulWidget {
 class _SetoranScreenState extends State<SetoranScreen> {
   String? _selectedSantriId;
   TipeSetoran _tipeSetoran = TipeSetoran.awalBulan;
-  final TextEditingController _nominalController = TextEditingController(text: '300000');
+  bool _potongTunggakan = true;
+  String _sumberDompet = 'TUNAI'; // 'TUNAI' atau 'REKENING'
+  final TextEditingController _nominalController = TextEditingController(text: '300.000');
   final TextEditingController _durasiController = TextEditingController(text: '30');
   final TextEditingController _catatanController = TextEditingController();
 
@@ -30,22 +32,30 @@ class _SetoranScreenState extends State<SetoranScreen> {
     super.dispose();
   }
 
-  int get _nominal => int.tryParse(_nominalController.text.trim()) ?? 0;
+  int get _nominal => CurrencyFormatter.parse(_nominalController.text);
   int get _durasi => int.tryParse(_durasiController.text.trim()) ?? 30;
 
-  int _hitungJatahPresisi(Santri? santri) {
-    if (_durasi <= 0) return 0;
+  int _nominalBersih(Santri? santri) {
     int net = _nominal;
-    if (santri != null && santri.tunggakan > 0) {
+    if (_potongTunggakan && santri != null && santri.tunggakan > 0) {
       net = (_nominal - santri.tunggakan).clamp(0, double.infinity).toInt();
     }
-    return (net / _durasi).round();
+    return net;
+  }
+
+  int _hitungJatahPresisi(Santri? santri, {int kelipatan = 500}) {
+    if (_durasi <= 0) return 0;
+    return CurrencyFormatter.hitungJatahHarianBulat(
+      _nominalBersih(santri),
+      _durasi,
+      kelipatan: kelipatan,
+    );
   }
 
   void _setQuick(int nominal, int durasi) {
     AppFeedback.tap();
     setState(() {
-      _nominalController.text = nominal.toString();
+      _nominalController.text = CurrencyFormatter.formatWithoutSymbol(nominal);
       _durasiController.text = durasi.toString();
     });
   }
@@ -80,10 +90,15 @@ class _SetoranScreenState extends State<SetoranScreen> {
       santriId: targetId,
       nominalSetoran: _nominal,
       durasiHari: _durasi,
-      jatahHarianHitung: _hitungJatahPresisi(santri),
+      jatahHarianHitung: _hitungJatahPresisi(
+        santri,
+        kelipatan: provider.pengaturan.pembulatanJatah,
+      ),
       tipeSetoran: _tipeSetoran,
       tanggalSetor: DateTime.now(),
       catatan: catatan,
+      potongTunggakan: _potongTunggakan,
+      metodeBayar: _sumberDompet,
     );
 
     AppFeedback.success();
@@ -107,57 +122,69 @@ class _SetoranScreenState extends State<SetoranScreen> {
       _selectedSantriId = santriList.first.id;
     }
     final selectedSantri = santriList.where((s) => s.id == _selectedSantriId).firstOrNull;
+    final kelipatan = provider.pengaturan.pembulatanJatah;
+    final netMasuk = _nominalBersih(selectedSantri);
+    final jatahBulat = _hitungJatahPresisi(selectedSantri, kelipatan: kelipatan);
+    final selisihPembulatan = CurrencyFormatter.hitungSelisihPembulatan(netMasuk, _durasi, jatahBulat);
+    final bottomSafe = MediaQuery.of(context).padding.bottom;
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 44, 16, 115),
-      children: [
-        // Glass Card Container
-        Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: const Color(0xFF0F172A).withOpacity(0.85),
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: Colors.white12),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        'PEMASUKAN KAS',
-                        style: TextStyle(color: Color(0xFF34D399), fontSize: 9.5, fontWeight: FontWeight.w900, letterSpacing: 1.2),
+    return SafeArea(
+      bottom: false,
+      child: ListView(
+        padding: EdgeInsets.fromLTRB(16, 12, 16, 120 + bottomSafe),
+        children: [
+          // Glass Card Container
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F172A).withOpacity(0.85),
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: Colors.white12),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header (bebas overflow kanan atas)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            'PEMASUKAN KAS',
+                            style: TextStyle(color: Color(0xFF34D399), fontSize: 9.5, fontWeight: FontWeight.w900, letterSpacing: 1.2),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Setoran Bulanan & Top-Up',
+                            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Otomatis membagi nominal setoran menjadi kuota jatah harian.',
+                            style: TextStyle(color: Colors.white54, fontSize: 10.5),
+                          ),
+                        ],
                       ),
-                      SizedBox(height: 2),
-                      Text(
-                        'Setoran Bulanan & Top-Up',
-                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        'Otomatis membagi nominal setoran menjadi kuota jatah harian.',
-                        style: TextStyle(color: Colors.white54, fontSize: 10.5),
-                      ),
-                    ],
-                  ),
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF10B981).withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFF10B981).withOpacity(0.3)),
                     ),
-                    alignment: Alignment.center,
-                    child: const Text('📥', style: TextStyle(fontSize: 18)),
-                  ),
-                ],
-              ),
+                    const SizedBox(width: 10),
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFF10B981).withOpacity(0.3)),
+                      ),
+                      alignment: Alignment.center,
+                      child: const Text('📥', style: TextStyle(fontSize: 18)),
+                    ),
+                  ],
+                ),
 
               const SizedBox(height: 16),
 
@@ -197,22 +224,57 @@ class _SetoranScreenState extends State<SetoranScreen> {
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: const Color(0xFFFB7185).withOpacity(0.5)),
                   ),
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('🚨', style: TextStyle(fontSize: 18)),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Santri Memiliki Tunggakan: ${CurrencyFormatter.format(selectedSantri.tunggakan)}',
-                              style: const TextStyle(color: Color(0xFFFECDD3), fontSize: 11, fontWeight: FontWeight.w800),
+                      Row(
+                        children: [
+                          const Text('🚨', style: TextStyle(fontSize: 18)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Tunggakan Aktif: ${CurrencyFormatter.format(selectedSantri.tunggakan)}',
+                                  style: const TextStyle(color: Color(0xFFFECDD3), fontSize: 11.5, fontWeight: FontWeight.w800),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  _potongTunggakan
+                                      ? 'Tunggakan dipotong dari setoran ini. Sisa bersih masuk saldo: ${CurrencyFormatter.format(netMasuk)}.'
+                                      : 'Setoran masuk utuh ke saldo (${CurrencyFormatter.format(_nominal)}), tunggakan tidak dipotong.',
+                                  style: const TextStyle(color: Color(0xFFFDA4AF), fontSize: 9.5, height: 1.35),
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'Setoran ${_tipeSetoran == TipeSetoran.awalBulan ? 'Awal Bulan' : 'Susulan'} ini otomatis memotong dan melunasi tunggakan terlebih dahulu. Sisa bersih masuk saldo jatah: ${CurrencyFormatter.format(_nominal > selectedSantri.tunggakan ? _nominal - selectedSantri.tunggakan : 0)}.',
-                              style: const TextStyle(color: Color(0xFFFDA4AF), fontSize: 9.5),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.black26,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.white10),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Expanded(
+                              child: Text(
+                                'Potong tunggakan dari setoran ini',
+                                style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                            Switch(
+                              value: _potongTunggakan,
+                              activeColor: const Color(0xFF34D399),
+                              onChanged: (val) {
+                                AppFeedback.tap();
+                                setState(() => _potongTunggakan = val);
+                              },
                             ),
                           ],
                         ),
@@ -289,6 +351,19 @@ class _SetoranScreenState extends State<SetoranScreen> {
 
               const SizedBox(height: 14),
 
+              // Sumber Dompet Masuk: Tunai vs Rekening
+              const Text('DOMPET TUJUAN MASUK', style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  _buildDompetChip('💵 Kas Laci Tunai', 'TUNAI', const Color(0xFF34D399)),
+                  const SizedBox(width: 8),
+                  _buildDompetChip('🏦 Rekening Bank', 'REKENING', const Color(0xFF38BDF8)),
+                ],
+              ),
+
+              const SizedBox(height: 14),
+
               // Nominal Setoran (Rp) & Durasi (Hr)
               Row(
                 children: [
@@ -302,8 +377,9 @@ class _SetoranScreenState extends State<SetoranScreen> {
                         TextField(
                           controller: _nominalController,
                           keyboardType: TextInputType.number,
+                          inputFormatters: [RibuanInputFormatter()],
                           style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w900, fontFamily: 'monospace'),
-                          decoration: const InputDecoration(isDense: true),
+                          decoration: const InputDecoration(prefixText: 'Rp ', isDense: true),
                           onChanged: (_) => setState(() {}),
                         ),
                       ],
@@ -359,25 +435,35 @@ class _SetoranScreenState extends State<SetoranScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'HASIL HITUNG JATAH HARIAN',
-                          style: TextStyle(color: Color(0xFF34D399), fontSize: 9.5, fontWeight: FontWeight.w900, letterSpacing: 0.6),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          '${CurrencyFormatter.format(_hitungJatahPresisi(selectedSantri))} / hari',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                            fontFamily: 'monospace',
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'HASIL HITUNG JATAH HARIAN',
+                            style: TextStyle(color: Color(0xFF34D399), fontSize: 9.5, fontWeight: FontWeight.w900, letterSpacing: 0.6),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 3),
+                          Text(
+                            '${CurrencyFormatter.format(jatahBulat)} / hari',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                              fontFamily: 'monospace',
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            selisihPembulatan > 0
+                                ? 'Pembulatan ke bawah kelipatan ${CurrencyFormatter.format(kelipatan)} • Sisa ${CurrencyFormatter.format(selisihPembulatan)} tetap utuh di saldo'
+                                : 'Dibulatkan kelipatan ${CurrencyFormatter.format(kelipatan)} agar praktis saat penarikan',
+                            style: const TextStyle(color: Colors.white60, fontSize: 9.5, height: 1.3),
+                          ),
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     const Text('🧮', style: TextStyle(fontSize: 26)),
                   ],
                 ),
@@ -430,6 +516,37 @@ class _SetoranScreenState extends State<SetoranScreen> {
           ),
         ),
       ],
+    ),
+    );
+  }
+
+  Widget _buildDompetChip(String label, String value, Color accent) {
+    final isSelected = _sumberDompet == value;
+    return Expanded(
+      child: InkWell(
+        onTap: () {
+          AppFeedback.tap();
+          setState(() => _sumberDompet = value);
+        },
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? accent.withOpacity(0.18) : const Color(0xFF070B14),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: isSelected ? accent : Colors.white12),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? accent : Colors.white60,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+      ),
     );
   }
 

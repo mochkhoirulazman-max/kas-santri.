@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../providers/kas_santri_provider.dart';
 import '../../services/auth_service.dart';
-import '../../database/database_helper.dart';
+import '../../utils/app_feedback.dart';
 
 class PinSettingsScreen extends StatefulWidget {
   const PinSettingsScreen({Key? key}) : super(key: key);
@@ -24,11 +26,13 @@ class _PinSettingsScreenState extends State<PinSettingsScreen> {
   }
 
   Future<void> _checkExisting() async {
-    final settings = await DatabaseHelper.instance.getPengaturan();
-    setState(() {
-      _hasExistingPin = settings.pinKeamanan != null && settings.pinKeamanan!.isNotEmpty;
-      _isLoading = false;
-    });
+    final hasPin = await AuthService.instance.hasPin();
+    if (mounted) {
+      setState(() {
+        _hasExistingPin = hasPin;
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -40,9 +44,11 @@ class _PinSettingsScreenState extends State<PinSettingsScreen> {
   }
 
   Future<void> _savePin() async {
+    AppFeedback.tap();
     if (_hasExistingPin) {
-      final oldValid = await AuthService.instance.verifyPin(_oldPinController.text);
+      final oldValid = await AuthService.instance.verifyPin(_oldPinController.text.trim());
       if (!oldValid) {
+        AppFeedback.alert();
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('PIN lama salah!'), backgroundColor: Colors.red),
@@ -54,27 +60,37 @@ class _PinSettingsScreenState extends State<PinSettingsScreen> {
     final newPin = _newPinController.text.trim();
     final confirm = _confirmPinController.text.trim();
 
-    if (newPin.length < 4 || newPin.length > 6) {
+    if (!AuthService.isValidPinFormat(newPin)) {
+      AppFeedback.alert();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('PIN harus terdiri dari 4 sampai 6 digit angka')),
+        const SnackBar(
+          content: Text('PIN harus terdiri dari 4 sampai 6 digit angka (0–9)'),
+          backgroundColor: Color(0xFFF59E0B),
+        ),
       );
       return;
     }
 
     if (newPin != confirm) {
+      AppFeedback.alert();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Konfirmasi PIN tidak cocok!')),
+        const SnackBar(
+          content: Text('Konfirmasi PIN tidak cocok!'),
+          backgroundColor: Color(0xFFE11D48),
+        ),
       );
       return;
     }
 
     await AuthService.instance.setPin(newPin);
-
+    await AuthService.instance.updateLastActive();
     if (mounted) {
+      await Provider.of<KasSantriProvider>(context, listen: false).loadAllData();
+      AppFeedback.success();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Kunci PIN berhasil diperbarui!'),
-          backgroundColor: Color(0xFF00796B),
+          content: Text('Kunci PIN aman berhasil diperbarui!'),
+          backgroundColor: Color(0xFF10B981),
         ),
       );
       Navigator.pop(context);
@@ -101,6 +117,7 @@ class _PinSettingsScreenState extends State<PinSettingsScreen> {
     if (confirm == true) {
       await AuthService.instance.setPin(null);
       if (mounted) {
+        await Provider.of<KasSantriProvider>(context, listen: false).loadAllData();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Kunci PIN berhasil dinonaktifkan')),
         );
@@ -116,35 +133,40 @@ class _PinSettingsScreenState extends State<PinSettingsScreen> {
     }
 
     return Scaffold(
+      backgroundColor: const Color(0xFF060A12),
       appBar: AppBar(
         title: Text(_hasExistingPin ? 'Ganti PIN Pengurus' : 'Pasang Kunci PIN'),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Card(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F172A).withOpacity(0.9),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: Colors.white12),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: const [
-                      Icon(Icons.security, color: Color(0xFF00796B)),
+                  const Row(
+                    children: [
+                      Icon(Icons.security, color: Color(0xFF34D399)),
                       SizedBox(width: 8),
                       Text(
-                        'Keamanan Aplikasi',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF004D40)),
+                        'Keamanan Aplikasi (PIN 4–6 Digit)',
+                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Colors.white),
                       ),
                     ],
                   ),
                   const SizedBox(height: 6),
                   const Text(
                     'Kunci PIN menjaga agar santri tidak dapat mengubah saldo ketika HP pengurus tergeletak.',
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                    style: TextStyle(fontSize: 12, color: Colors.white60),
                   ),
-                  const Divider(height: 24),
+                  const Divider(height: 24, color: Colors.white12),
 
                   if (_hasExistingPin) ...[
                     TextField(
@@ -187,11 +209,12 @@ class _PinSettingsScreenState extends State<PinSettingsScreen> {
                   ElevatedButton(
                     onPressed: _savePin,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF00796B),
+                      backgroundColor: const Color(0xFF10B981),
+                      foregroundColor: const Color(0xFF030712),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       minimumSize: const Size.fromHeight(48),
                     ),
-                    child: const Text('Simpan Kunci PIN', style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: const Text('Simpan Kunci PIN', style: TextStyle(fontWeight: FontWeight.w900)),
                   ),
 
                   if (_hasExistingPin) ...[
@@ -199,18 +222,18 @@ class _PinSettingsScreenState extends State<PinSettingsScreen> {
                     OutlinedButton(
                       onPressed: _removePin,
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.red,
-                        side: const BorderSide(color: Colors.red),
+                        foregroundColor: const Color(0xFFFB7185),
+                        side: const BorderSide(color: Color(0xFFF43F5E)),
                         minimumSize: const Size.fromHeight(48),
                       ),
-                      child: const Text('Nonaktifkan Kunci PIN'),
+                      child: const Text('Nonaktifkan Kunci PIN', style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

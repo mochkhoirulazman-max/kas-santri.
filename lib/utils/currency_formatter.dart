@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 class CurrencyFormatter {
@@ -34,5 +35,42 @@ class CurrencyFormatter {
     final cleanText = text.replaceAll(RegExp(r'[^0-9]'), '');
     if (cleanText.isEmpty) return 0;
     return int.tryParse(cleanText) ?? 0;
+  }
+
+  /// Hitung jatah harian dengan pembulatan otomatis ke bawah (kelipatan Rp 500 atau Rp 1.000)
+  /// agar tidak muncul pecahan ganjil seperti Rp 8.333/hari. Selisih pembulatan tetap utuh di saldo santri.
+  static int hitungJatahHarianBulat(int nominalBersih, int durasiHari, {int kelipatan = 500}) {
+    if (nominalBersih <= 0 || durasiHari <= 0) return 0;
+    final step = kelipatan <= 0 ? 500 : kelipatan;
+    final raw = nominalBersih ~/ durasiHari;
+    final rounded = (raw ~/ step) * step;
+    return rounded > 0 ? rounded : raw;
+  }
+
+  /// Hitung selisih pembulatan yang tetap tersimpan utuh di saldo santri
+  static int hitungSelisihPembulatan(int nominalBersih, int durasiHari, int jatahBulat) {
+    if (nominalBersih <= 0 || durasiHari <= 0) return 0;
+    return (nominalBersih - (jatahBulat * durasiHari)).clamp(0, nominalBersih);
+  }
+}
+
+/// TextInputFormatter untuk memformat pemisah ribuan titik otomatis saat mengetik (misal: 10.000)
+class RibuanInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    final digitsOnly = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digitsOnly.isEmpty) {
+      return const TextEditingValue(
+        text: '',
+        selection: TextSelection.collapsed(offset: 0),
+      );
+    }
+
+    final number = int.tryParse(digitsOnly) ?? 0;
+    final formatted = CurrencyFormatter.formatWithoutSymbol(number);
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
   }
 }

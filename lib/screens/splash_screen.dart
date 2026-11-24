@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/kas_santri_provider.dart';
 import '../services/auth_service.dart';
+import 'onboarding_screen.dart';
 import 'pin_lock_screen.dart';
 import 'main_navigation_screen.dart';
 
@@ -28,6 +29,14 @@ class _SplashScreenState extends State<SplashScreen> {
     final shouldLock = await AuthService.instance.shouldLockApp();
 
     if (!mounted) return;
+
+    if (!provider.pengaturan.onboardingDone) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+      );
+      return;
+    }
 
     if (shouldLock) {
       Navigator.pushReplacement(
@@ -101,7 +110,7 @@ class _SplashScreenState extends State<SplashScreen> {
                       color: const Color(0xFF0A1120),
                       padding: const EdgeInsets.all(6),
                       child: Image.asset(
-                        'logo.png',
+                        'logo.jpg',
                         fit: BoxFit.contain,
                         errorBuilder: (ctx, err, stack) => const Icon(
                           Icons.account_balance_wallet_rounded,
