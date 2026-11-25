@@ -514,9 +514,13 @@ void main() {
       final h1 = AuthService.instance.hashPin('246810');
       final h2 = AuthService.instance.hashPin('246810');
       final legacy = AuthService.instance.hashLegacyPin('246810');
-      expect(h1, h2);
+      expect(h1, startsWith('v33:'));
+      expect(h1, isNot(equals(h2)));
       expect(h1, isNot(equals('246810')));
       expect(h1, isNot(equals(legacy)));
+      expect(AuthService.instance.verifyPinAgainstStored('246810', h1), true);
+      expect(AuthService.instance.verifyPinAgainstStored('246810', h2), true);
+      expect(AuthService.instance.verifyPinAgainstStored('246810', legacy), true);
     });
 
     test('R. Kuota 15 Santri Gratis & Konfigurasi RevenueCat Product ID', () {
@@ -909,7 +913,7 @@ void main() {
         'nama_pengurus': 'Pengurus Lama',
       });
 
-      await DatabaseHelper.instance.upgradeSchemaForTesting(db, 2, 3);
+      await DatabaseHelper.instance.upgradeSchemaForTesting(db, 2, 4);
       DatabaseHelper.instance.setDatabaseForTesting(db);
       addTearDown(() async {
         DatabaseHelper.instance.setDatabaseForTesting(null);
@@ -932,9 +936,10 @@ void main() {
       await db.insert('serah_terima_infak', serah.toMap());
 
       final dump = await DatabaseHelper.instance.dumpBackupJson();
-      expect(dump['version'], 30);
+      expect(dump['version'], 33);
       expect((dump['infak_santri'] as List).length, 1);
       expect((dump['serah_terima_infak'] as List).length, 1);
+      expect(dump['audit_log'], isA<List>());
 
       final val = BackupService.validateBackupMap(dump);
       expect(val.isValid, true);

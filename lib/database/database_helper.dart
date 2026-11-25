@@ -1382,7 +1382,10 @@ class DatabaseHelper {
     final cashOpnameList = await db.query('cash_opname_logs');
     final infakSantriList = await db.query('infak_santri');
     final serahTerimaInfakList = await db.query('serah_terima_infak');
-    final auditLogList = await db.query('audit_log', orderBy: 'created_at ASC, rowid ASC');
+    List<Map<String, Object?>> auditLogList = const [];
+    try {
+      auditLogList = await db.query('audit_log', orderBy: 'created_at ASC, rowid ASC');
+    } catch (_) {}
     final pengaturanList = await db.query('pengaturan_aplikasi');
 
     return {
