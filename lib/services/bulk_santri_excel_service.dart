@@ -135,11 +135,22 @@ class BulkSantriExcelService {
     return Uint8List.fromList(encoded);
   }
 
+  static String _extractExcelSpanText(TextSpan span) {
+    final buf = StringBuffer(span.text ?? '');
+    final kids = span.children;
+    if (kids != null) {
+      for (final child in kids) {
+        buf.write(_extractExcelSpanText(child));
+      }
+    }
+    return buf.toString();
+  }
+
   static String _cellToString(Data? cell) {
     final val = cell?.value;
     if (val == null) return '';
     return switch (val) {
-      TextCellValue() => val.value.toPlainText().trim(),
+      TextCellValue() => _extractExcelSpanText(val.value).trim(),
       IntCellValue() => val.value.toString(),
       DoubleCellValue() => val.value.toString(),
       BoolCellValue() => val.value ? 'true' : 'false',

@@ -12,7 +12,6 @@ import 'package:kas_santri/models/bendahara_account.dart';
 import 'package:kas_santri/models/cash_opname_log.dart';
 import 'package:kas_santri/models/infak_santri.dart';
 import 'package:kas_santri/models/pengaturan.dart';
-import 'package:kas_santri/models/santri.dart';
 import 'package:kas_santri/models/santri_status.dart';
 import 'package:kas_santri/models/serah_terima_infak.dart';
 import 'package:kas_santri/models/transaksi.dart';
@@ -37,6 +36,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   setUpAll(() async {
     await initializeDateFormatting('id_ID');
   });

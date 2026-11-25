@@ -680,7 +680,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   value: settings.isTwoColGrid,
                   onChanged: (_) {
                     AppFeedback.tap();
-                    provider.toggleGridMode();
+                    provider.toggleGridLayout();
                   },
                 ),
                 const SizedBox(height: 8),

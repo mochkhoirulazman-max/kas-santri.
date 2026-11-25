@@ -296,7 +296,7 @@ class KasSantriProvider extends ChangeNotifier {
         deviceId: _deviceId,
         namaPondok: _pengaturan.namaPondok,
         namaBendahara: activeOperatorName,
-        noWaPengurus: _pengaturan.kontakPengurus ?? '',
+        noWaPengurus: _pengaturan.kontakPengurus,
         tier: tier,
         expiryDate: expiry,
         appVersion: AppConfig.appVersion,
@@ -598,6 +598,8 @@ class KasSantriProvider extends ChangeNotifier {
     await _db.updatePengaturan(updated);
     notifyListeners();
   }
+
+  Future<void> toggleGridMode() => toggleGridLayout();
 
   Future<void> toggleHideBalance() async {
     final updated = _pengaturan.copyWith(hideBalance: !_pengaturan.hideBalance);

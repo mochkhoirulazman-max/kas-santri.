@@ -228,7 +228,7 @@ class ExecutiveAnalyticsService {
       var belum = 0;
       for (final s in members) {
         final inf = infakBySantriId[s.id];
-        if (inf == null || inf.statusLunas == InfakSantriModel.statusBelum) {
+        if (inf == null || inf.statusLunas == InfakSantriModel.statusBelumVal) {
           belum++;
         } else if (inf.statusLunas == InfakSantriModel.statusLunasVal) {
           lunas++;

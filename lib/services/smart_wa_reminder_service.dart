@@ -71,7 +71,7 @@ class SmartWaReminderService {
       if (inf == null || inf.statusLunas != InfakSantriModel.statusLunasVal) {
         final badge = inf == null
             ? 'Belum Bayar'
-            : (inf.statusLunas == InfakSantriModel.statusCicil
+            : (inf.statusLunas == InfakSantriModel.statusCicilVal
                 ? 'Masih Cicil'
                 : 'Belum Lunas');
         infakTempo.add(
@@ -141,7 +141,7 @@ class SmartWaReminderService {
         '\n\nApabila hendak mengirimkan titipan atau konfirmasi, silakan membalas pesan ini. '
         'Jazakumullah khairan katsiran.\n'
         '*Wassalamu’alaikum Warahmatullahi Wabarakatuh* 🙏\n'
-        '_Pengurus Kas & Keuangan $namaPondok_';
+        '_Pengurus Kas & Keuangan ${namaPondok}_';
 
     switch (item.category) {
       case ReminderCategory.saldoKritis:
