@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import '../models/santri.dart';
 import '../providers/kas_santri_provider.dart';
 import '../screens/paywall_screen.dart';
+import '../screens/santri/import_santri_excel_screen.dart';
 import '../utils/app_feedback.dart';
 import '../utils/currency_formatter.dart';
 
@@ -145,13 +146,36 @@ class _TambahSantriBottomSheetState extends State<TambahSantriBottomSheet> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  '👦 TAMBAH SANTRI BARU',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.5,
+                const Expanded(
+                  child: Text(
+                    '👦 TAMBAH SANTRI BARU',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: () {
+                    AppFeedback.tap();
+                    final nav = Navigator.of(context);
+                    nav.pop();
+                    nav.push(
+                      MaterialPageRoute(
+                        builder: (_) => const ImportSantriExcelScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.upload_file_rounded, size: 15, color: Color(0xFF34D399)),
+                  label: const Text(
+                    'Import Excel',
+                    style: TextStyle(
+                      color: Color(0xFF6EE7B7),
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
                 IconButton(

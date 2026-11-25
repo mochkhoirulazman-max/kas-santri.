@@ -14,6 +14,8 @@ import '../../widgets/searchable_santri_picker.dart';
 import '../../widgets/struk_gambar_dialog.dart';
 import '../paywall_screen.dart';
 import 'cash_opname_screen.dart';
+import 'executive_dashboard_screen.dart';
+import 'smart_wa_reminder_screen.dart';
 
 class RekapLaporanScreen extends StatefulWidget {
   const RekapLaporanScreen({Key? key}) : super(key: key);
@@ -276,6 +278,106 @@ Salam hormat & ta'dzim,
       child: ListView(
         padding: EdgeInsets.fromLTRB(16, 12, 16, 115 + bottomSafe),
         children: [
+          // 0. Pintasan Eksekutif & Pengingat WA Cerdas v4.0 (PRO)
+          Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  onTap: () {
+                    AppFeedback.tap();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ExecutiveDashboardScreen(),
+                      ),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    padding: const EdgeInsets.all(13),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xCC064E3B), Color(0xCC0F172A)],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: const Color(0xFF34D399).withOpacity(0.45),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          provider.isProUser
+                              ? '📊 Eksekutif Yayasan'
+                              : '📊 Eksekutif 👑',
+                          style: const TextStyle(
+                            color: Color(0xFF6EE7B7),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        const Text(
+                          'Tren kas & PDF 1 halaman',
+                          style: TextStyle(color: Colors.white70, fontSize: 10),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: InkWell(
+                  onTap: () {
+                    AppFeedback.tap();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const SmartWaReminderScreen(),
+                      ),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    padding: const EdgeInsets.all(13),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xCC1E170A), Color(0xCC0F172A)],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: const Color(0xFFFBBF24).withOpacity(0.45),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          provider.isProUser
+                              ? '📲 Antrean WA Cerdas'
+                              : '📲 Pengingat WA 👑',
+                          style: const TextStyle(
+                            color: Color(0xFFFDE68A),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        const Text(
+                          'Kritis, Infak & Tunggakan',
+                          style: TextStyle(color: Colors.white70, fontSize: 10),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
           // 1. Audit Kas Harian Card
           Container(
             padding: const EdgeInsets.all(18),

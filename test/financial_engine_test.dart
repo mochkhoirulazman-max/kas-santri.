@@ -1,12 +1,18 @@
+import 'dart:convert';
+import 'package:cryptography/cryptography.dart';
 import 'package:excel/excel.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:kas_santri/config/app_config.dart';
 import 'package:kas_santri/database/database_helper.dart';
+import 'package:kas_santri/models/audit_log.dart';
 import 'package:kas_santri/models/bendahara_account.dart';
 import 'package:kas_santri/models/cash_opname_log.dart';
 import 'package:kas_santri/models/infak_santri.dart';
 import 'package:kas_santri/models/pengaturan.dart';
+import 'package:kas_santri/models/santri.dart';
 import 'package:kas_santri/models/santri_status.dart';
 import 'package:kas_santri/models/serah_terima_infak.dart';
 import 'package:kas_santri/models/transaksi.dart';
@@ -14,8 +20,14 @@ import 'package:kas_santri/providers/kas_santri_provider.dart';
 import 'package:kas_santri/services/account_auth_service.dart';
 import 'package:kas_santri/services/auth_service.dart';
 import 'package:kas_santri/services/backup_service.dart';
+import 'package:kas_santri/services/bulk_santri_excel_service.dart';
+import 'package:kas_santri/services/customer_sync_service.dart';
+import 'package:kas_santri/services/executive_analytics_service.dart';
 import 'package:kas_santri/services/license_service.dart';
+import 'package:kas_santri/services/qr_card_pdf_service.dart';
 import 'package:kas_santri/services/report_service.dart';
+import 'package:kas_santri/services/security_guard_service.dart';
+import 'package:kas_santri/services/smart_wa_reminder_service.dart';
 import 'package:kas_santri/services/subscription_service.dart';
 import 'package:kas_santri/services/yayasan_export_service.dart';
 import 'package:kas_santri/utils/currency_formatter.dart';
@@ -542,61 +554,117 @@ void main() {
       );
     });
 
-    test('S. Generator & Verifikasi Kode Lisensi Offline SHA-256 (M1, Y1, LT)', () {
-      const deviceA = 'KS-A7B9-4X2M';
-      const deviceB = 'KS-ZZZZ-9999';
-      final now = DateTime(2026, 11, 25, 10, 0);
+    test('S. Verifikasi Lisensi Asimetris Ed25519 (MONTHLY, YEARLY, LIFETIME, Anti-Forged)', () async {
+      const deviceA = 'KS-A7B94X2M';
+      const deviceB = 'KS-ZZZZ9999';
+      final now = DateTime.utc(2026, 11, 25, 10, 0);
 
-      // 1. Buat & verifikasi paket Tahunan (Y1)
-      final y1Code = LicenseService.generateLicenseCode(
+      String encodeB32(List<int> bytes) {
+        const alpha = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+        final out = StringBuffer();
+        var buffer = 0;
+        var bitsLeft = 0;
+        for (final b in bytes) {
+          buffer = (buffer << 8) | (b & 0xff);
+          bitsLeft += 8;
+          while (bitsLeft >= 5) {
+            out.write(alpha[(buffer >> (bitsLeft - 5)) & 0x1f]);
+            bitsLeft -= 5;
+          }
+        }
+        if (bitsLeft > 0) {
+          out.write(alpha[(buffer << (5 - bitsLeft)) & 0x1f]);
+        }
+        return out.toString();
+      }
+
+      final ed = Ed25519();
+      final testKeyPair = await ed.newKeyPair();
+      final testPubKey = await testKeyPair.extractPublicKey();
+      final testPubB64 = base64Encode(testPubKey.bytes);
+
+      Future<String> signTestCode({
+        required String deviceId,
+        required String tier,
+        required int expiryEpochSec,
+        SimpleKeyPair? keyPairOverride,
+      }) async {
+        final payload = utf8.encode('$deviceId|$tier|$expiryEpochSec');
+        final sig = await ed.sign(payload, keyPair: keyPairOverride ?? testKeyPair);
+        return 'KSPRO-${encodeB32(payload)}-${encodeB32(sig.bytes)}';
+      }
+
+      // 1. Verifikasi paket YEARLY
+      final futureEpoch = DateTime.utc(2027, 11, 25).millisecondsSinceEpoch ~/ 1000;
+      final y1Code = await signTestCode(
         deviceId: deviceA,
-        tipe: 'Y1',
-        expiryYyyymmdd: '20271125',
+        tier: 'YEARLY',
+        expiryEpochSec: futureEpoch,
       );
-      expect(y1Code, startsWith('KSPRO-Y1-20271125-'));
-      final y1Res = LicenseService.verifyCodePure(
+      final y1Res = await LicenseService.verifyCodeAsync(
         code: y1Code,
         deviceId: deviceA,
-        now: now,
+        now: now.toLocal(),
+        publicKeyBase64Override: testPubB64,
       );
       expect(y1Res.isValid, true);
       expect(y1Res.planKey, 'YEARLY');
 
-      // 2. Buat & verifikasi paket Lifetime (LT)
-      final ltCode = LicenseService.generateLicenseCode(
+      // 2. Verifikasi paket LIFETIME (expiry = 0)
+      final ltCode = await signTestCode(
         deviceId: deviceA,
-        tipe: 'LT',
-        expiryYyyymmdd: '99991231',
+        tier: 'LIFETIME',
+        expiryEpochSec: 0,
       );
-      final ltRes = LicenseService.verifyCodePure(
+      final ltRes = await LicenseService.verifyCodeAsync(
         code: ltCode,
         deviceId: deviceA,
         now: DateTime(2050, 1, 1),
+        publicKeyBase64Override: testPubB64,
       );
       expect(ltRes.isValid, true);
       expect(ltRes.planKey, 'LIFETIME');
 
-      // 3. Kode tidak berlaku pada perangkat berbeda
-      final wrongDevice = LicenseService.verifyCodePure(
+      // 3. Ditolak jika device berbeda
+      final wrongDevice = await LicenseService.verifyCodeAsync(
         code: y1Code,
         deviceId: deviceB,
-        now: now,
+        now: now.toLocal(),
+        publicKeyBase64Override: testPubB64,
       );
       expect(wrongDevice.isValid, false);
 
-      // 4. Kode kadaluarsa ditolak
-      final expiredM1 = LicenseService.generateLicenseCode(
+      // 4. Ditolak jika sudah kadaluarsa
+      final expiredEpoch = DateTime.utc(2026, 11, 1).millisecondsSinceEpoch ~/ 1000;
+      final expiredM1 = await signTestCode(
         deviceId: deviceA,
-        tipe: 'M1',
-        expiryYyyymmdd: '20261101',
+        tier: 'MONTHLY',
+        expiryEpochSec: expiredEpoch,
       );
-      final expiredRes = LicenseService.verifyCodePure(
+      final expiredRes = await LicenseService.verifyCodeAsync(
         code: expiredM1,
         deviceId: deviceA,
-        now: now,
+        now: now.toLocal(),
+        publicKeyBase64Override: testPubB64,
       );
       expect(expiredRes.isValid, false);
       expect(expiredRes.isExpired, true);
+
+      // 5. Ditolak jika ditandatangani key lain (anti-keygen / anti-forge)
+      final rogueKp = await ed.newKeyPair();
+      final forgedCode = await signTestCode(
+        deviceId: deviceA,
+        tier: 'LIFETIME',
+        expiryEpochSec: 0,
+        keyPairOverride: rogueKp,
+      );
+      final forgedRes = await LicenseService.verifyCodeAsync(
+        code: forgedCode,
+        deviceId: deviceA,
+        now: now.toLocal(),
+        publicKeyBase64Override: testPubB64,
+      );
+      expect(forgedRes.isValid, false);
     });
 
     test('T. Logika Uji Coba Gratis 14 Hari & Konstanta Dual-Mode DANA', () {
@@ -1424,6 +1492,351 @@ void main() {
       expect(decodedInfak.sheets.keys, contains('Santriyat'));
       expect(decodedInfak.sheets.keys, contains('Santri Baru'));
       expect(decodedInfak.sheets.keys.contains('Sheet1'), false);
+    });
+
+    test('AA. Hardening v3.3: Anti-Clock Tampering, AES-256-GCM .ksbak, Random Salted Auth & Audit Chain', () async {
+      // 1. Anti-Clock Tampering
+      final baseTime = DateTime(2026, 11, 26, 12, 0);
+      final normalClock = SecurityGuardService.evaluateClockTamper(
+        currentNow: baseTime,
+        lastKnownEpochMs: baseTime.subtract(const Duration(minutes: 5)).millisecondsSinceEpoch,
+      );
+      expect(normalClock.isTampered, false);
+
+      final rewoundClock = SecurityGuardService.evaluateClockTamper(
+        currentNow: baseTime.subtract(const Duration(hours: 2)),
+        lastKnownEpochMs: baseTime.millisecondsSinceEpoch,
+      );
+      expect(rewoundClock.isTampered, true);
+      expect(rewoundClock.reason, 'CLOCK_REWIND');
+
+      final networkDrift = SecurityGuardService.evaluateClockTamper(
+        currentNow: baseTime.subtract(const Duration(days: 3)),
+        lastKnownEpochMs: null,
+        networkNow: baseTime,
+      );
+      expect(networkDrift.isTampered, true);
+      expect(networkDrift.reason, 'NETWORK_DRIFT');
+
+      // Monotonic check via mock SharedPreferences
+      SharedPreferences.setMockInitialValues({});
+      final mono1 = await SecurityGuardService.instance.checkAndAdvanceClock(
+        nowOverride: baseTime,
+      );
+      expect(mono1.isTampered, false);
+      final mono2 = await SecurityGuardService.instance.checkAndAdvanceClock(
+        nowOverride: baseTime.subtract(const Duration(minutes: 30)),
+      );
+      expect(mono2.isTampered, true);
+
+      // 2. Random 16-byte salted PIN & Account Password
+      final pHash1 = AuthService.instance.hashPin('2580');
+      final pHash2 = AuthService.instance.hashPin('2580');
+      expect(pHash1, startsWith('v33:'));
+      expect(pHash1 != pHash2, true);
+      expect(AuthService.instance.verifyPinAgainstStored('2580', pHash1), true);
+      expect(AuthService.instance.verifyPinAgainstStored('1111', pHash1), false);
+
+      final accHash1 = AccountAuthService.hashPassword('bendahara', 'Rahasia123');
+      final accHash2 = AccountAuthService.hashPassword('bendahara', 'Rahasia123');
+      expect(accHash1, startsWith('v33:'));
+      expect(accHash1 != accHash2, true);
+      expect(
+        AccountAuthService.verifyPasswordHash(
+          usernameOrEmail: 'bendahara',
+          password: 'Rahasia123',
+          storedHash: accHash1,
+        ),
+        true,
+      );
+
+      // 3. AES-256-GCM .ksbak Backup & Restore Validation
+      final sampleBackup = <String, dynamic>{
+        'version': 33,
+        'exported_at': baseTime.toIso8601String(),
+        'santri': <dynamic>[],
+        'setoran_bulanan': <dynamic>[],
+        'transaksi_harian': <dynamic>[],
+        'tunggakan_log': <dynamic>[],
+        'mutasi_dompet': <dynamic>[],
+        'cash_opname_logs': <dynamic>[],
+        'pengaturan_aplikasi': <dynamic>[],
+        'audit_log': <dynamic>[],
+      };
+      final encryptedKsbak = await BackupService.encryptBackupToKsbak(
+        backupData: sampleBackup,
+        password: 'PondokAman2026!',
+      );
+      expect(BackupService.isEncryptedKsbakBytes(encryptedKsbak), true);
+
+      final wrongPwdRes = await BackupService.decryptAndValidateKsbak(
+        bytes: encryptedKsbak,
+        password: 'SalahPassword',
+      );
+      expect(wrongPwdRes.isValid, false);
+
+      final okRes = await BackupService.decryptAndValidateKsbak(
+        bytes: encryptedKsbak,
+        password: 'PondokAman2026!',
+      );
+      expect(okRes.isValid, true);
+      expect(okRes.parsedData?['version'], 33);
+
+      // 4. Immutable Hash-Chained Audit Log (SQLite v4 FFI)
+      sqfliteFfiInit();
+      final db = await databaseFactoryFfi.openDatabase(
+        inMemoryDatabasePath,
+        options: OpenDatabaseOptions(version: 4),
+      );
+      await DatabaseHelper.instance.createSchemaForTesting(db);
+      DatabaseHelper.instance.setDatabaseForTesting(db);
+
+      await DatabaseHelper.instance.insertAuditLog(
+        actor: 'Ustadz Ahmad',
+        action: 'VOID_TRANSAKSI',
+        targetId: 'tx-001',
+        summary: 'Void salah nominal',
+      );
+      await DatabaseHelper.instance.insertAuditLog(
+        actor: 'Ustadz Ahmad',
+        action: 'EDIT_SANTRI',
+        targetId: 's-001',
+        summary: 'Ubah kamar ke A2',
+      );
+      await DatabaseHelper.instance.insertAuditLog(
+        actor: 'Ustadz Ahmad',
+        action: 'PRIVASI_LAYAR',
+        summary: 'Aktifkan FLAG_SECURE',
+      );
+
+      final intact = await DatabaseHelper.instance.verifyAuditLogIntegrity();
+      expect(intact.isValid, true);
+      expect(intact.totalEntries, 3);
+      final logs = await DatabaseHelper.instance.getAuditLogs();
+      expect(logs.last.prevHash, AuditLogEntry.genesisHash);
+
+      // Simulasi kecurangan pengubahan langsung isi tabel audit_log
+      await db.execute(
+        "UPDATE audit_log SET summary = 'Diubah diam-diam' WHERE action = 'VOID_TRANSAKSI'",
+      );
+      final tampered = await DatabaseHelper.instance.verifyAuditLogIntegrity();
+      expect(tampered.isValid, false);
+
+      await db.close();
+      DatabaseHelper.instance.setDatabaseForTesting(null);
+    });
+
+    test('AB. CustomerSyncService v3.4: Privasi Payload, Semver, Remote Revoke & Mode Offline', () async {
+      // 1. Verifikasi payload hanya berisi metadata lisensi non-sensitif (0 data santri/saldo)
+      final payload = CustomerSyncService.buildTelemetryPayload(
+        deviceId: 'ks-abcd1234',
+        namaPondok: 'PPS Miftahussunan',
+        namaBendahara: 'Ustadz Ahmad',
+        noWaPengurus: '081234567890',
+        tier: 'yearly',
+        expiryDate: DateTime.utc(2027, 11, 26),
+        appVersion: '3.4.0',
+        paymentChannel: 'dana',
+      );
+      expect(payload.keys.toSet(), {
+        'p_device_id',
+        'p_nama_pondok',
+        'p_nama_bendahara',
+        'p_no_wa',
+        'p_tier',
+        'p_expiry_date',
+        'p_app_version',
+        'p_payment_channel',
+      });
+      expect(payload['p_device_id'], 'KS-ABCD1234');
+      expect(payload['p_tier'], 'YEARLY');
+      expect(payload['p_payment_channel'], 'DANA');
+
+      // 2. Verifikasi perbandingan versi Semver
+      expect(CustomerSyncService.compareSemver('3.5.0', '3.4.0'), 1);
+      expect(CustomerSyncService.compareSemver('3.4.0', '3.4.0'), 0);
+      expect(CustomerSyncService.compareSemver('3.3.9', '3.4.0'), -1);
+
+      // 3. Mode offline / belum dikonfigurasi selalu gagal sunyi tanpa melempar error
+      final unconfigured = await CustomerSyncService.instance.syncDeviceInBackground(
+        deviceId: 'KS-ABCD1234',
+        namaPondok: 'PPS Miftahussunan',
+        namaBendahara: 'Ustadz Ahmad',
+        noWaPengurus: '081234567890',
+        tier: 'FREE',
+        supabaseUrlOverride: '',
+        supabaseAnonKeyOverride: '',
+      );
+      expect(unconfigured.synced, false);
+      expect(unconfigured.isRevoked, false);
+
+      // 4. Verifikasi MockClient menangani Remote Revoke + AppRemoteConfig
+      SharedPreferences.setMockInitialValues({});
+      final mockClient = MockClient((request) async {
+        expect(request.url.toString(), 'https://demo.supabase.co/rest/v1/rpc/sync_device_telemetry');
+        return http.Response(
+          jsonEncode({
+            'device_id': 'KS-ABCD1234',
+            'is_revoked': true,
+            'status': 'DIBLOKIR',
+            'remote_config': {
+              'latest_version': '3.5.0',
+              'min_version': '3.0.0',
+              'announcement_title': 'Update Keamanan v3.5',
+              'announcement_body': 'Segera perbarui aplikasi Kas-Santri.',
+              'promo_banner_active': true,
+              'update_url': 'https://mochkhoirulazman-max.github.io/kas-santri./',
+            },
+          }),
+          200,
+          headers: {'content-type': 'application/json'},
+        );
+      });
+
+      final syncRes = await CustomerSyncService.instance.syncDeviceInBackground(
+        deviceId: 'KS-ABCD1234',
+        namaPondok: 'PPS Miftahussunan',
+        namaBendahara: 'Ustadz Ahmad',
+        noWaPengurus: '081234567890',
+        tier: 'YEARLY',
+        client: mockClient,
+        supabaseUrlOverride: 'https://demo.supabase.co',
+        supabaseAnonKeyOverride: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9_valid_anon_key_length',
+      );
+      expect(syncRes.synced, true);
+      expect(syncRes.isRevoked, true);
+      expect(syncRes.remoteConfig?.isUpdateAvailable('3.4.0'), true);
+      expect(await CustomerSyncService.instance.getCachedRevokedStatus(), true);
+      final cachedCfg = await CustomerSyncService.instance.getCachedRemoteConfig();
+      expect(cachedCfg?.latestVersion, '3.5.0');
+    });
+
+    test('AC. Ekosistem v4.0: Import Excel Massal, Kartu QR A4, Mutasi/Tutup Buku, Eksekutif PDF & Smart WA Queue', () async {
+      // 1. Template & Parse Excel Massal + Deteksi Duplikat + Kuota Gratis
+      final tplBytes = BulkSantriExcelService.instance.buildTemplateExcelBytes();
+      expect(tplBytes.isNotEmpty, true);
+
+      final parseOk = BulkSantriExcelService.instance.parseAndValidateExcelBytes(
+        bytes: tplBytes,
+        existingSantri: const [],
+        isProUser: true,
+      );
+      expect(parseOk.validRows.length, 2);
+      expect(parseOk.duplicateNames.isEmpty, true);
+      expect(parseOk.exceedsFreeQuota, false);
+
+      final parseDupAndQuota = BulkSantriExcelService.instance.parseAndValidateExcelBytes(
+        bytes: tplBytes,
+        existingSantri: List.generate(
+          14,
+          (i) => Santri(
+            id: 'ex-$i',
+            namaLengkap: i == 0 ? 'Ahmad Zaki Mubarroq' : 'Santri $i',
+            namaPanggilan: 'S$i',
+            kamar: 'K1',
+          ),
+        ),
+        isProUser: false,
+      );
+      expect(parseDupAndQuota.duplicateNames.length, 1);
+      expect(parseDupAndQuota.validRows.length, 1);
+      expect(parseDupAndQuota.exceedsFreeQuota, false);
+
+      // 2. Cetak Massal Kartu Santri QR PDF (8 kartu / halaman A4)
+      final samplePeng = PengaturanAplikasi(namaPondok: 'PPS MIFTAHUSSUNAN');
+      final qrSantri = List.generate(
+        9,
+        (i) => Santri(
+          id: 'qr-$i',
+          namaLengkap: 'Santri QR $i',
+          namaPanggilan: 'QR$i',
+          kamar: 'Kamar ${i % 2 + 1}',
+        ),
+      );
+      final qrPdfBytes = await QrCardPdfService.instance.buildBulkQrCardsPdfBytes(
+        pengaturan: samplePeng,
+        santriList: qrSantri,
+      );
+      expect(qrPdfBytes.isNotEmpty, true);
+      expect(String.fromCharCodes(qrPdfBytes.sublist(0, 4)), '%PDF');
+
+      // 3. Batch Pindah Kamar & Tutup Buku Alumni (SQLite FFI)
+      sqfliteFfiInit();
+      final db = await databaseFactoryFfi.openDatabase(
+        inMemoryDatabasePath,
+        options: OpenDatabaseOptions(version: 4),
+      );
+      await DatabaseHelper.instance.createSchemaForTesting(db);
+      DatabaseHelper.instance.setDatabaseForTesting(db);
+
+      await DatabaseHelper.instance.bulkInsertSantri(parseOk.santriList);
+      final inserted = await DatabaseHelper.instance.getAllSantri(onlyActive: false);
+      expect(inserted.length, 2);
+
+      final moved = await DatabaseHelper.instance.bulkMoveKamar(
+        [inserted.first.id],
+        'Kelas 2 MTs',
+      );
+      expect(moved, 1);
+
+      final archived = await DatabaseHelper.instance.bulkArchiveSantriStatus(
+        [inserted.last.id],
+        newStatusSantri: Santri.statusAlumniVal,
+      );
+      expect(archived, 1);
+
+      final activeOnly = await DatabaseHelper.instance.getAllSantri(onlyActive: true);
+      expect(activeOnly.length, 1);
+      final alumniRow = await DatabaseHelper.instance.getSantriById(inserted.last.id);
+      expect(alumniRow?.isAlumni, true);
+      expect(alumniRow?.statusAktif, false);
+
+      // 4. Executive Analytics & 1-Page PDF
+      final analytics = ExecutiveAnalyticsService.computeSummary(
+        activeSantri: activeOnly,
+        transaksiRows: const [],
+        setoranRows: const [],
+        infakPeriodeList: const [],
+        opnameLogs: const [],
+        totalBrankas: 300000,
+        kasTunai: 300000,
+        kasRekening: 0,
+        totalTunggakan: 0,
+      );
+      expect(analytics.dailyTrend7d.length, 7);
+      expect(analytics.monthlyTrend6m.length, 6);
+      final execPdf = await ExecutiveAnalyticsService.instance.buildExecutiveOnePagePdfBytes(
+        pengaturan: samplePeng,
+        summary: analytics,
+      );
+      expect(String.fromCharCodes(execPdf.sublist(0, 4)), '%PDF');
+
+      // 5. Smart WA Reminder Queue
+      final krisisSantri = Santri(
+        id: 'wa-1',
+        namaLengkap: 'Santri Kritis',
+        namaPanggilan: 'Kritis',
+        kamar: 'K1',
+        noWaWali: '081234567890',
+        saldoTotal: 15000,
+        jatahHarian: 10000,
+        tunggakan: 50000,
+      );
+      final queues = SmartWaReminderService.buildPriorityQueues(
+        activeSantri: [krisisSantri],
+        infakPeriodeList: const [],
+      );
+      expect(queues[ReminderCategory.saldoKritis]?.length, 1);
+      expect(queues[ReminderCategory.infakJatuhTempo]?.length, 1);
+      expect(queues[ReminderCategory.tunggakan]?.length, 1);
+      final waMsg = SmartWaReminderService.composePoliteMessage(
+        item: queues[ReminderCategory.saldoKritis]!.first,
+        namaPondok: 'PPS MIFTAHUSSUNAN',
+      );
+      expect(waMsg, contains('Santri Kritis'));
+
+      await db.close();
+      DatabaseHelper.instance.setDatabaseForTesting(null);
     });
   });
 }

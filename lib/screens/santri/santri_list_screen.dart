@@ -6,6 +6,8 @@ import '../../widgets/fast_withdrawal_bottom_sheet.dart';
 import '../../widgets/tunggakan_bottom_sheet.dart';
 import 'santri_form_screen.dart';
 import 'santri_detail_screen.dart';
+import 'import_santri_excel_screen.dart';
+import 'cetak_kartu_qr_screen.dart';
 
 class SantriListScreen extends StatefulWidget {
   const SantriListScreen({Key? key}) : super(key: key);
@@ -109,6 +111,52 @@ class _SantriListScreenState extends State<SantriListScreen> {
           ),
 
           const SliverToBoxAdapter(child: SizedBox(height: 6)),
+
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ImportSantriExcelScreen(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.upload_file_rounded, size: 16),
+                      label: const Text('Import Excel', style: TextStyle(fontSize: 11.5)),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const CetakKartuQrScreen(),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF00796B),
+                        foregroundColor: Colors.white,
+                      ),
+                      icon: const Icon(Icons.qr_code_2_rounded, size: 16),
+                      label: Text(
+                        provider.isProUser ? 'Cetak Kartu QR' : 'Kartu QR 👑',
+                        style: const TextStyle(fontSize: 11.5),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
 
           if (filteredList.isEmpty)
             const SliverFillRemaining(

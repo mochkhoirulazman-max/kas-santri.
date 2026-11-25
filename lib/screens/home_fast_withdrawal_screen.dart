@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../config/app_config.dart';
 import '../models/santri_status.dart';
 import '../providers/kas_santri_provider.dart';
 import '../widgets/stat_card.dart';
@@ -412,6 +414,143 @@ class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen>
             ),
 
             // Banner Panduan Tombol Kartu 2 Kotak & Tunggakan
+            if (provider.isClockTampered)
+              SliverToBoxAdapter(
+                child: Container(
+                  margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xE63B0A18), Color(0xE6260B1D)],
+                    ),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: const Color(0xFFF43F5E).withOpacity(0.65)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.schedule_rounded, color: Color(0xFFFDA4AF), size: 20),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          provider.clockTamperMessage ??
+                              'Jam perangkat tidak sinkron. Aktifkan Tanggal & Waktu Otomatis untuk melanjutkan.',
+                          style: const TextStyle(
+                            color: Color(0xFFFFE4E6),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            height: 1.3,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      TextButton(
+                        onPressed: () async {
+                          AppFeedback.tap();
+                          await provider.recheckDeviceClock(tryNetwork: true);
+                        },
+                        style: TextButton.styleFrom(
+                          backgroundColor: const Color(0xFFF43F5E).withOpacity(0.25),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: const Text(
+                          'Cek Ulang',
+                          style: TextStyle(
+                            color: Color(0xFFFECDD3),
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+            if (provider.shouldShowRemoteUpdateBanner && provider.remoteConfig != null)
+              SliverToBoxAdapter(
+                child: Container(
+                  margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xE6052E26), Color(0xE61E170A)],
+                    ),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: const Color(0xFFFBBF24).withOpacity(0.5)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.campaign_rounded, color: Color(0xFFFBBF24), size: 20),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              provider.remoteConfig!.isUpdateAvailable(AppConfig.appVersion)
+                                  ? 'Pembaruan Tersedia (v${provider.remoteConfig!.latestVersion})'
+                                  : (provider.remoteConfig!.announcementTitle.isNotEmpty
+                                      ? provider.remoteConfig!.announcementTitle
+                                      : 'Info Kas-Santri'),
+                              style: const TextStyle(
+                                color: Color(0xFFFDE68A),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            if (provider.remoteConfig!.announcementBody.isNotEmpty) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                provider.remoteConfig!.announcementBody,
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 10.5,
+                                  height: 1.3,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      if (provider.remoteConfig!.updateUrl.startsWith('https://'))
+                        TextButton(
+                          onPressed: () async {
+                            AppFeedback.tap();
+                            final uri = Uri.tryParse(provider.remoteConfig!.updateUrl);
+                            if (uri != null) {
+                              await launchUrl(uri, mode: LaunchMode.externalApplication);
+                            }
+                          },
+                          style: TextButton.styleFrom(
+                            backgroundColor: const Color(0xFFFBBF24).withOpacity(0.2),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: const Text(
+                            'Lihat',
+                            style: TextStyle(
+                              color: Color(0xFFFDE68A),
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      IconButton(
+                        onPressed: () => provider.dismissRemoteBanner(),
+                        icon: const Icon(Icons.close, size: 15, color: Colors.white54),
+                        padding: const EdgeInsets.all(4),
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
             if (_showBanner)
               SliverToBoxAdapter(
                 child: Container(

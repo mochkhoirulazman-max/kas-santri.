@@ -1,23 +1,24 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:share_plus/share_plus.dart';
-import '../../database/database_helper.dart';
 import '../../models/bendahara_account.dart';
 import '../../providers/kas_santri_provider.dart';
 import '../../services/auth_service.dart';
-import '../../services/backup_service.dart';
 import '../../utils/app_feedback.dart';
-import '../../utils/date_formatter.dart';
 import '../../widgets/app_background_wrapper.dart';
+import '../../widgets/encrypted_backup_helper.dart';
 import '../auth/login_screen.dart';
 import '../paywall_screen.dart';
 import '../pin_lock_screen.dart';
+import '../rekap/executive_dashboard_screen.dart';
+import '../rekap/smart_wa_reminder_screen.dart';
+import '../santri/cetak_kartu_qr_screen.dart';
+import '../santri/import_santri_excel_screen.dart';
+import 'audit_log_screen.dart';
 import 'pin_settings_screen.dart';
 import 'settings_screen.dart';
+import 'tahun_ajaran_screen.dart';
 
 class SystemTabScreen extends StatefulWidget {
   const SystemTabScreen({Key? key}) : super(key: key);
@@ -230,104 +231,6 @@ class _SystemTabScreenState extends State<SystemTabScreen>
       MaterialPageRoute(builder: (_) => const LoginScreen()),
       (_) => false,
     );
-  }
-
-  Future<void> _backupJson() async {
-    AppFeedback.tap();
-    try {
-      final dump = await DatabaseHelper.instance.dumpBackupJson();
-      final jsonStr = const JsonEncoder.withIndent('  ').convert(dump);
-      final dir = await getTemporaryDirectory();
-      final file = File(
-        '${dir.path}/backup_kas_santri_${DateTime.now().millisecondsSinceEpoch}.json',
-      );
-      await file.writeAsString(jsonStr);
-      AppFeedback.success();
-      await Share.shareXFiles([XFile(file.path)], text: 'Backup Kas-Santri (.JSON)');
-    } catch (e) {
-      AppFeedback.alert();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal backup: $e'), backgroundColor: const Color(0xFFE11D48)),
-        );
-      }
-    }
-  }
-
-  Future<void> _restoreLocalJson(KasSantriProvider provider) async {
-    AppFeedback.tap();
-    try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['json'],
-      );
-      if (result == null || result.files.single.path == null) return;
-      final rawJson = await File(result.files.single.path!).readAsString();
-      final validation = BackupService.validateJsonString(rawJson);
-      if (!validation.isValid || validation.parsedData == null) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(validation.errorMessage ?? 'File JSON tidak valid.'),
-              backgroundColor: const Color(0xFFE11D48),
-            ),
-          );
-        }
-        return;
-      }
-      if (!mounted) return;
-
-      final exportedDt = validation.exportedAt != null
-          ? DateTime.tryParse(validation.exportedAt!)
-          : null;
-      final dateText =
-          exportedDt != null ? DateFormatter.formatFullDateTime(exportedDt) : '-';
-
-      final ok = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text(
-            'Pulihkan Data Backup?',
-            style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w900),
-          ),
-          content: Text(
-            'Tanggal Backup: $dateText\n'
-            'Santri: ${validation.santriCount} • Transaksi: ${validation.transaksiCount}\n'
-            'Infak: ${validation.infakCount} • Serah Terima: ${validation.serahTerimaInfakCount}\n\n'
-            'Data lokal saat ini akan diganti dengan data backup.',
-            style: const TextStyle(color: Colors.white70, fontSize: 12),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Batal', style: TextStyle(color: Colors.white70)),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Pulihkan'),
-            ),
-          ],
-        ),
-      );
-      if (ok == true && mounted) {
-        await provider.restoreFromBackupJson(validation.parsedData!);
-        if (mounted) {
-          AppFeedback.success();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Data berhasil dipulihkan!'),
-              backgroundColor: Color(0xFF10B981),
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal restore: $e'), backgroundColor: const Color(0xFFE11D48)),
-        );
-      }
-    }
   }
 
   Future<void> _lockAppNow(KasSantriProvider provider) async {
@@ -696,19 +599,19 @@ class _SystemTabScreenState extends State<SystemTabScreen>
                 Row(
                   children: [
                     _quickTile(
-                      emoji: '⬇️',
-                      title: 'Backup .JSON',
-                      subtitle: 'Cadangkan lokal',
+                      emoji: '🔐',
+                      title: 'Backup .KSBAK',
+                      subtitle: 'AES-256 terenkripsi',
                       accent: const Color(0xFF34D399),
-                      onTap: _backupJson,
+                      onTap: () => EncryptedBackupHelper.backupEncryptedKsbak(context),
                     ),
                     const SizedBox(width: 10),
                     _quickTile(
                       emoji: '⬆️',
-                      title: 'Restore .JSON',
-                      subtitle: 'Pulihkan file',
+                      title: 'Restore Backup',
+                      subtitle: '.JSON / .KSBAK',
                       accent: const Color(0xFF38BDF8),
-                      onTap: () => _restoreLocalJson(provider),
+                      onTap: () => EncryptedBackupHelper.restoreBackupAnyFormat(context, provider),
                     ),
                   ],
                 ),
@@ -724,9 +627,38 @@ class _SystemTabScreenState extends State<SystemTabScreen>
                     ),
                     const SizedBox(width: 10),
                     _quickTile(
+                      emoji: '🛡️',
+                      title: 'Jejak Audit',
+                      subtitle: 'Log anti-ubah',
+                      accent: const Color(0xFF67E8F9),
+                      onTap: () {
+                        AppFeedback.tap();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const AuditLogScreen()),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    _quickTile(
+                      emoji: provider.isScreenPrivacyEnabled ? '🙈' : '👁️',
+                      title: provider.isScreenPrivacyEnabled ? 'Privasi Aktif' : 'Privasi Layar',
+                      subtitle: provider.isScreenPrivacyEnabled ? 'Screenshot diblokir' : 'Blokir screenshot',
+                      accent: const Color(0xFFF43F5E),
+                      onTap: () async {
+                        AppFeedback.tap();
+                        await provider.setScreenPrivacyEnabled(!provider.isScreenPrivacyEnabled);
+                      },
+                    ),
+                    const SizedBox(width: 10),
+                    _quickTile(
                       emoji: '🎨',
-                      title: 'Wallpaper & Kaca',
-                      subtitle: 'Atur tampilan',
+                      title: 'Pengaturan',
+                      subtitle: 'Tarif, Tema & Drive',
                       accent: const Color(0xFFD946EF),
                       onTap: () {
                         AppFeedback.tap();
@@ -736,6 +668,90 @@ class _SystemTabScreenState extends State<SystemTabScreen>
                         );
                       },
                     ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    _quickTile(
+                      emoji: '🪪',
+                      title: provider.isProUser ? 'Kartu QR PDF' : 'Kartu QR 👑',
+                      subtitle: '8 kartu / A4 siap cetak',
+                      accent: const Color(0xFF34D399),
+                      onTap: () {
+                        AppFeedback.tap();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const CetakKartuQrScreen()),
+                        );
+                      },
+                    ),
+                    const SizedBox(width: 10),
+                    _quickTile(
+                      emoji: '🎓',
+                      title: 'Tahun Ajaran',
+                      subtitle: 'Mutasi & Tutup Buku',
+                      accent: const Color(0xFF38BDF8),
+                      onTap: () {
+                        AppFeedback.tap();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const TahunAjaranScreen()),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    _quickTile(
+                      emoji: '📊',
+                      title: provider.isProUser ? 'Laporan Yayasan' : 'Eksekutif 👑',
+                      subtitle: 'Analitik & PDF 1 hal',
+                      accent: const Color(0xFFFBBF24),
+                      onTap: () {
+                        AppFeedback.tap();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const ExecutiveDashboardScreen()),
+                        );
+                      },
+                    ),
+                    const SizedBox(width: 10),
+                    _quickTile(
+                      emoji: '📲',
+                      title: 'Pengingat WA',
+                      subtitle: 'Antrean wali santri',
+                      accent: const Color(0xFF6EE7B7),
+                      onTap: () {
+                        AppFeedback.tap();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const SmartWaReminderScreen()),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    _quickTile(
+                      emoji: '📥',
+                      title: 'Import Excel',
+                      subtitle: 'Massal 100–500 santri',
+                      accent: const Color(0xFF67E8F9),
+                      onTap: () {
+                        AppFeedback.tap();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const ImportSantriExcelScreen()),
+                        );
+                      },
+                    ),
+                    const SizedBox(width: 10),
+                    const Expanded(child: SizedBox()),
                   ],
                 ),
               ],
@@ -748,7 +764,7 @@ class _SystemTabScreenState extends State<SystemTabScreen>
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Text(
-              'Pengembang: Moch Khoirul Azman • Kas-Santri v3.2 • ${peng.namaPondok} • © 2026',
+              'Pengembang: Moch Khoirul Azman • Kas-Santri v4.0 • ${peng.namaPondok} • © 2026',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: Colors.white38,

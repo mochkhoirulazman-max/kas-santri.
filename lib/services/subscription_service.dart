@@ -169,6 +169,7 @@ class SubscriptionService {
     bool? fallbackHasUsed,
     String? fallbackStartedAt,
     String? fallbackExpiresAt,
+    DateTime? now,
   }) async {
     String? startedRaw;
     String? expiresRaw;
@@ -206,6 +207,7 @@ class SubscriptionService {
       hasUsedTrial: hasUsed,
       startedAt: startedAt,
       expiresAt: expiresAt,
+      now: now,
     );
   }
 
@@ -215,16 +217,27 @@ class SubscriptionService {
   }) async {
     final sStr = startedAt.toIso8601String();
     final eStr = expiresAt.toIso8601String();
+    bool savedToSecure = false;
     try {
       await _secureStorage.write(key: _keyTrialStartedAt, value: sStr);
       await _secureStorage.write(key: _keyTrialExpiresAt, value: eStr);
       await _secureStorage.write(key: _keyHasUsedTrial, value: '1');
-    } catch (_) {}
+      savedToSecure = true;
+    } catch (_) {
+      savedToSecure = false;
+    }
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_keyTrialStartedAt, sStr);
-      await prefs.setString(_keyTrialExpiresAt, eStr);
-      await prefs.setBool(_keyHasUsedTrial, true);
+      if (savedToSecure) {
+        // Hapus salinan plaintext di SharedPreferences setelah aman di Keystore
+        await prefs.remove(_keyTrialStartedAt);
+        await prefs.remove(_keyTrialExpiresAt);
+        await prefs.remove(_keyHasUsedTrial);
+      } else {
+        await prefs.setString(_keyTrialStartedAt, sStr);
+        await prefs.setString(_keyTrialExpiresAt, eStr);
+        await prefs.setBool(_keyHasUsedTrial, true);
+      }
     } catch (_) {}
   }
 
@@ -232,11 +245,13 @@ class SubscriptionService {
     bool? fallbackHasUsed,
     String? fallbackStartedAt,
     String? fallbackExpiresAt,
+    DateTime? now,
   }) async {
     final current = await getTrialStatus(
       fallbackHasUsed: fallbackHasUsed,
       fallbackStartedAt: fallbackStartedAt,
       fallbackExpiresAt: fallbackExpiresAt,
+      now: now,
     );
 
     if (current.hasUsedTrial) {
@@ -254,14 +269,14 @@ class SubscriptionService {
       );
     }
 
-    final now = DateTime.now();
-    final expiresAt = now.add(const Duration(days: trialDurationDays));
-    await _persistTrialData(startedAt: now, expiresAt: expiresAt);
+    final effectiveNow = now ?? DateTime.now();
+    final expiresAt = effectiveNow.add(const Duration(days: trialDurationDays));
+    await _persistTrialData(startedAt: effectiveNow, expiresAt: expiresAt);
     final activeStatus = evaluateTrial(
       hasUsedTrial: true,
-      startedAt: now,
+      startedAt: effectiveNow,
       expiresAt: expiresAt,
-      now: now,
+      now: effectiveNow,
     );
 
     return (

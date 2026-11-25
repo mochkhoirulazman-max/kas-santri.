@@ -17,8 +17,10 @@ import '../config/app_config.dart';
 import '../services/account_auth_service.dart';
 import '../services/auth_service.dart';
 import '../services/backup_service.dart';
+import '../services/customer_sync_service.dart';
 import '../services/google_drive_backup_service.dart';
 import '../services/license_service.dart';
+import '../services/security_guard_service.dart';
 import '../services/subscription_service.dart';
 import 'package:uuid/uuid.dart';
 import '../utils/date_formatter.dart';
@@ -61,7 +63,35 @@ class KasSantriProvider extends ChangeNotifier {
       _activeAccount?.jabatan ?? 'Bendahara Pondok';
 
   /// Helper state global untuk status PRO (dipakai seluruh fitur berlabel 👑)
-  bool get isProUser => _pengaturan.isPro;
+  bool _isClockTampered = false;
+  bool get isClockTampered => _isClockTampered;
+
+  String? _clockTamperMessage;
+  String? get clockTamperMessage => _clockTamperMessage;
+
+  bool _isScreenPrivacyEnabled = false;
+  bool get isScreenPrivacyEnabled => _isScreenPrivacyEnabled;
+
+  AppIntegrityReport? _integrityReport;
+  AppIntegrityReport? get integrityReport => _integrityReport;
+
+  bool _isLicenseRevoked = false;
+  bool get isLicenseRevoked => _isLicenseRevoked;
+
+  AppRemoteConfig? _remoteConfig;
+  AppRemoteConfig? get remoteConfig => _remoteConfig;
+
+  bool _remoteBannerDismissed = false;
+  bool get shouldShowRemoteUpdateBanner =>
+      !_remoteBannerDismissed && (_remoteConfig?.hasBannerContent ?? false);
+
+  void dismissRemoteBanner() {
+    _remoteBannerDismissed = true;
+    notifyListeners();
+  }
+
+  bool get isProUser =>
+      !_isClockTampered && !_isLicenseRevoked && _pengaturan.isPro;
 
   TrialStatus _trialStatus = const TrialStatus();
   TrialStatus get trialStatus => _trialStatus;
@@ -220,19 +250,119 @@ class KasSantriProvider extends ChangeNotifier {
       await _db.updatePengaturan(_pengaturan);
     }
     await loadAllData();
+    _isScreenPrivacyEnabled =
+        await SecurityGuardService.instance.getScreenPrivacyEnabled();
+    await SecurityGuardService.instance.applySavedScreenPrivacy();
+    _integrityReport = await SecurityGuardService.instance.checkAppIntegrity();
+    _isLicenseRevoked = await CustomerSyncService.instance.getCachedRevokedStatus();
+    _remoteConfig = await CustomerSyncService.instance.getCachedRemoteConfig();
     await syncSubscriptionEntitlement();
+
+    // Sinkronisasi waktu pasif & telemetri lisensi non-sensitif di latar belakang saat online
+    unawaited(_backgroundClockSync());
+    unawaited(syncCustomerTelemetryInBackground());
 
     _isLoading = false;
     notifyListeners();
   }
 
+  Future<CustomerSyncResult> syncCustomerTelemetryInBackground() async {
+    try {
+      if (_deviceId.isEmpty) {
+        _deviceId = await LicenseService.instance.getOrCreateDeviceId();
+      }
+      final String tier;
+      final DateTime? expiry;
+      final String channel;
+      if (_activeLicense != null && _activeLicense!.isValid) {
+        tier = _activeLicense!.planKey ?? 'YEARLY';
+        expiry = _activeLicense!.expiryDate;
+        channel = 'DANA';
+      } else if (_pengaturan.isPro && _pengaturan.proPlan == 'TRIAL_14D') {
+        tier = 'TRIAL_14D';
+        expiry = _trialStatus.expiresAt;
+        channel = 'TRIAL';
+      } else if (_pengaturan.isPro && _pengaturan.proPlan != null) {
+        tier = _pengaturan.proPlan!;
+        expiry = null;
+        channel = kIsPlayStoreBuild ? 'PLAY_STORE' : 'DANA';
+      } else {
+        tier = 'FREE';
+        expiry = null;
+        channel = 'FREE';
+      }
+
+      final res = await CustomerSyncService.instance.syncDeviceInBackground(
+        deviceId: _deviceId,
+        namaPondok: _pengaturan.namaPondok,
+        namaBendahara: activeOperatorName,
+        noWaPengurus: _pengaturan.kontakPengurus ?? '',
+        tier: tier,
+        expiryDate: expiry,
+        appVersion: AppConfig.appVersion,
+        paymentChannel: channel,
+      );
+
+      if (res.remoteConfig != null) {
+        _remoteConfig = res.remoteConfig;
+        notifyListeners();
+      }
+
+      if (res.synced && res.isRevoked) {
+        await LicenseService.instance.clearLicense();
+        _activeLicense = null;
+        _isLicenseRevoked = true;
+        if (_pengaturan.isPro) {
+          await deactivatePro();
+        } else {
+          notifyListeners();
+        }
+        await _recordAudit(
+          action: 'LISENSI_DICABUT_ADMIN',
+          targetId: _deviceId,
+          summary:
+              'Akses lisensi PRO perangkat $_deviceId dinonaktifkan oleh Admin (Remote Revoke).',
+        );
+      } else if (res.synced && !res.isRevoked && _isLicenseRevoked) {
+        _isLicenseRevoked = false;
+        await syncSubscriptionEntitlement();
+      }
+      return res;
+    } catch (_) {
+      return const CustomerSyncResult(synced: false);
+    }
+  }
+
+  Future<void> _backgroundClockSync() async {
+    try {
+      final res = await SecurityGuardService.instance.checkAndAdvanceClock(
+        allowNetworkSync: true,
+      );
+      if (res.isTampered != _isClockTampered) {
+        _isClockTampered = res.isTampered;
+        _clockTamperMessage = res.isTampered ? res.message : null;
+        if (!res.isTampered) {
+          await syncSubscriptionEntitlement();
+        } else {
+          notifyListeners();
+        }
+      }
+    } catch (_) {}
+  }
+
   Future<void> syncSubscriptionEntitlement() async {
     try {
+      final clockCheck = await SecurityGuardService.instance.checkAndAdvanceClock();
+      _isClockTampered = clockCheck.isTampered;
+      _clockTamperMessage = clockCheck.isTampered ? clockCheck.message : null;
+      final trustedNow = clockCheck.effectiveNow;
+
       _deviceId = await LicenseService.instance.getOrCreateDeviceId();
       _trialStatus = await SubscriptionService.instance.getTrialStatus(
         fallbackHasUsed: _pengaturan.hasUsedTrial,
         fallbackStartedAt: _pengaturan.trialStartedAt,
         fallbackExpiresAt: _pengaturan.trialExpiresAt,
+        now: trustedNow,
       );
 
       if (_trialStatus.hasUsedTrial &&
@@ -246,7 +376,9 @@ class KasSantriProvider extends ChangeNotifier {
       }
 
       if (!kIsPlayStoreBuild) {
-        _activeLicense = await LicenseService.instance.checkSavedLicense();
+        _activeLicense = await LicenseService.instance.checkSavedLicense(
+          now: trustedNow,
+        );
         if (_activeLicense != null && _activeLicense!.isValid) {
           await activatePro(plan: _activeLicense!.planKey ?? 'YEARLY');
           return;
@@ -305,6 +437,7 @@ class KasSantriProvider extends ChangeNotifier {
       );
       _pengaturan = updated;
       await _db.updatePengaturan(updated);
+      unawaited(syncCustomerTelemetryInBackground());
       notifyListeners();
     } else if (res.status.hasUsedTrial && !_pengaturan.hasUsedTrial) {
       final updated = _pengaturan.copyWith(
@@ -325,6 +458,12 @@ class KasSantriProvider extends ChangeNotifier {
     if (res.isValid) {
       _activeLicense = res;
       await activatePro(plan: res.planKey ?? 'YEARLY');
+      await _recordAudit(
+        action: 'AKTIVASI_LISENSI',
+        targetId: res.deviceId,
+        summary: 'Aktivasi lisensi Ed25519 paket ${res.planKey ?? 'PRO'}.',
+      );
+      unawaited(syncCustomerTelemetryInBackground());
     }
     return res;
   }
@@ -350,6 +489,7 @@ class KasSantriProvider extends ChangeNotifier {
       await _db.seedDemoData(force: true);
     }
     await loadAllData();
+    unawaited(syncCustomerTelemetryInBackground());
   }
 
   Future<void> activatePro({required String plan}) async {
@@ -712,6 +852,12 @@ class KasSantriProvider extends ChangeNotifier {
       catatan: catatan,
     );
     _selectedInfakPeriode = res.infak.periodeBulan;
+    await _recordAudit(
+      action: 'SAMBANGAN_SMART_SPLIT',
+      targetId: santriId,
+      summary:
+          'Smart Split Sambangan ${res.infak.periodeBulan} diterima Rp$totalUangDiterima (Jajan: Rp${res.sisaJajan}).',
+    );
     await markLocalDataChanged();
     await loadAllData();
     return res;
@@ -738,12 +884,23 @@ class KasSantriProvider extends ChangeNotifier {
 
   Future<void> catatSerahTerimaInfak(SerahTerimaInfakModel item) async {
     await _db.insertSerahTerimaInfak(item);
+    await _recordAudit(
+      action: 'SERAH_TERIMA_INFAK',
+      targetId: item.id,
+      summary:
+          'Serah terima infak (${item.posInfak}) Rp${item.nominalUang} & beras ${item.jumlahBerasLiter}L ke ${item.penerima}.',
+    );
     await markLocalDataChanged();
     await loadAllData();
   }
 
   Future<void> hapusSerahTerimaInfak(String id) async {
     await _db.deleteSerahTerimaInfak(id);
+    await _recordAudit(
+      action: 'HAPUS_SERAH_TERIMA_INFAK',
+      targetId: id,
+      summary: 'Menghapus catatan serah terima infak ID $id.',
+    );
     await markLocalDataChanged();
     await loadAllData();
   }
@@ -782,12 +939,23 @@ class KasSantriProvider extends ChangeNotifier {
 
   Future<void> voidTransaksi(String id) async {
     await _db.voidTransaksi(id);
+    await _recordAudit(
+      action: 'VOID_TRANSAKSI',
+      targetId: id,
+      summary: 'Membatalkan (Void) transaksi harian ID $id.',
+    );
     await markLocalDataChanged();
     await loadAllData();
   }
 
   Future<void> editTransaksi(String id, int newNominal, String? note) async {
     await _db.editTransaksi(id, newNominal, note);
+    await _recordAudit(
+      action: 'EDIT_TRANSAKSI',
+      targetId: id,
+      summary:
+          'Mengubah nominal transaksi ID $id menjadi Rp$newNominal${note != null && note.trim().isNotEmpty ? ' ($note)' : ''}.',
+    );
     await markLocalDataChanged();
     await loadAllData();
   }
@@ -829,6 +997,11 @@ class KasSantriProvider extends ChangeNotifier {
   Future<void> saveSantri(Santri santri, {bool isEdit = false, String sumberDompet = 'TUNAI'}) async {
     if (isEdit) {
       await _db.updateSantri(santri);
+      await _recordAudit(
+        action: 'EDIT_SANTRI',
+        targetId: santri.id,
+        summary: 'Mengubah data santri ${santri.namaLengkap} (${santri.kamar}).',
+      );
     } else {
       await _db.insertSantri(santri, sumberDompet: sumberDompet);
     }
@@ -837,7 +1010,17 @@ class KasSantriProvider extends ChangeNotifier {
   }
 
   Future<void> deleteSantri(String santriId) async {
+    final targetName = _allSantri
+            .where((s) => s.id == santriId)
+            .map((s) => s.namaLengkap)
+            .firstOrNull ??
+        santriId;
     await _db.deleteSantri(santriId);
+    await _recordAudit(
+      action: 'HAPUS_SANTRI',
+      targetId: santriId,
+      summary: 'Menghapus data santri $targetName (ID: $santriId).',
+    );
     await markLocalDataChanged();
     await loadAllData();
   }
@@ -850,9 +1033,75 @@ class KasSantriProvider extends ChangeNotifier {
     await loadAllData();
   }
 
+  Future<int> importSantriMassal(
+    List<Santri> santriList, {
+    String sumberDompet = 'TUNAI',
+  }) async {
+    if (santriList.isEmpty) return 0;
+    final count = await _db.bulkInsertSantri(santriList, sumberDompet: sumberDompet);
+    await _recordAudit(
+      action: 'IMPORT_EXCEL_SANTRI',
+      summary: 'Impor massal $count santri baru dari Excel (Dompet: $sumberDompet).',
+    );
+    await markLocalDataChanged();
+    await loadAllData();
+    return count;
+  }
+
+  Future<int> pindahKamarMassal(List<String> santriIds, String newKamar) async {
+    if (santriIds.isEmpty || newKamar.trim().isEmpty) return 0;
+    final count = await _db.bulkMoveKamar(santriIds, newKamar);
+    await _recordAudit(
+      action: 'MUTASI_KAMAR_MASSAL',
+      summary: 'Memindahkan $count santri secara massal ke kamar/kelas "$newKamar".',
+    );
+    await markLocalDataChanged();
+    await loadAllData();
+    return count;
+  }
+
+  Future<int> tutupBukuArsipSantri(
+    List<String> santriIds, {
+    required String statusTujuan,
+  }) async {
+    if (santriIds.isEmpty) return 0;
+    final normalized = Santri.normalizeStatusSantri(statusTujuan);
+    final count = await _db.bulkArchiveSantriStatus(
+      santriIds,
+      newStatusSantri: normalized,
+    );
+    await _recordAudit(
+      action: 'TUTUP_BUKU_SANTRI',
+      summary: 'Mengarsipkan $count santri dengan status $normalized (Tutup Buku).',
+    );
+    await markLocalDataChanged();
+    await loadAllData();
+    return count;
+  }
+
+  Future<void> mulaiTahunAjaranBaru(String newTahunAjaran) async {
+    final clean = newTahunAjaran.trim();
+    if (clean.isEmpty) return;
+    final oldTahun = _pengaturan.tahunAjaran;
+    final updated = _pengaturan.copyWith(tahunAjaran: clean);
+    _pengaturan = updated;
+    await _db.updatePengaturan(updated);
+    await _recordAudit(
+      action: 'TAHUN_AJARAN_BARU',
+      summary: 'Mengubah Tahun Ajaran aktif dari "$oldTahun" ke "$clean".',
+    );
+    await markLocalDataChanged();
+    await loadAllData();
+  }
+
   Future<void> savePengaturan(PengaturanAplikasi updated) async {
     _pengaturan = updated;
     await _db.updatePengaturan(updated);
+    await _recordAudit(
+      action: 'UBAH_PENGATURAN',
+      summary:
+          'Memperbarui pengaturan pondok/kas (${updated.namaPondok}, Jatah: Rp${updated.defaultJatahHarian}).',
+    );
     await loadAllData();
   }
 
@@ -922,6 +1171,10 @@ class KasSantriProvider extends ChangeNotifier {
 
   Future<void> resetToInitialData() async {
     await _db.resetToInitialDemoData();
+    await _recordAudit(
+      action: 'RESET_DATA',
+      summary: 'Mereset seluruh database lokal ke data awal simulasi.',
+    );
     await markLocalDataChanged();
     await loadAllData();
   }
@@ -932,7 +1185,54 @@ class KasSantriProvider extends ChangeNotifier {
     await _db.restoreFromJson(data);
     final restoredSettings = await _db.getPengaturan();
     await AuthService.instance.syncRestoredPinToSecureStorage(restoredSettings.pinKeamanan);
+    await _recordAudit(
+      action: 'RESTORE_BACKUP',
+      summary: 'Memulihkan seluruh data aplikasi dari file cadangan.',
+    );
     await loadAllData();
+  }
+
+  Future<void> _recordAudit({
+    required String action,
+    String? targetId,
+    required String summary,
+  }) async {
+    try {
+      await _db.insertAuditLog(
+        actor: activeOperatorName,
+        action: action,
+        targetId: targetId,
+        summary: summary,
+      );
+    } catch (_) {
+      // Jangan menggagalkan aksi utama jika log audit gagal sementara
+    }
+  }
+
+  Future<ClockTamperCheckResult> recheckDeviceClock({bool tryNetwork = true}) async {
+    final res = await SecurityGuardService.instance.checkAndAdvanceClock(
+      allowNetworkSync: tryNetwork,
+    );
+    _isClockTampered = res.isTampered;
+    _clockTamperMessage = res.isTampered ? res.message : null;
+    if (!res.isTampered) {
+      await syncSubscriptionEntitlement();
+    } else {
+      notifyListeners();
+    }
+    return res;
+  }
+
+  Future<void> setScreenPrivacyEnabled(bool enabled) async {
+    await SecurityGuardService.instance.setScreenPrivacyEnabled(enabled);
+    _isScreenPrivacyEnabled = enabled;
+    await _recordAudit(
+      action: 'PRIVASI_LAYAR',
+      summary: enabled
+          ? 'Mengaktifkan Mode Privasi Layar (Blokir Screenshot).'
+          : 'Menonaktifkan Mode Privasi Layar.',
+    );
+    notifyListeners();
   }
 
   Future<String?> connectGoogleDrive() async {

@@ -20,11 +20,16 @@ import '../../utils/currency_formatter.dart';
 import '../../utils/date_formatter.dart';
 import '../../widgets/app_background_wrapper.dart';
 import '../../widgets/direct_dana_payment_sheet.dart';
+import '../../widgets/encrypted_backup_helper.dart';
 import '../../widgets/legal_document_sheet.dart';
 import '../auth/login_screen.dart';
 import '../paywall_screen.dart';
 import '../pin_lock_screen.dart';
+import '../santri/cetak_kartu_qr_screen.dart';
+import '../santri/import_santri_excel_screen.dart';
+import 'audit_log_screen.dart';
 import 'pin_settings_screen.dart';
+import 'tahun_ajaran_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -444,32 +449,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Gagal backup: $e'), backgroundColor: const Color(0xFFF43F5E)),
-        );
-      }
-    }
-  }
-
-  Future<void> _restoreLocalJson() async {
-    AppFeedback.tap();
-    try {
-      final result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['json']);
-      if (result == null || result.files.single.path == null) return;
-      final rawJson = await File(result.files.single.path!).readAsString();
-      final validation = BackupService.validateJsonString(rawJson);
-      if (!validation.isValid || validation.parsedData == null) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(validation.errorMessage ?? 'File JSON tidak valid.'), backgroundColor: const Color(0xFFE11D48)),
-          );
-        }
-        return;
-      }
-      if (!mounted) return;
-      await _showConfirmRestoreDialog(sourceLabel: 'File Lokal (.JSON)', validation: validation);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal membaca file backup: $e'), backgroundColor: const Color(0xFFE11D48)),
         );
       }
     }
@@ -1059,6 +1038,88 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     await provider.savePengaturan(settings.copyWith(isBiometricEnabled: val));
                   },
                 ),
+                const SizedBox(height: 8),
+                _switchBox(
+                  title: 'Mode Privasi Layar (Blokir Screenshot)',
+                  value: provider.isScreenPrivacyEnabled,
+                  onChanged: (val) async {
+                    AppFeedback.tap();
+                    await provider.setScreenPrivacyEnabled(val);
+                  },
+                ),
+                const SizedBox(height: 10),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.28),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: (provider.integrityReport?.hasRiskSignals ?? false)
+                          ? const Color(0xFFF59E0B).withOpacity(0.55)
+                          : const Color(0xFF34D399).withOpacity(0.4),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        (provider.integrityReport?.hasRiskSignals ?? false)
+                            ? Icons.gpp_maybe_rounded
+                            : Icons.verified_user_rounded,
+                        size: 18,
+                        color: (provider.integrityReport?.hasRiskSignals ?? false)
+                            ? const Color(0xFFFBBF24)
+                            : const Color(0xFF34D399),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              provider.integrityReport?.statusLabel ??
+                                  'Integritas Perangkat Terjaga',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            if (provider.integrityReport?.warnings.isNotEmpty == true)
+                              Text(
+                                provider.integrityReport!.warnings.join(' • '),
+                                style: const TextStyle(
+                                  color: Color(0xFFFDE68A),
+                                  fontSize: 10,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      AppFeedback.tap();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const AuditLogScreen()),
+                      );
+                    },
+                    icon: const Icon(Icons.policy_outlined, size: 16, color: Color(0xFF38BDF8)),
+                    label: const Text(
+                      'Jejak Audit Keamanan (Read-Only)',
+                      style: TextStyle(color: Color(0xFF67E8F9), fontSize: 11.5, fontWeight: FontWeight.w800),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: const Color(0xFF38BDF8).withOpacity(0.45)),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -1072,7 +1133,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _sectionHeader('5. DATA & CADANGAN', 'Backup Lokal .JSON & Google Drive PRO', const Color(0xFF67E8F9)),
+                _sectionHeader('5. DATA & CADANGAN', 'Backup .KSBAK Terenkripsi, .JSON & Google Drive PRO', const Color(0xFF67E8F9)),
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -1080,18 +1141,80 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       child: OutlinedButton(
                         onPressed: _backupJson,
                         style: OutlinedButton.styleFrom(side: BorderSide(color: const Color(0xFF10B981).withOpacity(0.5))),
-                        child: const Text('⬇️ Backup .JSON', style: TextStyle(color: Color(0xFF6EE7B7), fontSize: 11.5, fontWeight: FontWeight.w800)),
+                        child: const Text('⬇️ Backup .JSON', style: TextStyle(color: Color(0xFF6EE7B7), fontSize: 11, fontWeight: FontWeight.w800)),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => EncryptedBackupHelper.backupEncryptedKsbak(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF0E7490),
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text('🔐 Backup .KSBAK', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900)),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () => EncryptedBackupHelper.restoreBackupAnyFormat(context, provider),
+                    style: OutlinedButton.styleFrom(side: BorderSide(color: const Color(0xFF38BDF8).withOpacity(0.5))),
+                    child: const Text('⬆️ Pulihkan Backup (.JSON / .KSBAK)', style: TextStyle(color: Color(0xFF67E8F9), fontSize: 11.5, fontWeight: FontWeight.w800)),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          AppFeedback.tap();
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const ImportSantriExcelScreen()),
+                          );
+                        },
+                        style: OutlinedButton.styleFrom(side: BorderSide(color: const Color(0xFF34D399).withOpacity(0.45))),
+                        child: const Text('📥 Import Excel', style: TextStyle(color: Color(0xFF6EE7B7), fontSize: 11, fontWeight: FontWeight.w800)),
                       ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: _restoreLocalJson,
-                        style: OutlinedButton.styleFrom(side: BorderSide(color: const Color(0xFF38BDF8).withOpacity(0.5))),
-                        child: const Text('⬆️ Restore .JSON', style: TextStyle(color: Color(0xFF67E8F9), fontSize: 11.5, fontWeight: FontWeight.w800)),
+                        onPressed: () {
+                          AppFeedback.tap();
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const CetakKartuQrScreen()),
+                          );
+                        },
+                        style: OutlinedButton.styleFrom(side: BorderSide(color: const Color(0xFFFBBF24).withOpacity(0.45))),
+                        child: Text(
+                          isPro ? '🪪 Kartu QR PDF' : '🪪 Kartu QR 👑',
+                          style: const TextStyle(color: Color(0xFFFDE68A), fontSize: 11, fontWeight: FontWeight.w800),
+                        ),
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () {
+                      AppFeedback.tap();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const TahunAjaranScreen()),
+                      );
+                    },
+                    style: OutlinedButton.styleFrom(side: BorderSide(color: const Color(0xFF38BDF8).withOpacity(0.45))),
+                    child: const Text('🎓 Manajemen Tahun Ajaran & Mutasi Kamar', style: TextStyle(color: Color(0xFF67E8F9), fontSize: 11.5, fontWeight: FontWeight.w800)),
+                  ),
                 ),
                 const SizedBox(height: 10),
                 Container(

@@ -8,6 +8,7 @@ import '../models/pengaturan.dart';
 import '../models/cash_opname_log.dart';
 import '../models/infak_santri.dart';
 import '../models/serah_terima_infak.dart';
+import '../models/audit_log.dart';
 import '../utils/time_category_helper.dart';
 import '../utils/date_formatter.dart';
 import '../utils/currency_formatter.dart';
@@ -29,7 +30,7 @@ class DatabaseHelper {
     _database = db;
   }
 
-  Future<void> createSchemaForTesting(Database db) => _createDB(db, 3);
+  Future<void> createSchemaForTesting(Database db) => _createDB(db, 4);
 
   Future<void> upgradeSchemaForTesting(Database db, int oldVersion, int newVersion) =>
       _upgradeDB(db, oldVersion, newVersion);
@@ -40,7 +41,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
       onOpen: (db) async {
@@ -82,6 +83,7 @@ class DatabaseHelper {
     await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'default_infak_beras_uang INTEGER NOT NULL DEFAULT 150000');
 
     await _createV3InfakTablesAndIndexes(db);
+    await _createV33AuditTableAndIndex(db);
 
     try {
       await db.execute('CREATE INDEX IF NOT EXISTS idx_tx_santri_tgl ON transaksi_harian (santri_id, tanggal_lokal, is_void);');
@@ -133,6 +135,24 @@ class DatabaseHelper {
     try {
       await db.execute('CREATE INDEX IF NOT EXISTS idx_infak_periode_santri ON infak_santri (periode_bulan, santri_id);');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_serah_terima_periode ON serah_terima_infak (periode_bulan, tanggal_serah);');
+    } catch (_) {}
+  }
+
+  Future<void> _createV33AuditTableAndIndex(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS audit_log (
+        id TEXT PRIMARY KEY,
+        created_at TEXT NOT NULL,
+        actor TEXT NOT NULL,
+        action TEXT NOT NULL,
+        target_id TEXT,
+        summary TEXT NOT NULL,
+        prev_hash TEXT NOT NULL,
+        entry_hash TEXT NOT NULL
+      )
+    ''');
+    try {
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_audit_log_created ON audit_log (created_at);');
     } catch (_) {}
   }
 
@@ -241,6 +261,10 @@ class DatabaseHelper {
       await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'default_infak_beras_liter REAL NOT NULL DEFAULT 15.0');
       await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'default_infak_beras_uang INTEGER NOT NULL DEFAULT 150000');
       await _createV3InfakTablesAndIndexes(db);
+    }
+
+    if (oldVersion < 4) {
+      await _createV33AuditTableAndIndex(db);
     }
   }
 
@@ -383,6 +407,7 @@ class DatabaseHelper {
     ''');
 
     await _createV3InfakTablesAndIndexes(db);
+    await _createV33AuditTableAndIndex(db);
 
     // Composite & supporting indexes untuk performa query < 100ms
     await db.execute(
@@ -1357,10 +1382,11 @@ class DatabaseHelper {
     final cashOpnameList = await db.query('cash_opname_logs');
     final infakSantriList = await db.query('infak_santri');
     final serahTerimaInfakList = await db.query('serah_terima_infak');
+    final auditLogList = await db.query('audit_log', orderBy: 'created_at ASC, rowid ASC');
     final pengaturanList = await db.query('pengaturan_aplikasi');
 
     return {
-      'version': 30,
+      'version': 33,
       'exported_at': DateTime.now().toIso8601String(),
       'santri': santriList,
       'setoran_bulanan': setoranList,
@@ -1370,6 +1396,7 @@ class DatabaseHelper {
       'cash_opname_logs': cashOpnameList,
       'infak_santri': infakSantriList,
       'serah_terima_infak': serahTerimaInfakList,
+      'audit_log': auditLogList,
       'pengaturan_aplikasi': pengaturanList,
     };
   }
@@ -1498,6 +1525,19 @@ class DatabaseHelper {
           await txn.insert(
             'serah_terima_infak',
             _filterRowColumns(map, serahCols),
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
+        }
+      }
+
+      if (data['audit_log'] is List) {
+        await txn.delete('audit_log');
+        final auditCols = await _getTableColumns(txn, 'audit_log');
+        for (var row in (data['audit_log'] as List)) {
+          final map = Map<String, dynamic>.from(row as Map);
+          await txn.insert(
+            'audit_log',
+            _filterRowColumns(map, auditCols),
             conflictAlgorithm: ConflictAlgorithm.replace,
           );
         }
@@ -2294,5 +2334,196 @@ class DatabaseHelper {
       'beras_serah': berasSerah,
       'beras_stok': sisaBeras < 0 ? 0.0 : sisaBeras,
     };
+  }
+
+  // ==================== AUDIT LOG KEAMANAN (IMMUTABLE INSERT-ONLY) ====================
+
+  /// Menambahkan catatan audit baru dengan pengikatan SHA-256 hash berantai (`prev_hash -> entry_hash`).
+  /// Bersifat INSERT-only; tidak ada metode hapus atau edit catatan audit.
+  Future<AuditLogEntry> insertAuditLog({
+    required String actor,
+    required String action,
+    String? targetId,
+    required String summary,
+    DateTime? timestamp,
+  }) async {
+    final db = await database;
+    return db.transaction((txn) async {
+      final latestRows = await txn.query(
+        'audit_log',
+        columns: ['entry_hash'],
+        orderBy: 'created_at DESC, rowid DESC',
+        limit: 1,
+      );
+      final prevHash = latestRows.isNotEmpty
+          ? (latestRows.first['entry_hash']?.toString() ?? AuditLogEntry.genesisHash)
+          : AuditLogEntry.genesisHash;
+
+      final id = const Uuid().v4();
+      final createdAt = (timestamp ?? DateTime.now()).toIso8601String();
+      final cleanActor = actor.trim().isNotEmpty ? actor.trim() : 'Bendahara';
+      final cleanAction = action.trim().toUpperCase();
+      final entryHash = AuditLogEntry.computeChainHash(
+        id: id,
+        createdAt: createdAt,
+        actor: cleanActor,
+        action: cleanAction,
+        targetId: targetId,
+        summary: summary,
+        prevHash: prevHash,
+      );
+
+      final entry = AuditLogEntry(
+        id: id,
+        createdAt: createdAt,
+        actor: cleanActor,
+        action: cleanAction,
+        targetId: targetId,
+        summary: summary,
+        prevHash: prevHash,
+        entryHash: entryHash,
+      );
+
+      await txn.insert('audit_log', entry.toMap());
+      return entry;
+    });
+  }
+
+  Future<List<AuditLogEntry>> getAuditLogs({
+    int limit = 200,
+    String? actionFilter,
+  }) async {
+    final db = await database;
+    final rows = await db.query(
+      'audit_log',
+      where: (actionFilter != null && actionFilter.trim().isNotEmpty)
+          ? 'action = ?'
+          : null,
+      whereArgs: (actionFilter != null && actionFilter.trim().isNotEmpty)
+          ? [actionFilter.trim().toUpperCase()]
+          : null,
+      orderBy: 'created_at DESC, rowid DESC',
+      limit: limit,
+    );
+    return rows.map(AuditLogEntry.fromMap).toList();
+  }
+
+  Future<AuditLogVerificationResult> verifyAuditLogIntegrity() async {
+    final db = await database;
+    final rows = await db.query(
+      'audit_log',
+      orderBy: 'created_at ASC, rowid ASC',
+    );
+    final entries = rows.map(AuditLogEntry.fromMap).toList();
+    return AuditLogEntry.verifyChain(entries);
+  }
+
+  // ==================== OPERASI MASSAL & ANALITIK v4.0 ====================
+
+  Future<int> bulkInsertSantri(
+    List<Santri> santriList, {
+    String sumberDompet = 'TUNAI',
+  }) async {
+    if (santriList.isEmpty) return 0;
+    final db = await database;
+    final dompet = _normalizeDompet(sumberDompet);
+    final now = DateTime.now();
+    final todayStr = DateFormatter.toLocalDateString(now);
+
+    await db.transaction((txn) async {
+      for (final santri in santriList) {
+        await txn.insert('santri', santri.toMap());
+        if (santri.saldoTotal > 0) {
+          await txn.insert('mutasi_dompet', {
+            'id': const Uuid().v4(),
+            'jenis_dompet': dompet,
+            'tipe': 'MASUK',
+            'nominal': santri.saldoTotal,
+            'referensi_id': santri.id,
+            'catatan': 'Import Excel Saldo Awal ${santri.namaLengkap}',
+            'tanggal_lokal': todayStr,
+            'created_at': now.toIso8601String(),
+          });
+        }
+      }
+    });
+    return santriList.length;
+  }
+
+  Future<int> bulkMoveKamar(List<String> santriIds, String newKamar) async {
+    final cleanKamar = newKamar.trim();
+    if (santriIds.isEmpty || cleanKamar.isEmpty) return 0;
+    final db = await database;
+    var updatedCount = 0;
+    await db.transaction((txn) async {
+      for (final id in santriIds) {
+        final cnt = await txn.update(
+          'santri',
+          {'kamar': cleanKamar},
+          where: 'id = ?',
+          whereArgs: [id],
+        );
+        updatedCount += cnt;
+      }
+    });
+    return updatedCount;
+  }
+
+  Future<int> bulkArchiveSantriStatus(
+    List<String> santriIds, {
+    required String newStatusSantri,
+  }) async {
+    if (santriIds.isEmpty) return 0;
+    final normalizedStatus = Santri.normalizeStatusSantri(newStatusSantri);
+    final db = await database;
+    var updatedCount = 0;
+    await db.transaction((txn) async {
+      for (final id in santriIds) {
+        final cnt = await txn.update(
+          'santri',
+          {
+            'status_santri': normalizedStatus,
+            'status_aktif': 0,
+          },
+          where: 'id = ?',
+          whereArgs: [id],
+        );
+        updatedCount += cnt;
+      }
+    });
+    return updatedCount;
+  }
+
+  Future<List<Map<String, dynamic>>> getAllSetoranByDateRange({
+    String? tanggalMulai,
+    String? tanggalSelesai,
+  }) async {
+    final db = await database;
+    final conditions = <String>[];
+    final args = <dynamic>[];
+    if (tanggalMulai != null && tanggalMulai.isNotEmpty) {
+      conditions.add('tanggal_setor >= ?');
+      args.add(tanggalMulai);
+    }
+    if (tanggalSelesai != null && tanggalSelesai.isNotEmpty) {
+      conditions.add('tanggal_setor <= ?');
+      args.add(tanggalSelesai);
+    }
+    final whereClause = conditions.isEmpty ? null : conditions.join(' AND ');
+    return db.query(
+      'setoran_bulanan',
+      where: whereClause,
+      whereArgs: args.isEmpty ? null : args,
+      orderBy: 'tanggal_setor DESC',
+    );
+  }
+
+  Future<int> getVoidCountSince(DateTime since) async {
+    final db = await database;
+    final rows = await db.rawQuery(
+      'SELECT COUNT(*) as cnt FROM transaksi_harian WHERE is_void = 1 AND waktu_ambil >= ?',
+      [since.toIso8601String()],
+    );
+    return (rows.first['cnt'] as num?)?.toInt() ?? 0;
   }
 }

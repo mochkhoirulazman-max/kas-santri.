@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:crypto/crypto.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import '../models/bendahara_account.dart';
@@ -14,16 +16,76 @@ class AccountAuthService {
   static const String _keyRememberSession = 'ks_v32_remember_session';
   static const String _keyExplicitlyLoggedOut = 'ks_v32_explicitly_logged_out';
 
-  static String hashPassword(String usernameOrEmail, String password) {
+  static final FlutterSecureStorage _secureStorage = const FlutterSecureStorage(
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  );
+
+  static String _generateSalt16Base64() {
+    final rng = Random.secure();
+    final bytes = List<int>.generate(16, (_) => rng.nextInt(256));
+    return base64UrlEncode(bytes);
+  }
+
+  /// Hash password dengan random 16-byte salt per akun (`v33:<salt>:<sha256>`).
+  static String hashPassword(String usernameOrEmail, String password, {String? salt}) {
+    final normalized = usernameOrEmail.trim().toLowerCase();
+    final s = salt ?? _generateSalt16Base64();
+    final bytes = utf8.encode('ks_v33_pwd:$s:$normalized:$password');
+    final digest = sha256.convert(bytes).toString();
+    return 'v33:$s:$digest';
+  }
+
+  /// Format hash legacy v3.2 untuk kompatibilitas migrasi akun lama.
+  static String _hashLegacyV32Password(String usernameOrEmail, String password) {
     final normalized = usernameOrEmail.trim().toLowerCase();
     final bytes = utf8.encode('ks_v32_pwd:$normalized:$password');
     return sha256.convert(bytes).toString();
   }
 
-  Future<List<BendaharaAccount>> getAllAccounts() async {
+  static bool verifyPasswordHash({
+    required String usernameOrEmail,
+    required String password,
+    required String? storedHash,
+  }) {
+    if (storedHash == null || storedHash.isEmpty) return false;
+    if (storedHash.startsWith('v33:')) {
+      final parts = storedHash.split(':');
+      if (parts.length != 3 || parts[1].isEmpty) return false;
+      return hashPassword(usernameOrEmail, password, salt: parts[1]) == storedHash;
+    }
+    return storedHash == _hashLegacyV32Password(usernameOrEmail, password);
+  }
+
+  Future<String?> _readSecureOrPref(String key) async {
+    try {
+      final sec = await _secureStorage.read(key: key);
+      if (sec != null && sec.isNotEmpty) return sec;
+    } catch (_) {}
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_keyAccountsJson);
+    return prefs.getString(key);
+  }
+
+  Future<void> _writeSecureAndClearPref(String key, String value) async {
+    bool written = false;
+    try {
+      await _secureStorage.write(key: key, value: value);
+      written = true;
+    } catch (_) {
+      written = false;
+    }
+    final prefs = await SharedPreferences.getInstance();
+    if (written) {
+      await prefs.remove(key);
+    } else {
+      await prefs.setString(key, value);
+    }
+  }
+
+  Future<List<BendaharaAccount>> getAllAccounts() async {
+    final raw = await _readSecureOrPref(_keyAccountsJson);
     if (raw == null || raw.trim().isEmpty) return [];
+    // Migrasi transparan dari SharedPreferences ke SecureStorage jika baru dibaca dari prefs
+    await _writeSecureAndClearPref(_keyAccountsJson, raw);
     try {
       final decoded = jsonDecode(raw);
       if (decoded is! List) return [];
@@ -37,9 +99,8 @@ class AccountAuthService {
   }
 
   Future<void> _saveAccounts(List<BendaharaAccount> list) async {
-    final prefs = await SharedPreferences.getInstance();
     final encoded = jsonEncode(list.map((a) => a.toMap()).toList());
-    await prefs.setString(_keyAccountsJson, encoded);
+    await _writeSecureAndClearPref(_keyAccountsJson, encoded);
   }
 
   Future<bool> getRememberSession() async {
@@ -53,8 +114,7 @@ class AccountAuthService {
   }
 
   Future<BendaharaAccount?> getActiveAccount() async {
-    final prefs = await SharedPreferences.getInstance();
-    final activeId = prefs.getString(_keyActiveAccountId);
+    final activeId = await _readSecureOrPref(_keyActiveAccountId);
     if (activeId == null || activeId.isEmpty) return null;
     final accounts = await getAllAccounts();
     for (final acc in accounts) {
@@ -67,8 +127,8 @@ class AccountAuthService {
     String accountId, {
     required bool rememberSession,
   }) async {
+    await _writeSecureAndClearPref(_keyActiveAccountId, accountId);
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyActiveAccountId, accountId);
     await prefs.setBool(_keyRememberSession, rememberSession);
     await prefs.setBool(_keyExplicitlyLoggedOut, false);
   }
@@ -152,15 +212,27 @@ class AccountAuthService {
     }
 
     final accounts = await getAllAccounts();
-    final expectedHash = hashPassword(cleanUser, password);
 
-    for (final acc in accounts) {
+    for (var i = 0; i < accounts.length; i++) {
+      final acc = accounts[i];
       if (acc.authMode != BendaharaAccount.modeLocal) continue;
       final matchUser = (acc.username?.toLowerCase() == cleanUser) ||
           (acc.email?.toLowerCase() == cleanUser);
-      if (matchUser && acc.passwordHash == expectedHash) {
-        await _setActiveSession(acc.id, rememberSession: rememberSession);
-        return acc;
+      if (matchUser &&
+          verifyPasswordHash(
+            usernameOrEmail: cleanUser,
+            password: password,
+            storedHash: acc.passwordHash,
+          )) {
+        var resolved = acc;
+        // Auto-upgrade hash legacy ke random 16-byte salted v3.3
+        if (acc.passwordHash == null || !acc.passwordHash!.startsWith('v33:')) {
+          resolved = acc.copyWith(passwordHash: hashPassword(cleanUser, password));
+          accounts[i] = resolved;
+          await _saveAccounts(accounts);
+        }
+        await _setActiveSession(resolved.id, rememberSession: rememberSession);
+        return resolved;
       }
     }
 
@@ -258,7 +330,11 @@ class AccountAuthService {
       throw Exception('Ganti password hanya tersedia untuk akun login lokal.');
     }
     final userKey = (active.username ?? active.email ?? '').trim().toLowerCase();
-    if (active.passwordHash != hashPassword(userKey, oldPassword)) {
+    if (!verifyPasswordHash(
+      usernameOrEmail: userKey,
+      password: oldPassword,
+      storedHash: active.passwordHash,
+    )) {
       throw Exception('Password lama tidak cocok.');
     }
     if (newPassword.length < 6) {

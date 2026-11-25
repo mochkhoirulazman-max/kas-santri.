@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kas-Santri Admin Command Center (v3.4)</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
+  <script src="ed25519.js" defer></script>
+  <script src="storage.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+
+  <!-- LAYAR LOGIN ADMIN -->
+  <div id="loginOverlay" class="login-overlay">
+    <div class="glass-card gold-border login-box">
+      <div class="brand-pill">👑 KAS-SANTRI ADMIN COMMAND CENTER</div>
+      <h2 style="margin: 12px 0 4px; font-size: 21px; font-weight: 900;">Masuk Panel Kontrol Admin</h2>
+      <p style="margin: 0 0 16px; font-size: 12px; color: var(--text-muted); line-height: 1.45;">
+        Panel terpisah untuk CRM pelanggan, pembukuan omset, generator lisensi Ed25519, dan remote revoke APK.
+      </p>
+
+      <div class="nav-tabs" style="margin-bottom: 14px;">
+        <button type="button" id="tabLoginOffline" class="nav-tab active" style="flex:1;">💾 Mode Offline</button>
+        <button type="button" id="tabLoginCloud" class="nav-tab" style="flex:1;">☁️ Supabase Cloud</button>
+      </div>
+
+      <!-- Form Login Offline -->
+      <form id="formOfflineLogin">
+        <div class="field-group">
+          <label id="offlinePasswordLabel" for="offlinePasswordInput">PIN / Password Admin Lokal</label>
+          <input type="password" id="offlinePasswordInput" placeholder="Minimal 4 karakter..." required />
+        </div>
+        <p id="offlineFirstTimeHint" class="hidden" style="margin: -4px 0 12px; font-size: 11px; color: var(--gold-soft);">
+          Pertama kali dibuka: password yang Anda ketik akan disimpan sebagai Password Admin Lokal.
+        </p>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Buka Dashboard Mode Offline</button>
+      </form>
+
+      <!-- Form Login Cloud Supabase -->
+      <form id="formCloudLogin" class="hidden">
+        <div class="field-group">
+          <label for="loginSbUrl">Supabase Project URL</label>
+          <input type="text" id="loginSbUrl" placeholder="https://xxxxxxxxxxxx.supabase.co" required />
+        </div>
+        <div class="field-group">
+          <label for="loginSbAnonKey">Supabase Anon Public Key</label>
+          <input type="text" id="loginSbAnonKey" placeholder="eyJhbGciOiJIUzI1NiIs..." required />
+        </div>
+        <div class="field-group">
+          <label for="loginSbEmail">Email Admin Terdaftar</label>
+          <input type="email" id="loginSbEmail" placeholder="admin@pondokanda.com" required />
+        </div>
+        <div class="field-group">
+          <label for="loginSbPassword">Password Supabase Auth</label>
+          <input type="password" id="loginSbPassword" placeholder="Password akun admin" required />
+        </div>
+        <button type="submit" class="btn btn-gold" style="width: 100%;">Login & Sinkronkan Cloud Supabase</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- SHELL UTAMA DASHBOARD ADMIN -->
+  <div id="appShell" class="app-shell hidden">
+    <header class="glass-card emerald-border topbar">
+      <div class="topbar-title">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <span class="brand-pill">👑 KAS-SANTRI COMMAND CENTER</span>
+          <span id="modeBadge" class="badge badge-aktif">💾 Mode Offline</span>
+        </div>
+        <h1>Panel Admin — Moch Khoirul Azman</h1>
+        <p id="topbarSubtitle">DANA Resmi: 082130678956 • Lisensi Asimetris Ed25519 • Zero-APK Bundle</p>
+      </div>
+      <div class="topbar-actions">
+        <button type="button" id="btnRefreshData" class="btn btn-outline btn-sm">🔄 Sinkronkan</button>
+        <button type="button" id="btnSeedDemo" class="btn btn-outline btn-sm">🧪 Isi Contoh Data</button>
+        <button type="button" id="btnOpenSettings" class="btn btn-outline btn-sm">⚙️ Kredensial & Kunci</button>
+        <button type="button" id="btnLogout" class="btn btn-danger btn-sm">Keluar</button>
+      </div>
+    </header>
+
+    <nav class="nav-tabs">
+      <button type="button" class="nav-tab active" data-section="sec-overview">📊 Ringkasan & Omset</button>
+      <button type="button" class="nav-tab" data-section="sec-generator">🔐 Generator Ed25519</button>
+      <button type="button" class="nav-tab" data-section="sec-crm">🏫 CRM Pelanggan APK</button>
+      <button type="button" class="nav-tab" data-section="sec-remote">📣 Update APK & Pembukuan</button>
+    </nav>
+
+    <!-- SECTION 1: KPI & GRAFIK -->
+    <section id="sec-overview">
+      <div class="kpi-grid">
+        <div class="glass-card gold-border kpi-card">
+          <div class="kpi-label">Total Omset Keseluruhan</div>
+          <div id="kpiTotalOmset" class="kpi-value" style="color: var(--gold);">Rp 0</div>
+          <div id="kpiTxCount" class="kpi-sub">0 transaksi lisensi tercatat</div>
+        </div>
+        <div class="glass-card emerald-border kpi-card">
+          <div class="kpi-label">Omset Bulan Ini</div>
+          <div id="kpiMonthOmset" class="kpi-value" style="color: var(--emerald);">Rp 0</div>
+          <div id="kpiMonthLabel" class="kpi-sub">Periode berjalan</div>
+        </div>
+        <div class="glass-card kpi-card">
+          <div class="kpi-label">Pondok Aktif PRO</div>
+          <div id="kpiActivePro" class="kpi-value" style="color: #6ee7b7;">0</div>
+          <div id="kpiActiveBreakdown" class="kpi-sub">Bulanan / Tahunan / Lifetime</div>
+        </div>
+        <div class="glass-card kpi-card">
+          <div class="kpi-label">Sedang Trial 14 Hari</div>
+          <div id="kpiTrialCount" class="kpi-value" style="color: var(--cyan);">0</div>
+          <div id="kpiTrialHot" class="kpi-sub">0 siap follow-up (hari ke-10+)</div>
+        </div>
+        <div class="glass-card kpi-card">
+          <div class="kpi-label">Pengguna Gratis / Expired</div>
+          <div id="kpiFreeCount" class="kpi-value" style="color: #cbd5e1;">0</div>
+          <div class="kpi-sub">Potensi konversi upgrade PRO</div>
+        </div>
+        <div class="glass-card kpi-card">
+          <div class="kpi-label">Hampir Habis (&lt;7h) / Diblokir</div>
+          <div id="kpiExpiringSoon" class="kpi-value" style="color: var(--rose);">0</div>
+          <div id="kpiRevokedCount" class="kpi-sub">0 lisensi dicabut admin</div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="glass-card panel-pad">
+          <div class="section-head">
+            <div>
+              <h2>Tren Omset Bulanan (Rp)</h2>
+              <p>Akumulasi pemasukan DANA &amp; Google Play Billing per bulan</p>
+            </div>
+          </div>
+          <div style="height: 250px; position: relative;">
+            <canvas id="revenueChart"></canvas>
+            <div id="chartOfflineFallback1" class="hidden" style="color: var(--text-muted); font-size: 12px; padding-top: 20px;"></div>
+          </div>
+        </div>
+
+        <div class="glass-card panel-pad">
+          <div class="section-head">
+            <div>
+              <h2>Pertumbuhan &amp; Komposisi Pondok</h2>
+              <p>Distribusi status lisensi seluruh perangkat APK</p>
+            </div>
+          </div>
+          <div style="height: 250px; position: relative;">
+            <canvas id="growthChart"></canvas>
+            <div id="chartOfflineFallback2" class="hidden" style="color: var(--text-muted); font-size: 12px; padding-top: 20px;"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 2: GENERATOR ED25519 TERINTEGRASI -->
+    <section id="sec-generator" class="hidden">
+      <div class="two-col">
+        <div class="glass-card gold-border panel-pad">
+          <div class="section-head">
+            <div>
+              <h2>🔐 Kunci Privat Ed25519 Admin</h2>
+              <p>Hanya disimpan sementara di memori sesi browser Admin (tidak pernah masuk APK)</p>
+            </div>
+            <span id="edKeyBadge" class="badge badge-warn">Belum Dimuat</span>
+          </div>
+
+          <div class="field-group">
+            <label for="edSeedInput">Private Seed Base64 (32-Byte dari tool/generate_keypair.dart)</label>
+            <input type="password" id="edSeedInput" class="mono" placeholder="Tempel Private Seed Base64 di sini..." />
+          </div>
+
+          <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+            <button type="button" id="btnApplySeed" class="btn btn-primary btn-sm">Simpan ke Sesi</button>
+            <button type="button" id="btnToggleSeedVis" class="btn btn-outline btn-sm">👁️ Intip/Sembunyikan</button>
+            <button type="button" id="btnNewEdKeypair" class="btn btn-gold btn-sm">✨ Buat Keypair Baru</button>
+          </div>
+
+          <div class="field-group" style="margin-bottom:0;">
+            <label for="edPubKeyOutput">Public Key Base64 (Tempel ke LicenseService.defaultPublicKeyBase64 di APK)</label>
+            <div style="display:flex; gap:8px;">
+              <input type="text" id="edPubKeyOutput" class="mono" readonly placeholder="Otomatis dihitung dari Private Seed..." />
+              <button type="button" id="btnCopyPubKey" class="btn btn-outline btn-sm">Salin</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-card emerald-border panel-pad">
+          <div class="section-head">
+            <div>
+              <h2>⚡ Generator Kode Lisensi PRO + Catat CRM</h2>
+              <p>Menandatangani payload DeviceID|Tier|Expiry dengan Ed25519 dan langsung mencatat omset</p>
+            </div>
+          </div>
+
+          <form id="formGenerateLicense">
+            <div class="two-col" style="margin-bottom:0; gap:10px;">
+              <div class="field-group">
+                <label for="genDeviceId">Device ID Pembeli</label>
+                <input type="text" id="genDeviceId" class="mono" placeholder="KS-A7B94X2M" required />
+              </div>
+              <div class="field-group">
+                <label for="genNoWa">No. WhatsApp Pembeli</label>
+                <input type="text" id="genNoWa" placeholder="081234567890" required />
+              </div>
+            </div>
+
+            <div class="two-col" style="margin-bottom:0; gap:10px;">
+              <div class="field-group">
+                <label for="genNamaPondok">Nama Pondok</label>
+                <input type="text" id="genNamaPondok" placeholder="PPS Miftahussunan" required />
+              </div>
+              <div class="field-group">
+                <label for="genNamaBendahara">Nama Bendahara</label>
+                <input type="text" id="genNamaBendahara" placeholder="Ustadz Ahmad" />
+              </div>
+            </div>
+
+            <div class="two-col" style="margin-bottom:0; gap:10px;">
+              <div class="field-group">
+                <label for="genTier">Paket Lisensi</label>
+                <select id="genTier">
+                  <option value="YEARLY">PRO Tahunan (Rp 179.000 / 366 hari)</option>
+                  <option value="MONTHLY">PRO Bulanan (Rp 25.000 / 31 hari)</option>
+                  <option value="LIFETIME">PRO Lifetime Selamanya (Rp 399.000)</option>
+                </select>
+              </div>
+              <div class="field-group">
+                <label for="genChannel">Sumber Pembayaran</label>
+                <select id="genChannel">
+                  <option value="DANA">Transfer DANA / QRIS (082130678956)</option>
+                  <option value="PLAY_STORE">Google Play Store</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="two-col" style="margin-bottom:0; gap:10px;">
+              <div class="field-group">
+                <label for="genNominal">Nominal Masuk (Rp)</label>
+                <input type="number" id="genNominal" value="179000" min="0" required />
+              </div>
+              <div class="field-group">
+                <label for="genDays">Durasi Aktif (Hari, abaikan jika Lifetime)</label>
+                <input type="number" id="genDays" value="366" min="1" />
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width:100%;">🔑 Generate Kode Ed25519 &amp; Simpan Pelanggan</button>
+          </form>
+
+          <div id="generatedResultBox" class="code-output-box hidden">
+            <div style="font-size:11px; color:var(--emerald); font-weight:800; margin-bottom:6px;">
+              ✅ KODE LISENSI TERVERIFIKASI ED25519 &amp; TERSIMPAN KE CRM:
+            </div>
+            <div id="generatedCodeText" class="mono" style="font-size:13px; color:var(--gold-soft); font-weight:800;"></div>
+            <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;">
+              <button type="button" id="btnCopyGeneratedCode" class="btn btn-outline btn-sm">📋 Salin Kode</button>
+              <button type="button" id="btnCopyWaMessage" class="btn btn-outline btn-sm">💬 Salin Pesan WA</button>
+              <a id="btnSendWaDirect" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-wa btn-sm">📲 Kirim Kode via WA</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 3: CRM PELANGGAN -->
+    <section id="sec-crm" class="hidden">
+      <div class="glass-card panel-pad">
+        <div class="section-head">
+          <div>
+            <h2>🏫 CRM Data Pelanggan APK</h2>
+            <p>Pantau pondok aktif, trial hari ke-10+, paket hampir habis (&lt;7 hari), follow-up WA 1-klik, dan cabut lisensi</p>
+          </div>
+          <button type="button" id="btnAddCustomer" class="btn btn-primary btn-sm">+ Tambah Pelanggan Manual</button>
+        </div>
+
+        <div class="filter-bar">
+          <div style="flex:1; min-width:220px;">
+            <input type="text" id="crmSearchInput" placeholder="Cari Nama Pondok, Bendahara, No. WA, atau Device ID..." />
+          </div>
+          <div class="filter-chips" id="crmFilterChips">
+            <button type="button" class="chip active" data-filter="ALL">Semua</button>
+            <button type="button" class="chip" data-filter="AKTIF">Aktif PRO</button>
+            <button type="button" class="chip" data-filter="TRIAL">Trial 14 Hari</button>
+            <button type="button" class="chip" data-filter="EXPIRING">Hampir Habis &lt;7h</button>
+            <button type="button" class="chip" data-filter="GRATIS">Gratis</button>
+            <button type="button" class="chip" data-filter="EXPIRED">Expired</button>
+            <button type="button" class="chip" data-filter="DIBLOKIR">Diblokir</button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Pondok &amp; Bendahara</th>
+                <th>WhatsApp</th>
+                <th>Device ID</th>
+                <th>Paket &amp; Sumber</th>
+                <th>Total Bayar</th>
+                <th>Aktif / Expired</th>
+                <th>Versi</th>
+                <th>Status</th>
+                <th>Aksi Admin</th>
+              </tr>
+            </thead>
+            <tbody id="crmTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 4: REMOTE CONFIG & PEMBUKUAN -->
+    <section id="sec-remote" class="hidden">
+      <div class="two-col">
+        <div class="glass-card emerald-border panel-pad">
+          <div class="section-head">
+            <div>
+              <h2>📣 Pengumuman &amp; Kontrol Versi APK (`app_remote_config`)</h2>
+              <p>Tampil sebagai banner halus di Beranda APK saat perangkat online</p>
+            </div>
+          </div>
+
+          <form id="formRemoteConfig">
+            <div class="two-col" style="margin-bottom:0; gap:10px;">
+              <div class="field-group">
+                <label for="rcLatestVersion">Versi Terbaru APK</label>
+                <input type="text" id="rcLatestVersion" class="mono" placeholder="3.4.0" required />
+              </div>
+              <div class="field-group">
+                <label for="rcMinVersion">Versi Minimum Didukung</label>
+                <input type="text" id="rcMinVersion" class="mono" placeholder="3.0.0" required />
+              </div>
+            </div>
+            <div class="field-group">
+              <label for="rcTitle">Judul Pengumuman / Promo</label>
+              <input type="text" id="rcTitle" placeholder="Contoh: Pembaruan Kas-Santri v3.5 Tersedia!" />
+            </div>
+            <div class="field-group">
+              <label for="rcBody">Isi Pesan Singkat</label>
+              <textarea id="rcBody" rows="3" placeholder="Tambahkan pesan info update atau promo PRO untuk bendahara..."></textarea>
+            </div>
+            <div class="field-group">
+              <label for="rcUrl">Tautan Unduhan / Info Update (HTTPS)</label>
+              <input type="text" id="rcUrl" placeholder="https://mochkhoirulazman-max.github.io/kas-santri./" />
+            </div>
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+              <input type="checkbox" id="rcPromoActive" style="width:18px; height:18px;" />
+              <label for="rcPromoActive" style="font-size:12.5px; cursor:pointer;">Aktifkan Banner Pengumuman di Aplikasi</label>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%;">💾 Simpan &amp; Publikasikan Konfigurasi</button>
+          </form>
+        </div>
+
+        <div class="glass-card gold-border panel-pad">
+          <div class="section-head">
+            <div>
+              <h2>📒 Pembukuan Omset &amp; Ekspor Data</h2>
+              <p>Unduh laporan CSV pelanggan, omset transaksi, atau backup/restore JSON Admin</p>
+            </div>
+          </div>
+
+          <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px;">
+            <button type="button" id="btnExportCustomersCsv" class="btn btn-outline btn-sm">📊 Ekspor Pelanggan (.CSV)</button>
+            <button type="button" id="btnExportTxCsv" class="btn btn-gold btn-sm">💰 Ekspor Pembukuan Omset (.CSV)</button>
+            <button type="button" id="btnExportAdminJson" class="btn btn-outline btn-sm">⬇️ Backup Admin (.JSON)</button>
+            <label class="btn btn-outline btn-sm" style="cursor:pointer;">
+              ⬆️ Impor Admin (.JSON)
+              <input type="file" id="inputImportAdminJson" accept=".json" class="hidden" />
+            </label>
+          </div>
+
+          <div class="table-wrap" style="max-height: 290px;">
+            <table style="min-width: 560px;">
+              <thead>
+                <tr>
+                  <th>Tanggal</th>
+                  <th>Device ID</th>
+                  <th>Paket</th>
+                  <th>Metode</th>
+                  <th>Nominal</th>
+                </tr>
+              </thead>
+              <tbody id="txTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- MODAL TAMBAH / EDIT PELANGGAN -->
+  <div id="customerModal" class="modal-backdrop hidden">
+    <div class="glass-card emerald-border modal-box">
+      <div class="section-head">
+        <div>
+          <h2 id="modalCustomerTitle">Edit Pelanggan APK</h2>
+          <p>Kelola informasi pondok, paket, tanggal berakhir, dan catatan internal</p>
+        </div>
+        <button type="button" id="btnCloseCustomerModal" class="btn btn-outline btn-sm">✕</button>
+      </div>
+      <form id="formCustomerModal">
+        <input type="hidden" id="custIsEdit" value="0" />
+        <div class="two-col" style="margin-bottom:0; gap:10px;">
+          <div class="field-group">
+            <label for="custDeviceId">Device ID</label>
+            <input type="text" id="custDeviceId" class="mono" required />
+          </div>
+          <div class="field-group">
+            <label for="custWa">No. WhatsApp</label>
+            <input type="text" id="custWa" />
+          </div>
+        </div>
+        <div class="two-col" style="margin-bottom:0; gap:10px;">
+          <div class="field-group">
+            <label for="custPondok">Nama Pondok</label>
+            <input type="text" id="custPondok" required />
+          </div>
+          <div class="field-group">
+            <label for="custBendahara">Nama Bendahara</label>
+            <input type="text" id="custBendahara" />
+          </div>
+        </div>
+        <div class="two-col" style="margin-bottom:0; gap:10px;">
+          <div class="field-group">
+            <label for="custTier">Paket</label>
+            <select id="custTier">
+              <option value="FREE">FREE</option>
+              <option value="TRIAL_14D">TRIAL_14D</option>
+              <option value="MONTHLY">MONTHLY</option>
+              <option value="YEARLY">YEARLY</option>
+              <option value="LIFETIME">LIFETIME</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label for="custStatus">Status</label>
+            <select id="custStatus">
+              <option value="AKTIF">AKTIF</option>
+              <option value="TRIAL">TRIAL</option>
+              <option value="GRATIS">GRATIS</option>
+              <option value="EXPIRED">EXPIRED</option>
+              <option value="DIBLOKIR">DIBLOKIR</option>
+            </select>
+          </div>
+        </div>
+        <div class="two-col" style="margin-bottom:0; gap:10px;">
+          <div class="field-group">
+            <label for="custChannel">Sumber Pembayaran</label>
+            <select id="custChannel">
+              <option value="FREE">FREE</option>
+              <option value="TRIAL">TRIAL</option>
+              <option value="DANA">DANA</option>
+              <option value="PLAY_STORE">PLAY_STORE</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label for="custTotalPaid">Total Pembayaran (Rp)</label>
+            <input type="number" id="custTotalPaid" min="0" value="0" />
+          </div>
+        </div>
+        <div class="two-col" style="margin-bottom:0; gap:10px;">
+          <div class="field-group">
+            <label for="custExpiry">Tanggal Expired (kosongkan jika Lifetime/Free)</label>
+            <input type="date" id="custExpiry" />
+          </div>
+          <div class="field-group">
+            <label for="custVersion">Versi APK</label>
+            <input type="text" id="custVersion" class="mono" value="3.4.0" />
+          </div>
+        </div>
+        <div class="field-group">
+          <label for="custNotes">Catatan Admin</label>
+          <textarea id="custNotes" rows="2"></textarea>
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:8px;">
+          <button type="button" id="btnCancelCustomerModal" class="btn btn-outline">Batal</button>
+          <button type="submit" class="btn btn-primary">Simpan Pelanggan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL PENGATURAN KREDENSIAL & KUNCI -->
+  <div id="settingsModal" class="modal-backdrop hidden">
+    <div class="glass-card gold-border modal-box">
+      <div class="section-head">
+        <div>
+          <h2>⚙️ Pengaturan Supabase &amp; Password Admin</h2>
+          <p>Hubungkan ke Cloud Supabase gratis atau ubah password Admin Offline</p>
+        </div>
+        <button type="button" id="btnCloseSettingsModal" class="btn btn-outline btn-sm">✕</button>
+      </div>
+      <form id="formSettingsModal">
+        <div class="field-group">
+          <label for="setSbUrl">Supabase Project URL</label>
+          <input type="text" id="setSbUrl" placeholder="https://xxxxxxxxxxxx.supabase.co" />
+        </div>
+        <div class="field-group">
+          <label for="setSbAnon">Supabase Anon Key</label>
+          <input type="text" id="setSbAnon" placeholder="eyJhbGciOiJIUzI1NiIs..." />
+        </div>
+        <div class="field-group">
+          <label for="setNewOfflinePwd">Ubah Password Admin Offline (opsional)</label>
+          <input type="password" id="setNewOfflinePwd" placeholder="Biarkan kosong jika tidak mengubah..." />
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:8px;">
+          <button type="button" id="btnCancelSettingsModal" class="btn btn-outline">Tutup</button>
+          <button type="submit" class="btn btn-gold">Simpan Pengaturan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+</body>
+</html>

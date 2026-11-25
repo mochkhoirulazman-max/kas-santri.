@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
@@ -23,17 +24,41 @@ class AuthService {
     return RegExp(r'^\d{4,6}$').hasMatch(pin);
   }
 
-  /// Hash PIN 4-6 digit dengan salted SHA-256
-  String hashPin(String pin) {
-    final bytes = utf8.encode('ks_v25_pin:$pin');
+  static String _generateSalt16Base64() {
+    final rng = Random.secure();
+    final bytes = List<int>.generate(16, (_) => rng.nextInt(256));
+    return base64UrlEncode(bytes);
+  }
+
+  /// Hash PIN 4-6 digit dengan random 16-byte salt per perangkat (`v33:<salt>:<sha256>`)
+  String hashPin(String pin, {String? salt}) {
+    final s = salt ?? _generateSalt16Base64();
+    final bytes = utf8.encode('ks_v33_pin:$s:$pin');
     final digest = sha256.convert(bytes);
-    return digest.toString();
+    return 'v33:$s:$digest';
+  }
+
+  /// Hash kompatibilitas v2.5–v3.2 (fixed salt)
+  String hashLegacyV25Pin(String pin) {
+    final bytes = utf8.encode('ks_v25_pin:$pin');
+    return sha256.convert(bytes).toString();
   }
 
   /// Hash kompatibilitas versi lama (unsalted SHA-256)
   String hashLegacyPin(String pin) {
     final bytes = utf8.encode(pin);
     return sha256.convert(bytes).toString();
+  }
+
+  bool verifyPinAgainstStored(String pin, String stored) {
+    if (stored.startsWith('v33:')) {
+      final parts = stored.split(':');
+      if (parts.length != 3 || parts[1].isEmpty) return false;
+      return hashPin(pin, salt: parts[1]) == stored;
+    }
+    return stored == hashLegacyV25Pin(pin) ||
+        stored == hashLegacyPin(pin) ||
+        stored == pin;
   }
 
   Future<String?> _readSecurePinHash() async {
@@ -77,14 +102,14 @@ class AuthService {
       return true;
     }
 
-    final salted = hashPin(pin);
-    final legacy = hashLegacyPin(pin);
-    final matched = stored == salted || stored == legacy || stored == pin;
+    final matched = verifyPinAgainstStored(pin, stored);
 
-    if (matched && secureHash == null) {
-      await _writeSecurePinHash(salted);
+    // Auto-upgrade hash PIN lama / belum ada di secure storage ke random-salted v3.3
+    if (matched && (secureHash == null || !stored.startsWith('v33:'))) {
+      final upgradedHash = hashPin(pin);
+      await _writeSecurePinHash(upgradedHash);
       await DatabaseHelper.instance.updatePengaturan(
-        settings.copyWith(pinKeamanan: salted),
+        settings.copyWith(pinKeamanan: upgradedHash),
       );
     }
     return matched;

@@ -75,8 +75,9 @@ android {
     buildTypes {
         release {
             signingConfig hasReleaseKeystore ? signingConfigs.release : signingConfigs.debug
-            minifyEnabled false
-            shrinkResources false
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 

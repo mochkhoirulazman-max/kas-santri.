@@ -8,6 +8,7 @@ class Santri {
   static const String statusAktifVal = 'AKTIF';
   static const String statusPulangVal = 'PULANG';
   static const String statusPindahVal = 'PINDAH';
+  static const String statusAlumniVal = 'ALUMNI';
 
   final String id;
   final String namaLengkap;
@@ -44,6 +45,10 @@ class Santri {
         return statusPulangVal;
       case statusPindahVal:
         return statusPindahVal;
+      case statusAlumniVal:
+      case 'LULUS':
+      case 'ALUMNI / LULUS':
+        return statusAlumniVal;
       case statusAktifVal:
       default:
         return statusAktifVal;
@@ -83,6 +88,7 @@ class Santri {
 
   bool get isPulang => statusSantri == statusPulangVal;
   bool get isPindah => statusSantri == statusPindahVal;
+  bool get isAlumni => statusSantri == statusAlumniVal;
   bool get isAktifDiPondok => statusAktif && statusSantri == statusAktifVal;
 
   String get kategoriLabel {
@@ -103,6 +109,8 @@ class Santri {
         return 'Pulang';
       case statusPindahVal:
         return 'Pindah';
+      case statusAlumniVal:
+        return 'Alumni / Lulus';
       case statusAktifVal:
       default:
         return 'Aktif';

@@ -1,4 +1,7 @@
 import 'dart:convert';
+import 'dart:math';
+import 'dart:typed_data';
+import 'package:cryptography/cryptography.dart';
 
 class BackupValidationResult {
   final bool isValid;
@@ -51,6 +54,7 @@ class BackupService {
   static const List<String> optionalV3Tables = [
     'infak_santri',
     'serah_terima_infak',
+    'audit_log',
   ];
 
   static BackupValidationResult validateJsonString(String rawJson) {
@@ -132,5 +136,118 @@ class BackupService {
       exportedAt: data['exported_at']?.toString(),
       parsedData: data,
     );
+  }
+
+  static const String ksbakMagic = 'KSBAK1';
+  static const int _pbkdf2Iterations = 60000;
+
+  static bool isEncryptedKsbakBytes(List<int> bytes) {
+    if (bytes.length > ksbakMagic.length) {
+      final header = utf8.decode(bytes.sublist(0, ksbakMagic.length), allowMalformed: true);
+      if (header == ksbakMagic) return true;
+    }
+    try {
+      final decoded = jsonDecode(utf8.decode(bytes));
+      return decoded is Map && decoded['format'] == ksbakMagic;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<SecretKey> _deriveBackupKey(String password, List<int> salt) async {
+    final pbkdf2 = Pbkdf2(
+      macAlgorithm: Hmac.sha256(),
+      iterations: _pbkdf2Iterations,
+      bits: 256,
+    );
+    return pbkdf2.deriveKeyFromPassword(
+      password: password,
+      nonce: salt,
+    );
+  }
+
+  /// Mengenkripsi payload JSON backup menggunakan PBKDF2-HMAC-SHA256 + AES-256-GCM
+  /// menjadi format portabel `.ksbak` (UTF-8 JSON envelope terenkripsi).
+  static Future<Uint8List> encryptBackupToKsbak({
+    required Map<String, dynamic> backupData,
+    required String password,
+  }) async {
+    if (password.trim().length < 4) {
+      throw const FormatException('Password enkripsi backup minimal 4 karakter.');
+    }
+    final rng = Random.secure();
+    final salt = List<int>.generate(16, (_) => rng.nextInt(256));
+    final key = await _deriveBackupKey(password, salt);
+
+    final aesGcm = AesGcm.with256bits();
+    final nonce = aesGcm.newNonce();
+    final plainBytes = utf8.encode(jsonEncode(backupData));
+    final secretBox = await aesGcm.encrypt(
+      plainBytes,
+      secretKey: key,
+      nonce: nonce,
+    );
+
+    final envelope = <String, dynamic>{
+      'format': ksbakMagic,
+      'kdf': 'PBKDF2-HMAC-SHA256',
+      'iterations': _pbkdf2Iterations,
+      'cipher': 'AES-256-GCM',
+      'salt': base64Encode(salt),
+      'nonce': base64Encode(secretBox.nonce),
+      'mac': base64Encode(secretBox.mac.bytes),
+      'ciphertext': base64Encode(secretBox.cipherText),
+      'created_at': DateTime.now().toIso8601String(),
+    };
+    return Uint8List.fromList(utf8.encode(jsonEncode(envelope)));
+  }
+
+  /// Mendekripsi file `.ksbak` dengan password lalu memvalidasi struktur tabel Kas-Santri.
+  static Future<BackupValidationResult> decryptAndValidateKsbak({
+    required Uint8List bytes,
+    required String password,
+  }) async {
+    if (password.isEmpty) {
+      return BackupValidationResult.invalid('Password dekripsi wajib diisi.');
+    }
+    try {
+      final rawStr = utf8.decode(bytes);
+      final envelope = jsonDecode(rawStr);
+      if (envelope is! Map || envelope['format'] != ksbakMagic) {
+        return BackupValidationResult.invalid('Format file .ksbak tidak dikenali.');
+      }
+
+      final salt = base64Decode(envelope['salt'].toString());
+      final nonce = base64Decode(envelope['nonce'].toString());
+      final macBytes = base64Decode(envelope['mac'].toString());
+      final cipherText = base64Decode(envelope['ciphertext'].toString());
+      final iterations = (envelope['iterations'] as num?)?.toInt() ?? _pbkdf2Iterations;
+
+      final pbkdf2 = Pbkdf2(
+        macAlgorithm: Hmac.sha256(),
+        iterations: iterations,
+        bits: 256,
+      );
+      final key = await pbkdf2.deriveKeyFromPassword(
+        password: password,
+        nonce: salt,
+      );
+
+      final aesGcm = AesGcm.with256bits();
+      final clearBytes = await aesGcm.decrypt(
+        SecretBox(cipherText, nonce: nonce, mac: Mac(macBytes)),
+        secretKey: key,
+      );
+      final jsonStr = utf8.decode(clearBytes);
+      return validateJsonString(jsonStr);
+    } on SecretBoxAuthenticationError {
+      return BackupValidationResult.invalid(
+        'Password salah atau file backup .ksbak telah dimodifikasi/rusak.',
+      );
+    } catch (e) {
+      return BackupValidationResult.invalid(
+        'Gagal membuka file backup terenkripsi .ksbak ($e).',
+      );
+    }
   }
 }

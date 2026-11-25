@@ -217,22 +217,32 @@ jobs:
       - name: Build Release APK
         env:
           REVENUECAT_ANDROID_API_KEY: ${{ secrets.REVENUECAT_ANDROID_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
+          EXTRA_DEFINES=()
           if [ -n "$REVENUECAT_ANDROID_API_KEY" ]; then
-            flutter build apk --release --no-tree-shake-icons --android-skip-build-dependency-validation --dart-define=PLAY_STORE_BUILD=false --dart-define=REVENUECAT_ANDROID_API_KEY="$REVENUECAT_ANDROID_API_KEY"
-          else
-            flutter build apk --release --no-tree-shake-icons --android-skip-build-dependency-validation --dart-define=PLAY_STORE_BUILD=false
+            EXTRA_DEFINES+=(--dart-define=REVENUECAT_ANDROID_API_KEY="$REVENUECAT_ANDROID_API_KEY")
           fi
+          if [ -n "$SUPABASE_URL" ] && [ -n "$SUPABASE_ANON_KEY" ]; then
+            EXTRA_DEFINES+=(--dart-define=SUPABASE_URL="$SUPABASE_URL" --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY")
+          fi
+          flutter build apk --release --obfuscate --split-debug-info=build/app/outputs/symbols --no-tree-shake-icons --android-skip-build-dependency-validation --dart-define=PLAY_STORE_BUILD=false "${EXTRA_DEFINES[@]}"
 
       - name: Build Signed Release App Bundle (AAB)
         env:
           REVENUECAT_ANDROID_API_KEY: ${{ secrets.REVENUECAT_ANDROID_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
+          EXTRA_DEFINES=()
           if [ -n "$REVENUECAT_ANDROID_API_KEY" ]; then
-            flutter build appbundle --release --no-tree-shake-icons --android-skip-build-dependency-validation --dart-define=PLAY_STORE_BUILD=true --dart-define=REVENUECAT_ANDROID_API_KEY="$REVENUECAT_ANDROID_API_KEY"
-          else
-            flutter build appbundle --release --no-tree-shake-icons --android-skip-build-dependency-validation --dart-define=PLAY_STORE_BUILD=true
+            EXTRA_DEFINES+=(--dart-define=REVENUECAT_ANDROID_API_KEY="$REVENUECAT_ANDROID_API_KEY")
           fi
+          if [ -n "$SUPABASE_URL" ] && [ -n "$SUPABASE_ANON_KEY" ]; then
+            EXTRA_DEFINES+=(--dart-define=SUPABASE_URL="$SUPABASE_URL" --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY")
+          fi
+          flutter build appbundle --release --obfuscate --split-debug-info=build/app/outputs/symbols --no-tree-shake-icons --android-skip-build-dependency-validation --dart-define=PLAY_STORE_BUILD=true "${EXTRA_DEFINES[@]}"
 
       - name: Clean Signing Secrets
         if: always()

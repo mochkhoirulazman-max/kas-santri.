@@ -34,4 +34,20 @@ class AppConfig {
   static bool get isRevenueCatConfigured =>
       revenueCatAndroidApiKey.trim().isNotEmpty &&
       !revenueCatAndroidApiKey.contains('REPLACE_WITH_YOUR');
+
+  /// Versi aplikasi & konfigurasi Supabase opsional (disuntik via --dart-define saat build).
+  /// APK tetap berjalan 100% offline-first bila SUPABASE_URL & SUPABASE_ANON_KEY kosong.
+  static const String appVersion = '4.0.0';
+  static const String supabaseUrl = String.fromEnvironment(
+    'SUPABASE_URL',
+    defaultValue: '',
+  );
+  static const String supabaseAnonKey = String.fromEnvironment(
+    'SUPABASE_ANON_KEY',
+    defaultValue: '',
+  );
+
+  static bool get isSupabaseConfigured =>
+      supabaseUrl.trim().startsWith('https://') &&
+      supabaseAnonKey.trim().length > 20;
 }
