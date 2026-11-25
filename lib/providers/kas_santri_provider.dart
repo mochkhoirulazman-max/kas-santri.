@@ -11,6 +11,7 @@ import '../config/app_config.dart';
 import '../services/auth_service.dart';
 import '../services/backup_service.dart';
 import '../services/google_drive_backup_service.dart';
+import '../services/license_service.dart';
 import '../services/subscription_service.dart';
 import 'package:uuid/uuid.dart';
 import '../utils/date_formatter.dart';
@@ -45,6 +46,30 @@ class KasSantriProvider extends ChangeNotifier {
 
   /// Helper state global untuk status PRO (dipakai seluruh fitur berlabel 👑)
   bool get isProUser => _pengaturan.isPro;
+
+  TrialStatus _trialStatus = const TrialStatus();
+  TrialStatus get trialStatus => _trialStatus;
+
+  bool get isTrialActive =>
+      _pengaturan.isPro && _pengaturan.proPlan == 'TRIAL_14D' && _trialStatus.isActive;
+
+  int get trialRemainingDays => _trialStatus.remainingDays;
+
+  LicenseVerificationResult? _activeLicense;
+  LicenseVerificationResult? get activeLicense => _activeLicense;
+
+  String _deviceId = '';
+  String get deviceId => _deviceId;
+
+  String get proStatusSummaryLabel {
+    if (!isProUser) {
+      return 'Mode Gratis (Maks $maxFreeSantriQuota Santri)';
+    }
+    if (isTrialActive) {
+      return 'Trial PRO Aktif • Sisa ${_trialStatus.remainingDays} Hari';
+    }
+    return '${SubscriptionService.planDisplayName(_pengaturan.proPlan)} Aktif ✓';
+  }
 
   static const int maxFreeSantriQuota = AppConfig.maxFreeSantriQuota;
 
@@ -150,12 +175,105 @@ class KasSantriProvider extends ChangeNotifier {
 
   Future<void> syncSubscriptionEntitlement() async {
     try {
+      _deviceId = await LicenseService.instance.getOrCreateDeviceId();
+      _trialStatus = await SubscriptionService.instance.getTrialStatus(
+        fallbackHasUsed: _pengaturan.hasUsedTrial,
+        fallbackStartedAt: _pengaturan.trialStartedAt,
+        fallbackExpiresAt: _pengaturan.trialExpiresAt,
+      );
+
+      if (_trialStatus.hasUsedTrial &&
+          (!_pengaturan.hasUsedTrial || _pengaturan.trialExpiresAt == null)) {
+        _pengaturan = _pengaturan.copyWith(
+          hasUsedTrial: true,
+          trialStartedAt: _trialStatus.startedAt?.toIso8601String(),
+          trialExpiresAt: _trialStatus.expiresAt?.toIso8601String(),
+        );
+        await _db.updatePengaturan(_pengaturan);
+      }
+
+      if (!kIsPlayStoreBuild) {
+        _activeLicense = await LicenseService.instance.checkSavedLicense();
+        if (_activeLicense != null && _activeLicense!.isValid) {
+          await activatePro(plan: _activeLicense!.planKey ?? 'YEARLY');
+          return;
+        }
+      }
+
       await SubscriptionService.instance.init();
       final status = await SubscriptionService.instance.checkEntitlementStatus();
-      if (status.isPro && !_pengaturan.isPro) {
+      if (status.isPro) {
         await activatePro(plan: status.planKey ?? 'YEARLY');
+        return;
       }
+
+      if (_trialStatus.isActive) {
+        if (!_pengaturan.isPro || _pengaturan.proPlan == null) {
+          await activatePro(plan: 'TRIAL_14D');
+        } else {
+          notifyListeners();
+        }
+        return;
+      }
+
+      if (_pengaturan.proPlan == 'TRIAL_14D' && !_trialStatus.isActive) {
+        await deactivatePro();
+        return;
+      }
+
+      if (!kIsPlayStoreBuild &&
+          _activeLicense != null &&
+          _activeLicense!.isExpired &&
+          _pengaturan.isPro &&
+          _pengaturan.proPlan != 'TRIAL_14D') {
+        await deactivatePro();
+        return;
+      }
+
+      notifyListeners();
     } catch (_) {}
+  }
+
+  Future<({bool success, TrialStatus status, String message})> startFreeTrial14Days() async {
+    final res = await SubscriptionService.instance.startFreeTrial14Days(
+      fallbackHasUsed: _pengaturan.hasUsedTrial,
+      fallbackStartedAt: _pengaturan.trialStartedAt,
+      fallbackExpiresAt: _pengaturan.trialExpiresAt,
+    );
+    _trialStatus = res.status;
+
+    if (res.success) {
+      final updated = _pengaturan.copyWith(
+        isPro: true,
+        proPlan: 'TRIAL_14D',
+        hasUsedTrial: true,
+        trialStartedAt: res.status.startedAt?.toIso8601String(),
+        trialExpiresAt: res.status.expiresAt?.toIso8601String(),
+      );
+      _pengaturan = updated;
+      await _db.updatePengaturan(updated);
+      notifyListeners();
+    } else if (res.status.hasUsedTrial && !_pengaturan.hasUsedTrial) {
+      final updated = _pengaturan.copyWith(
+        hasUsedTrial: true,
+        trialStartedAt: res.status.startedAt?.toIso8601String(),
+        trialExpiresAt: res.status.expiresAt?.toIso8601String(),
+      );
+      _pengaturan = updated;
+      await _db.updatePengaturan(updated);
+      notifyListeners();
+    }
+    return res;
+  }
+
+  Future<LicenseVerificationResult> activateOfflineLicense(String rawCode) async {
+    final res = await LicenseService.instance.activateLicense(rawCode);
+    _deviceId = await LicenseService.instance.getOrCreateDeviceId();
+    if (res.isValid) {
+      _activeLicense = res;
+      await activatePro(plan: res.planKey ?? 'YEARLY');
+    }
+    return res;
   }
 
   Future<void> completeOnboarding({

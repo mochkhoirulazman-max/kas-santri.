@@ -843,7 +843,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              settings.isPro ? 'Kas-Santri PRO Aktif ✓' : 'Upgrade ke Kas-Santri PRO',
+                              provider.isTrialActive
+                                  ? provider.proStatusSummaryLabel
+                                  : (settings.isPro
+                                      ? 'Kas-Santri PRO Aktif ✓'
+                                      : 'Upgrade ke Kas-Santri PRO'),
                               style: TextStyle(
                                 color: settings.isPro ? const Color(0xFF34D399) : const Color(0xFFFDE68A),
                                 fontSize: 12,
@@ -851,9 +855,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ),
                             ),
                             Text(
-                              settings.isPro
-                                  ? 'Ketuk untuk lihat Status Langganan Aktif (${settings.namaPondok})'
-                                  : 'Buka Santri Tanpa Batas, Opname Kas, Scan QR & Ekspor PDF',
+                              provider.isTrialActive
+                                  ? 'Ketuk untuk lihat sisa hari & opsi upgrade (${settings.namaPondok})'
+                                  : (settings.isPro
+                                      ? 'Ketuk untuk lihat Status Langganan Aktif (${settings.namaPondok})'
+                                      : 'Buka Santri Tanpa Batas, Opname Kas, Scan QR & Ekspor PDF'),
                               style: const TextStyle(color: Colors.white60, fontSize: 10),
                             ),
                           ],

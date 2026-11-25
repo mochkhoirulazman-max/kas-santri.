@@ -59,6 +59,9 @@ class DatabaseHelper {
     await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'last_drive_backup_at TEXT');
     await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'auto_drive_backup INTEGER NOT NULL DEFAULT 0');
     await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'drive_account_email TEXT');
+    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'trial_started_at TEXT');
+    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'trial_expires_at TEXT');
+    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'has_used_trial INTEGER NOT NULL DEFAULT 0');
     try {
       await db.execute('CREATE INDEX IF NOT EXISTS idx_tx_santri_tgl ON transaksi_harian (santri_id, tanggal_lokal, is_void);');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_santri_qr ON santri (qr_code);');
@@ -287,7 +290,10 @@ class DatabaseHelper {
         onboarding_done INTEGER NOT NULL DEFAULT 0,
         last_drive_backup_at TEXT,
         auto_drive_backup INTEGER NOT NULL DEFAULT 0,
-        drive_account_email TEXT
+        drive_account_email TEXT,
+        trial_started_at TEXT,
+        trial_expires_at TEXT,
+        has_used_trial INTEGER NOT NULL DEFAULT 0
       )
     ''');
 
@@ -339,6 +345,9 @@ class DatabaseHelper {
       'last_drive_backup_at': null,
       'auto_drive_backup': 0,
       'drive_account_email': null,
+      'trial_started_at': null,
+      'trial_expires_at': null,
+      'has_used_trial': 0,
     });
   }
 

@@ -61,4 +61,7 @@ flutter:
   uses-material-design: true
   assets:
     - logo.jpg
+    - assets/qris_dana_25k.jpg
+    - assets/qris_dana_179k.jpg
+    - assets/qris_dana_399k.jpg
 

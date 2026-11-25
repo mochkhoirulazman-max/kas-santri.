@@ -7,6 +7,7 @@ import 'package:kas_santri/models/transaksi.dart';
 import 'package:kas_santri/providers/kas_santri_provider.dart';
 import 'package:kas_santri/services/auth_service.dart';
 import 'package:kas_santri/services/backup_service.dart';
+import 'package:kas_santri/services/license_service.dart';
 import 'package:kas_santri/services/report_service.dart';
 import 'package:kas_santri/services/subscription_service.dart';
 import 'package:kas_santri/utils/currency_formatter.dart';
@@ -528,6 +529,119 @@ void main() {
         SubscriptionService.planKeyFromProductId('kas_santri_pro_yearly_prepaid'),
         'YEARLY',
       );
+    });
+
+    test('S. Generator & Verifikasi Kode Lisensi Offline SHA-256 (M1, Y1, LT)', () {
+      const deviceA = 'KS-A7B9-4X2M';
+      const deviceB = 'KS-ZZZZ-9999';
+      final now = DateTime(2026, 11, 25, 10, 0);
+
+      // 1. Buat & verifikasi paket Tahunan (Y1)
+      final y1Code = LicenseService.generateLicenseCode(
+        deviceId: deviceA,
+        tipe: 'Y1',
+        expiryYyyymmdd: '20271125',
+      );
+      expect(y1Code, startsWith('KSPRO-Y1-20271125-'));
+      final y1Res = LicenseService.verifyCodePure(
+        code: y1Code,
+        deviceId: deviceA,
+        now: now,
+      );
+      expect(y1Res.isValid, true);
+      expect(y1Res.planKey, 'YEARLY');
+
+      // 2. Buat & verifikasi paket Lifetime (LT)
+      final ltCode = LicenseService.generateLicenseCode(
+        deviceId: deviceA,
+        tipe: 'LT',
+        expiryYyyymmdd: '99991231',
+      );
+      final ltRes = LicenseService.verifyCodePure(
+        code: ltCode,
+        deviceId: deviceA,
+        now: DateTime(2050, 1, 1),
+      );
+      expect(ltRes.isValid, true);
+      expect(ltRes.planKey, 'LIFETIME');
+
+      // 3. Kode tidak berlaku pada perangkat berbeda
+      final wrongDevice = LicenseService.verifyCodePure(
+        code: y1Code,
+        deviceId: deviceB,
+        now: now,
+      );
+      expect(wrongDevice.isValid, false);
+
+      // 4. Kode kadaluarsa ditolak
+      final expiredM1 = LicenseService.generateLicenseCode(
+        deviceId: deviceA,
+        tipe: 'M1',
+        expiryYyyymmdd: '20261101',
+      );
+      final expiredRes = LicenseService.verifyCodePure(
+        code: expiredM1,
+        deviceId: deviceA,
+        now: now,
+      );
+      expect(expiredRes.isValid, false);
+      expect(expiredRes.isExpired, true);
+    });
+
+    test('T. Logika Uji Coba Gratis 14 Hari & Konstanta Dual-Mode DANA', () {
+      expect(AppConfig.adminDanaNumber, '082130678956');
+      expect(AppConfig.adminWhatsappNumber, '6282130678956');
+      expect(
+        SubscriptionService.qrisAssetForPlan('MONTHLY'),
+        'assets/qris_dana_25k.jpg',
+      );
+      expect(
+        SubscriptionService.qrisAssetForPlan('YEARLY'),
+        'assets/qris_dana_179k.jpg',
+      );
+      expect(
+        SubscriptionService.qrisAssetForPlan('LIFETIME'),
+        'assets/qris_dana_399k.jpg',
+      );
+
+      // 1. Belum pernah trial
+      final fresh = SubscriptionService.evaluateTrial(hasUsedTrial: false);
+      expect(fresh.isActive, false);
+      expect(fresh.isExpired, false);
+      expect(fresh.remainingDays, 0);
+
+      // 2. Baru mengaktifkan trial hari ke-1
+      final start = DateTime(2026, 11, 25, 8, 0);
+      final expires = start.add(const Duration(days: 14));
+      final day1 = SubscriptionService.evaluateTrial(
+        hasUsedTrial: true,
+        startedAt: start,
+        expiresAt: expires,
+        now: start.add(const Duration(hours: 2)),
+      );
+      expect(day1.isActive, true);
+      expect(day1.remainingDays, 14);
+
+      // 3. Hari ke-14 (sisa kurang dari 24 jam tetap terhitung sisa 1 hari)
+      final day14 = SubscriptionService.evaluateTrial(
+        hasUsedTrial: true,
+        startedAt: start,
+        expiresAt: expires,
+        now: expires.subtract(const Duration(hours: 6)),
+      );
+      expect(day14.isActive, true);
+      expect(day14.remainingDays, 1);
+
+      // 4. Setelah 14 hari lewat -> otomatis expired
+      final day15 = SubscriptionService.evaluateTrial(
+        hasUsedTrial: true,
+        startedAt: start,
+        expiresAt: expires,
+        now: expires.add(const Duration(minutes: 1)),
+      );
+      expect(day15.isActive, false);
+      expect(day15.isExpired, true);
+      expect(day15.remainingDays, 0);
     });
   });
 }

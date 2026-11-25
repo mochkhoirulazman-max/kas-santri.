@@ -6,6 +6,8 @@ import '../config/app_config.dart';
 import '../providers/kas_santri_provider.dart';
 import '../services/subscription_service.dart';
 import '../utils/app_feedback.dart';
+import '../widgets/direct_dana_payment_sheet.dart';
+import '../widgets/legal_document_sheet.dart';
 
 class PaywallScreen extends StatefulWidget {
   final String? triggerFeature;
@@ -85,7 +87,9 @@ class PaywallScreen extends StatefulWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Kas-Santri PRO Aktif ✓ • ${settings.namaPondok}',
+                    provider.isTrialActive
+                        ? 'Trial PRO Aktif • Sisa ${provider.trialRemainingDays} Hari'
+                        : 'Kas-Santri PRO Aktif ✓ • ${settings.namaPondok}',
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: Color(0xFF6EE7B7),
@@ -105,8 +109,21 @@ class PaywallScreen extends StatefulWidget {
                     child: Column(
                       children: [
                         _statusRow('Paket Aktif', planLabel, const Color(0xFFFDE68A)),
-                        const Divider(color: Colors.white12, height: 18),
-                        _statusRow('Entitlement ID', AppConfig.entitlementId, const Color(0xFF67E8F9)),
+                        if (provider.isTrialActive) ...[
+                          const Divider(color: Colors.white12, height: 18),
+                          _statusRow(
+                            'Sisa Masa Trial',
+                            '${provider.trialRemainingDays} Hari Lagi',
+                            const Color(0xFF34D399),
+                          ),
+                        ],
+                        if (!kIsPlayStoreBuild && provider.deviceId.isNotEmpty) ...[
+                          const Divider(color: Colors.white12, height: 18),
+                          _statusRow('ID Perangkat', provider.deviceId, const Color(0xFF67E8F9)),
+                        ] else ...[
+                          const Divider(color: Colors.white12, height: 18),
+                          _statusRow('Entitlement ID', AppConfig.entitlementId, const Color(0xFF67E8F9)),
+                        ],
                         const Divider(color: Colors.white12, height: 18),
                         _statusRow('Santri Aktif', '${provider.activeSantriCount} (Tanpa Batas)', const Color(0xFF34D399)),
                       ],
@@ -122,20 +139,35 @@ class PaywallScreen extends StatefulWidget {
                           : () async {
                               AppFeedback.tap();
                               setModalState(() => isSyncing = true);
-                              final res = await SubscriptionService.instance.restorePurchases();
-                              if (res.success && ctx.mounted) {
-                                await provider.activatePro(plan: res.planKey ?? 'YEARLY');
-                              }
-                              if (ctx.mounted) {
-                                setModalState(() => isSyncing = false);
-                                ScaffoldMessenger.of(ctx).showSnackBar(
-                                  SnackBar(
-                                    content: Text(res.message),
-                                    backgroundColor: res.success
-                                        ? const Color(0xFF10B981)
-                                        : const Color(0xFF06B6D4),
-                                  ),
-                                );
+                              if (!kIsPlayStoreBuild) {
+                                await provider.syncSubscriptionEntitlement();
+                                if (ctx.mounted) {
+                                  setModalState(() => isSyncing = false);
+                                  ScaffoldMessenger.of(ctx).showSnackBar(
+                                    SnackBar(
+                                      content: Text(provider.proStatusSummaryLabel),
+                                      backgroundColor: const Color(0xFF10B981),
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                }
+                              } else {
+                                final res = await SubscriptionService.instance.restorePurchases();
+                                if (res.success && ctx.mounted) {
+                                  await provider.activatePro(plan: res.planKey ?? 'YEARLY');
+                                }
+                                if (ctx.mounted) {
+                                  setModalState(() => isSyncing = false);
+                                  ScaffoldMessenger.of(ctx).showSnackBar(
+                                    SnackBar(
+                                      content: Text(res.message),
+                                      backgroundColor: res.success
+                                          ? const Color(0xFF10B981)
+                                          : const Color(0xFF06B6D4),
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                }
                               }
                             },
                       icon: isSyncing
@@ -181,31 +213,33 @@ class PaywallScreen extends StatefulWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () async {
-                            AppFeedback.tap();
-                            final uri = Uri.parse(AppConfig.playStoreSubscriptionsUrl);
-                            if (await canLaunchUrl(uri)) {
-                              await launchUrl(uri, mode: LaunchMode.externalApplication);
-                            }
-                          },
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Colors.white24),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                          ),
-                          child: const Text(
-                            'Kelola Play Store',
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w800,
+                      if (kIsPlayStoreBuild) ...[
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () async {
+                              AppFeedback.tap();
+                              final uri = Uri.parse(AppConfig.playStoreSubscriptionsUrl);
+                              if (await canLaunchUrl(uri)) {
+                                await launchUrl(uri, mode: LaunchMode.externalApplication);
+                              }
+                            },
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Colors.white24),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            ),
+                            child: const Text(
+                              'Kelola Play Store',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
                           ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ],
@@ -281,35 +315,140 @@ class _PaywallScreenState extends State<PaywallScreen> {
     }
   }
 
-  Future<void> _openExternalUrl(String url) async {
+  void _showFloatingSnackBar(
+    String message, {
+    Color backgroundColor = const Color(0xFF10B981),
+  }) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: const TextStyle(fontWeight: FontWeight.w700)),
+        backgroundColor: backgroundColor,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 92),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+    );
+  }
+
+  Future<void> _handleStartTrial() async {
     AppFeedback.tap();
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Tidak dapat membuka tautan $url'),
-          backgroundColor: const Color(0xFFF59E0B),
+    final provider = Provider.of<KasSantriProvider>(context, listen: false);
+    final res = await provider.startFreeTrial14Days();
+    if (!mounted) return;
+
+    if (!res.success) {
+      _showFloatingSnackBar(res.message, backgroundColor: const Color(0xFFF59E0B));
+      return;
+    }
+
+    AppFeedback.success();
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF0E1422),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: const BorderSide(color: Color(0xFF34D399), width: 1.5),
         ),
-      );
+        title: const Row(
+          children: [
+            Text('🎉 ', style: TextStyle(fontSize: 24)),
+            Expanded(
+              child: Text(
+                'Uji Coba PRO 14 Hari Aktif!',
+                style: TextStyle(
+                  color: Color(0xFF34D399),
+                  fontSize: 16.5,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          'Alhamdulillah! Seluruh fitur Kas-Santri PRO kini terbuka penuh selama 14 hari ke depan:\n\n'
+          '• Santri Tanpa Batas\n'
+          '• Multi-Dompet Tunai Laci vs Rekening Bank\n'
+          '• Kalkulator Cash Opname Fisik\n'
+          '• Scan & Cetak Kartu QR Santri\n'
+          '• Ekspor Excel & PDF Berkop Logo\n'
+          '• WA 1-Klik, Struk Gambar PNG, Biometrik & Google Drive',
+          style: TextStyle(color: Colors.white70, fontSize: 12.5, height: 1.45),
+        ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            height: 44,
+            child: ElevatedButton(
+              onPressed: () {
+                AppFeedback.tap();
+                Navigator.pop(ctx);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF10B981),
+                foregroundColor: const Color(0xFF030712),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              child: const Text(
+                'Mulai Gunakan Kas-Santri PRO',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (mounted) {
+      Navigator.pop(context);
     }
   }
 
   Future<void> _handleRestore() async {
     if (_isProcessingPurchase) return;
     AppFeedback.tap();
-    setState(() => _isProcessingPurchase = true);
     final provider = Provider.of<KasSantriProvider>(context, listen: false);
+
+    if (!kIsPlayStoreBuild) {
+      setState(() => _isProcessingPurchase = true);
+      try {
+        await provider.syncSubscriptionEntitlement();
+        if (!mounted) return;
+        if (provider.activeLicense != null && provider.activeLicense!.isValid) {
+          AppFeedback.success();
+          _showFloatingSnackBar(
+            'Lisensi Kas-Santri PRO aktif di perangkat ini (${provider.proStatusSummaryLabel})',
+          );
+          Navigator.pop(context);
+          return;
+        }
+      } finally {
+        if (mounted) setState(() => _isProcessingPurchase = false);
+      }
+
+      if (!mounted) return;
+      final activated = await DirectDanaPaymentSheet.show(
+        context,
+        offer: _selectedOffer,
+        focusActivationInput: true,
+      );
+      if (activated && mounted) {
+        _showFloatingSnackBar('Alhamdulillah! Kas-Santri PRO berhasil diaktifkan.');
+        Navigator.pop(context);
+      }
+      return;
+    }
+
+    setState(() => _isProcessingPurchase = true);
     try {
       final res = await SubscriptionService.instance.restorePurchases();
       if (res.success && mounted) {
         await provider.activatePro(plan: res.planKey ?? 'YEARLY');
         AppFeedback.success();
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(res.message), backgroundColor: const Color(0xFF10B981)),
-          );
+          _showFloatingSnackBar(res.message);
           Navigator.pop(context);
         }
         return;
@@ -317,16 +456,9 @@ class _PaywallScreenState extends State<PaywallScreen> {
 
       if (mounted) {
         if (provider.pengaturan.isPro) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Lisensi Kas-Santri PRO sudah aktif di perangkat ini!'),
-              backgroundColor: Color(0xFF10B981),
-            ),
-          );
+          _showFloatingSnackBar('Lisensi Kas-Santri PRO sudah aktif di perangkat ini!');
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(res.message), backgroundColor: const Color(0xFF06B6D4)),
-          );
+          _showFloatingSnackBar(res.message, backgroundColor: const Color(0xFF06B6D4));
         }
       }
     } finally {
@@ -340,7 +472,20 @@ class _PaywallScreenState extends State<PaywallScreen> {
     final offer = _selectedOffer;
     final provider = Provider.of<KasSantriProvider>(context, listen: false);
 
-    // Jika RevenueCat & Google Play Billing aktif terhubung, picu purchasePackage langsung
+    // Jalur 1: Direct APK -> Pembayaran langsung DANA 082130678956 / QRIS + Kode Lisensi PRO
+    if (!kIsPlayStoreBuild) {
+      final activated = await DirectDanaPaymentSheet.show(
+        context,
+        offer: offer,
+      );
+      if (activated && mounted) {
+        _showFloatingSnackBar('Alhamdulillah! ${offer.title} berhasil diaktifkan.');
+        Navigator.pop(context);
+      }
+      return;
+    }
+
+    // Jalur 2: Google Play Store (.aab) -> RevenueCat & Google Play Billing Resmi
     if (SubscriptionService.instance.isConfigured && offer.rcPackage != null) {
       setState(() => _isProcessingPurchase = true);
       try {
@@ -350,16 +495,12 @@ class _PaywallScreenState extends State<PaywallScreen> {
           await provider.activatePro(plan: res.planKey ?? offer.planKey);
           AppFeedback.success();
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(res.message), backgroundColor: const Color(0xFF10B981)),
-            );
+            _showFloatingSnackBar(res.message);
             Navigator.pop(context);
           }
         } else if (!res.cancelled) {
           AppFeedback.alert();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(res.message), backgroundColor: const Color(0xFFE11D48)),
-          );
+          _showFloatingSnackBar(res.message, backgroundColor: const Color(0xFFE11D48));
         }
       } finally {
         if (mounted) setState(() => _isProcessingPurchase = false);
@@ -367,7 +508,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
       return;
     }
 
-    // Fallback UI Play Store Sheet / Simulasi Debug-only saat offline atau API Key belum diisi
+    // Fallback UI Play Store Sheet (khusus mode Play Store saat offline/debug)
     _openGooglePlaySheet();
   }
 
@@ -568,13 +709,9 @@ class _PaywallScreenState extends State<PaywallScreen> {
                           _openQrisConfirmSheet();
                         } else {
                           AppFeedback.alert();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Google Play Billing belum terhubung (periksa koneksi internet & konfigurasi RevenueCat API Key).',
-                              ),
-                              backgroundColor: Color(0xFFF59E0B),
-                            ),
+                          _showFloatingSnackBar(
+                            'Google Play Billing belum terhubung (periksa koneksi internet & konfigurasi RevenueCat API Key).',
+                            backgroundColor: const Color(0xFFF59E0B),
                           );
                         }
                       },
@@ -1007,35 +1144,8 @@ class _PaywallScreenState extends State<PaywallScreen> {
                       ),
                       const SizedBox(height: 14),
 
-                      // Trust Strip
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF0F172A).withOpacity(0.85),
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: Colors.white12),
-                        ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                '🎁 Uji Coba Gratis 14 Hari',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(color: Color(0xFF34D399), fontSize: 11, fontWeight: FontWeight.w800),
-                              ),
-                            ),
-                            Text('•', style: TextStyle(color: Colors.white30)),
-                            Expanded(
-                              child: Text(
-                                '🔒 Google Play Official',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(color: Color(0xFFFBBF24), fontSize: 11, fontWeight: FontWeight.w800),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      // Interactive 14-Day Free Trial Action Card
+                      _buildTrialActionCard(provider),
 
                       if (widget.triggerFeature != null && widget.triggerFeature!.isNotEmpty) ...[
                         const SizedBox(height: 10),
@@ -1167,7 +1277,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
 
                       const SizedBox(height: 18),
 
-                      // Google Play Billing Indonesia Card + Kebijakan Privasi & Syarat Ketentuan
+                      // Card Metode Pembayaran + Kebijakan Privasi & Syarat Ketentuan (Offline Legal Reader)
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
@@ -1177,10 +1287,17 @@ class _PaywallScreenState extends State<PaywallScreen> {
                         ),
                         child: Column(
                           children: [
-                            const Text(
-                              'DIDUKUNG GOOGLE PLAY BILLING INDONESIA',
+                            Text(
+                              kIsPlayStoreBuild
+                                  ? 'DIDUKUNG GOOGLE PLAY BILLING INDONESIA'
+                                  : 'DIDUKUNG PEMBAYARAN LANGSUNG DANA & QRIS',
                               textAlign: TextAlign.center,
-                              style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.6),
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.6,
+                              ),
                             ),
                             const SizedBox(height: 12),
                             Wrap(
@@ -1190,17 +1307,26 @@ class _PaywallScreenState extends State<PaywallScreen> {
                               children: [
                                 _buildChannelBadge('QRIS', Colors.white, Colors.black),
                                 _buildChannelBadge('GoPay', const Color(0xFF0A2A3B), const Color(0xFF38BDF8)),
-                                _buildChannelBadge('DANA', const Color(0xFF0B2340), const Color(0xFF60A5FA)),
+                                _buildChannelBadge(
+                                  kIsPlayStoreBuild ? 'DANA' : 'DANA 082130678956',
+                                  const Color(0xFF0B2340),
+                                  const Color(0xFF60A5FA),
+                                ),
                                 _buildChannelBadge('ShopeePay', const Color(0xFF331814), const Color(0xFFFB923C)),
                                 _buildChannelBadge('VA Bank', const Color(0xFF0A2E25), const Color(0xFF34D399)),
-                                _buildChannelBadge('Alfamart', const Color(0xFF2B1726), const Color(0xFFF472B6)),
+                                if (kIsPlayStoreBuild)
+                                  _buildChannelBadge('Alfamart', const Color(0xFF2B1726), const Color(0xFFF472B6))
+                                else
+                                  _buildChannelBadge('Kode PRO', const Color(0xFF1E180B), const Color(0xFFFBBF24)),
                               ],
                             ),
                             const SizedBox(height: 12),
-                            const Text(
-                              'Paket Prabayar tidak akan menagih otomatis. Dengan melanjutkan, Anda menyetujui ketentuan di bawah:',
+                            Text(
+                              kIsPlayStoreBuild
+                                  ? 'Paket Prabayar tidak akan menagih otomatis. Dengan melanjutkan, Anda menyetujui ketentuan di bawah:'
+                                  : 'Pembayaran langsung masuk ke DANA 082130678956 a.n. Moch Khoirul Azman & aktivasi kode lisensi instan. Dengan melanjutkan, Anda menyetujui:',
                               textAlign: TextAlign.center,
-                              style: TextStyle(color: Colors.white54, fontSize: 10, height: 1.4),
+                              style: const TextStyle(color: Colors.white54, fontSize: 10, height: 1.4),
                             ),
                             const SizedBox(height: 8),
                             Wrap(
@@ -1208,7 +1334,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                               spacing: 12,
                               children: [
                                 InkWell(
-                                  onTap: () => _openExternalUrl(AppConfig.termsOfServiceUrl),
+                                  onTap: () => LegalDocumentSheet.showTerms(context),
                                   child: const Text(
                                     'Syarat & Ketentuan',
                                     style: TextStyle(
@@ -1221,7 +1347,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                                 ),
                                 const Text('•', style: TextStyle(color: Colors.white30)),
                                 InkWell(
-                                  onTap: () => _openExternalUrl(AppConfig.privacyPolicyUrl),
+                                  onTap: () => LegalDocumentSheet.showPrivacy(context),
                                   child: const Text(
                                     'Kebijakan Privasi',
                                     style: TextStyle(
@@ -1289,7 +1415,9 @@ class _PaywallScreenState extends State<PaywallScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Pembayaran resmi via Google Play Billing • Mendukung $_selectedPaymentMethod',
+                        kIsPlayStoreBuild
+                            ? 'Pembayaran resmi via Google Play Billing • Mendukung $_selectedPaymentMethod'
+                            : 'Pembayaran Langsung ke DANA 082130678956 • Aktivasi Instan',
                         textAlign: TextAlign.center,
                         style: const TextStyle(color: Colors.white54, fontSize: 10.5),
                       ),
@@ -1300,6 +1428,117 @@ class _PaywallScreenState extends State<PaywallScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildTrialActionCard(KasSantriProvider provider) {
+    final trial = provider.trialStatus;
+    if (!trial.hasUsedTrial) {
+      return InkWell(
+        onTap: _handleStartTrial,
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF064E3B), Color(0xFF0E1B2E)],
+            ),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: const Color(0xFF34D399), width: 1.3),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF10B981).withOpacity(0.22),
+                blurRadius: 14,
+              ),
+            ],
+          ),
+          child: const Row(
+            children: [
+              Text('🎁', style: TextStyle(fontSize: 22)),
+              SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Aktifkan Uji Coba PRO Gratis 14 Hari (Tanpa Bayar Dulu)',
+                      style: TextStyle(
+                        color: Color(0xFF6EE7B7),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Buka seluruh fitur PRO sekarang • 1x per perangkat',
+                      style: TextStyle(color: Colors.white70, fontSize: 10.5),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFF34D399), size: 15),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (provider.isTrialActive) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFF064E3B).withOpacity(0.45),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFF34D399).withOpacity(0.7)),
+        ),
+        child: Row(
+          children: [
+            const Text('⏳', style: TextStyle(fontSize: 20)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Trial PRO Aktif • Sisa ${provider.trialRemainingDays} Hari',
+                    style: const TextStyle(
+                      color: Color(0xFF6EE7B7),
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  const Text(
+                    'Anda dapat langsung upgrade kapan saja dengan memilih paket di bawah.',
+                    style: TextStyle(color: Colors.white70, fontSize: 10.5),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F172A).withOpacity(0.85),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white12),
+      ),
+      child: const Row(
+        children: [
+          Text('⌛', style: TextStyle(fontSize: 16)),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Uji coba 14 hari sudah digunakan — pilih paket di bawah untuk lanjut PRO',
+              style: TextStyle(color: Colors.white60, fontSize: 11, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
       ),
     );
   }

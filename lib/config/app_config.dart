@@ -16,9 +16,18 @@ class AppConfig {
 
   static const int maxFreeSantriQuota = 15;
 
-  /// Tautan halaman resmi pondok/aplikasi (wajib diisi URL valid sebelum rilis Play Store)
-  static const String privacyPolicyUrl = 'https://kassantri.pondok.id/kebijakan-privasi';
-  static const String termsOfServiceUrl = 'https://kassantri.pondok.id/syarat-ketentuan';
+  /// Konfigurasi pembayaran langsung & admin resmi Kas-Santri
+  static const String adminDanaNumber = '082130678956';
+  static const String adminWhatsappNumber = '6282130678956';
+  static const String adminAccountName = 'Moch Khoirul Azman';
+  static const String qrisMerchantName = 'mochdigital, Konter';
+  static const String qrisNmid = 'ID1026647010796';
+
+  /// Tautan halaman resmi pondok/aplikasi (GitHub Pages resmi Kas-Santri)
+  static const String privacyPolicyUrl =
+      'https://mochkhoirulazman-max.github.io/kas-santri./privacy.html';
+  static const String termsOfServiceUrl =
+      'https://mochkhoirulazman-max.github.io/kas-santri./terms.html';
   static const String playStoreSubscriptionsUrl =
       'https://play.google.com/store/account/subscriptions';
 

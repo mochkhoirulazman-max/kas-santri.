@@ -1,8 +1,36 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_config.dart';
+
+/// Flag compile-time pembeda jalur distribusi:
+/// - `false` (default): Build Direct APK (pembayaran langsung ke DANA 082130678956 + Kode Lisensi PRO)
+/// - `true`: Build Google Play Store AAB (Google Play Billing resmi tanpa menu DANA/kode luar)
+const bool kIsPlayStoreBuild = bool.fromEnvironment(
+  'PLAY_STORE_BUILD',
+  defaultValue: false,
+);
+
+class TrialStatus {
+  final bool hasUsedTrial;
+  final bool isActive;
+  final bool isExpired;
+  final int remainingDays;
+  final DateTime? startedAt;
+  final DateTime? expiresAt;
+
+  const TrialStatus({
+    this.hasUsedTrial = false,
+    this.isActive = false,
+    this.isExpired = false,
+    this.remainingDays = 0,
+    this.startedAt,
+    this.expiresAt,
+  });
+}
 
 class SubscriptionPlanOffer {
   final String planKey; // YEARLY, MONTHLY, LIFETIME
@@ -72,8 +100,176 @@ class SubscriptionService {
   static final SubscriptionService instance = SubscriptionService._init();
   SubscriptionService._init();
 
+  static const int trialDurationDays = 14;
+  static const String _keyTrialStartedAt = 'kas_santri_trial_started_at_v1';
+  static const String _keyTrialExpiresAt = 'kas_santri_trial_expires_at_v1';
+  static const String _keyHasUsedTrial = 'kas_santri_has_used_trial_v1';
+
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage(
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  );
+
   bool _isConfigured = false;
   bool get isConfigured => _isConfigured;
+
+  static String qrisAssetForPlan(String planKey) {
+    switch (planKey.toUpperCase()) {
+      case 'MONTHLY':
+        return 'assets/qris_dana_25k.jpg';
+      case 'LIFETIME':
+        return 'assets/qris_dana_399k.jpg';
+      case 'YEARLY':
+      default:
+        return 'assets/qris_dana_179k.jpg';
+    }
+  }
+
+  static TrialStatus evaluateTrial({
+    required bool hasUsedTrial,
+    DateTime? startedAt,
+    DateTime? expiresAt,
+    DateTime? now,
+  }) {
+    if (!hasUsedTrial || expiresAt == null) {
+      return TrialStatus(
+        hasUsedTrial: hasUsedTrial,
+        isActive: false,
+        isExpired: false,
+        remainingDays: 0,
+        startedAt: startedAt,
+        expiresAt: expiresAt,
+      );
+    }
+
+    final refNow = now ?? DateTime.now();
+    if (refNow.isBefore(expiresAt)) {
+      final diffSeconds = expiresAt.difference(refNow).inSeconds;
+      final days = (diffSeconds / 86400).ceil().clamp(1, trialDurationDays);
+      return TrialStatus(
+        hasUsedTrial: true,
+        isActive: true,
+        isExpired: false,
+        remainingDays: days,
+        startedAt: startedAt,
+        expiresAt: expiresAt,
+      );
+    }
+
+    return TrialStatus(
+      hasUsedTrial: true,
+      isActive: false,
+      isExpired: true,
+      remainingDays: 0,
+      startedAt: startedAt,
+      expiresAt: expiresAt,
+    );
+  }
+
+  Future<TrialStatus> getTrialStatus({
+    bool? fallbackHasUsed,
+    String? fallbackStartedAt,
+    String? fallbackExpiresAt,
+  }) async {
+    String? startedRaw;
+    String? expiresRaw;
+    String? usedRaw;
+
+    try {
+      startedRaw = await _secureStorage.read(key: _keyTrialStartedAt);
+      expiresRaw = await _secureStorage.read(key: _keyTrialExpiresAt);
+      usedRaw = await _secureStorage.read(key: _keyHasUsedTrial);
+    } catch (_) {}
+
+    if (usedRaw == null || expiresRaw == null) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        startedRaw ??= prefs.getString(_keyTrialStartedAt);
+        expiresRaw ??= prefs.getString(_keyTrialExpiresAt);
+        if (usedRaw == null && prefs.containsKey(_keyHasUsedTrial)) {
+          usedRaw = (prefs.getBool(_keyHasUsedTrial) ?? false) ? '1' : '0';
+        }
+      } catch (_) {}
+    }
+
+    final hasUsed = usedRaw == '1' || (fallbackHasUsed ?? false);
+    final startedAt = DateTime.tryParse(startedRaw ?? fallbackStartedAt ?? '');
+    final expiresAt = DateTime.tryParse(expiresRaw ?? fallbackExpiresAt ?? '');
+
+    if (hasUsed && expiresAt != null) {
+      await _persistTrialData(
+        startedAt: startedAt ?? expiresAt.subtract(const Duration(days: trialDurationDays)),
+        expiresAt: expiresAt,
+      );
+    }
+
+    return evaluateTrial(
+      hasUsedTrial: hasUsed,
+      startedAt: startedAt,
+      expiresAt: expiresAt,
+    );
+  }
+
+  Future<void> _persistTrialData({
+    required DateTime startedAt,
+    required DateTime expiresAt,
+  }) async {
+    final sStr = startedAt.toIso8601String();
+    final eStr = expiresAt.toIso8601String();
+    try {
+      await _secureStorage.write(key: _keyTrialStartedAt, value: sStr);
+      await _secureStorage.write(key: _keyTrialExpiresAt, value: eStr);
+      await _secureStorage.write(key: _keyHasUsedTrial, value: '1');
+    } catch (_) {}
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_keyTrialStartedAt, sStr);
+      await prefs.setString(_keyTrialExpiresAt, eStr);
+      await prefs.setBool(_keyHasUsedTrial, true);
+    } catch (_) {}
+  }
+
+  Future<({bool success, TrialStatus status, String message})> startFreeTrial14Days({
+    bool? fallbackHasUsed,
+    String? fallbackStartedAt,
+    String? fallbackExpiresAt,
+  }) async {
+    final current = await getTrialStatus(
+      fallbackHasUsed: fallbackHasUsed,
+      fallbackStartedAt: fallbackStartedAt,
+      fallbackExpiresAt: fallbackExpiresAt,
+    );
+
+    if (current.hasUsedTrial) {
+      if (current.isActive) {
+        return (
+          success: false,
+          status: current,
+          message: 'Uji coba PRO 14 hari sudah aktif (sisa ${current.remainingDays} hari).',
+        );
+      }
+      return (
+        success: false,
+        status: current,
+        message: 'Uji coba gratis 14 hari sudah pernah digunakan pada perangkat ini.',
+      );
+    }
+
+    final now = DateTime.now();
+    final expiresAt = now.add(const Duration(days: trialDurationDays));
+    await _persistTrialData(startedAt: now, expiresAt: expiresAt);
+    final activeStatus = evaluateTrial(
+      hasUsedTrial: true,
+      startedAt: now,
+      expiresAt: expiresAt,
+      now: now,
+    );
+
+    return (
+      success: true,
+      status: activeStatus,
+      message: 'Uji Coba PRO 14 Hari Aktif! Seluruh fitur premium terbuka penuh.',
+    );
+  }
 
   static String planKeyFromProductId(String? productId) {
     if (productId == AppConfig.productIdMonthly) return 'MONTHLY';
@@ -83,6 +279,8 @@ class SubscriptionService {
 
   static String planDisplayName(String? planKey) {
     switch (planKey) {
+      case 'TRIAL_14D':
+        return 'Uji Coba Gratis (14 Hari)';
       case 'MONTHLY':
         return 'Pro Bulanan (1 Bulan)';
       case 'LIFETIME':

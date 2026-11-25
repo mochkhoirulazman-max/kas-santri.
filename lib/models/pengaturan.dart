@@ -21,6 +21,9 @@ class PengaturanAplikasi {
   final String? lastDriveBackupAt;
   final bool autoDriveBackup;
   final String? driveAccountEmail;
+  final String? trialStartedAt;
+  final String? trialExpiresAt;
+  final bool hasUsedTrial;
 
   PengaturanAplikasi({
     this.id = 1,
@@ -43,6 +46,9 @@ class PengaturanAplikasi {
     this.lastDriveBackupAt,
     this.autoDriveBackup = false,
     this.driveAccountEmail,
+    this.trialStartedAt,
+    this.trialExpiresAt,
+    this.hasUsedTrial = false,
   });
 
   PengaturanAplikasi copyWith({
@@ -70,6 +76,9 @@ class PengaturanAplikasi {
     bool? autoDriveBackup,
     String? driveAccountEmail,
     bool clearDriveAccount = false,
+    String? trialStartedAt,
+    String? trialExpiresAt,
+    bool? hasUsedTrial,
   }) {
     return PengaturanAplikasi(
       id: id ?? this.id,
@@ -96,6 +105,9 @@ class PengaturanAplikasi {
       driveAccountEmail: clearDriveAccount
           ? null
           : (driveAccountEmail ?? this.driveAccountEmail),
+      trialStartedAt: trialStartedAt ?? this.trialStartedAt,
+      trialExpiresAt: trialExpiresAt ?? this.trialExpiresAt,
+      hasUsedTrial: hasUsedTrial ?? this.hasUsedTrial,
     );
   }
 
@@ -121,6 +133,9 @@ class PengaturanAplikasi {
       'last_drive_backup_at': lastDriveBackupAt,
       'auto_drive_backup': autoDriveBackup ? 1 : 0,
       'drive_account_email': driveAccountEmail,
+      'trial_started_at': trialStartedAt,
+      'trial_expires_at': trialExpiresAt,
+      'has_used_trial': hasUsedTrial ? 1 : 0,
     };
   }
 
@@ -128,6 +143,8 @@ class PengaturanAplikasi {
     final pinRaw = map['pin_keamanan'] as String?;
     final driveEmailRaw = map['drive_account_email'] as String?;
     final lastBackupRaw = map['last_drive_backup_at'] as String?;
+    final trialStartedRaw = map['trial_started_at'] as String?;
+    final trialExpiresRaw = map['trial_expires_at'] as String?;
     return PengaturanAplikasi(
       id: (map['id'] as num?)?.toInt() ?? 1,
       namaPondok: map['nama_pondok'] as String? ?? 'PPS MIFTAHUSSUNAN',
@@ -153,6 +170,11 @@ class PengaturanAplikasi {
       autoDriveBackup: (map['auto_drive_backup'] as int?) == 1,
       driveAccountEmail:
           (driveEmailRaw != null && driveEmailRaw.isNotEmpty) ? driveEmailRaw : null,
+      trialStartedAt:
+          (trialStartedRaw != null && trialStartedRaw.isNotEmpty) ? trialStartedRaw : null,
+      trialExpiresAt:
+          (trialExpiresRaw != null && trialExpiresRaw.isNotEmpty) ? trialExpiresRaw : null,
+      hasUsedTrial: (map['has_used_trial'] as int?) == 1,
     );
   }
 }

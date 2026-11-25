@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kebijakan Privasi — Kas-Santri</title>
+  <style>
+    :root {
+      --bg: #060a12;
+      --card: #0e1422;
+      --border: rgba(255, 255, 255, 0.12);
+      --emerald: #34d399;
+      --cyan: #38bdf8;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: radial-gradient(circle at top, rgba(16, 185, 129, 0.12), transparent 45%), var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      padding: 28px 16px 48px;
+    }
+    .container { max-width: 780px; margin: 0 auto; }
+    .header {
+      background: var(--card);
+      border: 1px solid rgba(52, 211, 153, 0.45);
+      border-radius: 22px;
+      padding: 24px;
+      margin-bottom: 18px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(52, 211, 153, 0.14);
+      color: var(--emerald);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+    h1 { margin: 10px 0 4px; font-size: 24px; color: #fff; }
+    .sub { color: var(--muted); font-size: 13px; margin: 0; }
+    .section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 20px;
+      margin-bottom: 14px;
+    }
+    h2 { margin: 0 0 8px; font-size: 16px; color: var(--emerald); }
+    p, li { color: #cbd5e1; font-size: 14px; margin: 0 0 8px; }
+    ul { margin: 6px 0 0; padding-left: 20px; }
+    .footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 24px; }
+    a { color: var(--cyan); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <span class="badge">100% OFFLINE-FIRST &amp; PRIVAT</span>
+      <h1>Kebijakan Privasi Kas-Santri</h1>
+      <p class="sub">Berlaku mulai November 2026 • Pengembang: Moch Khoirul Azman</p>
+    </div>
+
+    <div class="section">
+      <h2>1. Penyimpanan Data Lokal (SQLite Offline-First)</h2>
+      <p>Seluruh data santri, nominal saldo, catatan keperluan, nomor WhatsApp wali, foto profil santri, serta buku mutasi disimpan sepenuhnya di dalam basis data SQLite lokal pada perangkat pengurus. Pengembang tidak mengoperasikan server terpusat dan tidak pernah mengumpulkan, membaca, atau menjual data keuangan pondok Anda.</p>
+    </div>
+
+    <div class="section">
+      <h2>2. Penggunaan Izin Kamera &amp; Galeri</h2>
+      <p>Izin kamera hanya digunakan secara lokal saat pengurus memindai Kode QR Kartu Santri atau mengambil foto profil santri serta logo pondok. Tidak ada gambar atau video yang dikirim ke server eksternal mana pun.</p>
+    </div>
+
+    <div class="section">
+      <h2>3. Cadangan Privat Google Drive (drive.appdata)</h2>
+      <p>Jika Anda mengaktifkan fitur PRO Cloud Backup Google Drive, aplikasi hanya meminta akses ke ruang tersembunyi khusus aplikasi (scope <code>drive.appdata</code>) pada akun Google milik pondok/pengurus sendiri. Aplikasi tidak dapat melihat atau membaca file pribadi lain di Google Drive Anda.</p>
+    </div>
+
+    <div class="section">
+      <h2>4. Keamanan PIN, Biometrik &amp; ID Perangkat</h2>
+      <p>PIN keamanan 4–6 digit disimpan dalam bentuk hash SHA-256 terenkripsi melalui Android Keystore / EncryptedSharedPreferences. Autentikasi sidik jari ditangani langsung oleh sistem biometrik Android tanpa menyimpan data biometrik mentah di aplikasi. ID Perangkat (format <code>KS-XXXX-XXXX</code>) hanya digunakan secara lokal untuk memverifikasi lisensi PRO.</p>
+    </div>
+
+    <div class="section">
+      <h2>5. Kontak Dukungan Resmi Pengembang</h2>
+      <p>Untuk bantuan teknis, aktivasi lisensi pondok, atau pertanyaan privasi data, silakan hubungi:</p>
+      <ul>
+        <li><strong>Pengembang:</strong> Moch Khoirul Azman</li>
+        <li><strong>WhatsApp Resmi:</strong> 082130678956</li>
+      </ul>
+    </div>
+
+    <div class="footer">
+      <p>Baca juga <a href="terms.html">Syarat &amp; Ketentuan Kas-Santri</a> • &copy; 2026 Moch Khoirul Azman</p>
+    </div>
+  </div>
+</body>
+</html>

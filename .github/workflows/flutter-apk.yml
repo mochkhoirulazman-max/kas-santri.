@@ -219,9 +219,9 @@ jobs:
           REVENUECAT_ANDROID_API_KEY: ${{ secrets.REVENUECAT_ANDROID_API_KEY }}
         run: |
           if [ -n "$REVENUECAT_ANDROID_API_KEY" ]; then
-            flutter build apk --release --no-tree-shake-icons --android-skip-build-dependency-validation --dart-define=REVENUECAT_ANDROID_API_KEY="$REVENUECAT_ANDROID_API_KEY"
+            flutter build apk --release --no-tree-shake-icons --android-skip-build-dependency-validation --dart-define=PLAY_STORE_BUILD=false --dart-define=REVENUECAT_ANDROID_API_KEY="$REVENUECAT_ANDROID_API_KEY"
           else
-            flutter build apk --release --no-tree-shake-icons --android-skip-build-dependency-validation
+            flutter build apk --release --no-tree-shake-icons --android-skip-build-dependency-validation --dart-define=PLAY_STORE_BUILD=false
           fi
 
       - name: Build Signed Release App Bundle (AAB)
@@ -229,9 +229,9 @@ jobs:
           REVENUECAT_ANDROID_API_KEY: ${{ secrets.REVENUECAT_ANDROID_API_KEY }}
         run: |
           if [ -n "$REVENUECAT_ANDROID_API_KEY" ]; then
-            flutter build appbundle --release --no-tree-shake-icons --android-skip-build-dependency-validation --dart-define=REVENUECAT_ANDROID_API_KEY="$REVENUECAT_ANDROID_API_KEY"
+            flutter build appbundle --release --no-tree-shake-icons --android-skip-build-dependency-validation --dart-define=PLAY_STORE_BUILD=true --dart-define=REVENUECAT_ANDROID_API_KEY="$REVENUECAT_ANDROID_API_KEY"
           else
-            flutter build appbundle --release --no-tree-shake-icons --android-skip-build-dependency-validation
+            flutter build appbundle --release --no-tree-shake-icons --android-skip-build-dependency-validation --dart-define=PLAY_STORE_BUILD=true
           fi
 
       - name: Clean Signing Secrets
