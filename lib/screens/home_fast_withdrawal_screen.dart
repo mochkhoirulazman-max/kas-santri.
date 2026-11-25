@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -26,10 +27,16 @@ class HomeFastWithdrawalScreen extends StatefulWidget {
 }
 
 class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {
   final TextEditingController _searchController = TextEditingController();
   bool _showBanner = true;
   late AnimationController _crownGlowController;
+  Timer? _clockTimer;
+  final ValueNotifier<DateTime> _clockNotifier =
+      ValueNotifier<DateTime>(DateTime.now().toLocal());
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -38,10 +45,17 @@ class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen>
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
+    _clockTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+      if (mounted) {
+        _clockNotifier.value = DateTime.now().toLocal();
+      }
+    });
   }
 
   @override
   void dispose() {
+    _clockTimer?.cancel();
+    _clockNotifier.dispose();
     _crownGlowController.dispose();
     _searchController.dispose();
     super.dispose();
@@ -103,56 +117,33 @@ class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen>
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final provider = Provider.of<KasSantriProvider>(context);
     final isTwoCol = provider.pengaturan.isTwoColGrid;
     final isPro = provider.pengaturan.isPro;
     final filteredList = provider.filteredSantriStatusList;
     final bottomSafe = MediaQuery.of(context).padding.bottom;
-    final nowStr = DateFormat('dd MMM yyyy • HH:mm', 'id_ID').format(DateTime.now());
 
-    return Stack(
-      children: [
-        // Ambient glow background
-        Positioned(
-          top: -60,
-          left: -40,
-          child: Container(
-            width: 240,
-            height: 240,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: const Color(0xFF10B981).withOpacity(0.2),
-            ),
-          ),
-        ),
-        Positioned(
-          top: 140,
-          right: -50,
-          child: Container(
-            width: 240,
-            height: 240,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: const Color(0xFF06B6D4).withOpacity(0.18),
-            ),
-          ),
-        ),
-
-        SafeArea(
-          bottom: false,
-          child: CustomScrollView(
-            slivers: [
-              // Status bar info & Header
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
-                  child: Column(
+    return SafeArea(
+      bottom: false,
+      child: CustomScrollView(
+        slivers: [
+          // Status bar info & Header
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+              child: Column(
+                children: [
+                  // Status bar mobile real-time (waktu lokal perangkat)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Status bar mobile real-time
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
+                      ValueListenableBuilder<DateTime>(
+                        valueListenable: _clockNotifier,
+                        builder: (_, nowDt, __) {
+                          final nowStr = DateFormat('dd MMM yyyy • HH:mm', 'id_ID')
+                              .format(nowDt.toLocal());
+                          return Text(
                             nowStr,
                             style: const TextStyle(
                               color: Color(0xFF38BDF8),
@@ -160,7 +151,9 @@ class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen>
                               fontWeight: FontWeight.w700,
                               fontFamily: 'monospace',
                             ),
-                          ),
+                          );
+                        },
+                      ),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
@@ -677,8 +670,6 @@ class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen>
               ),
           ],
         ),
-        ),
-      ],
     );
   }
 

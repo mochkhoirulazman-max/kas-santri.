@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/kas_santri_provider.dart';
+import '../services/account_auth_service.dart';
 import '../services/auth_service.dart';
+import 'auth/login_screen.dart';
 import 'onboarding_screen.dart';
 import 'pin_lock_screen.dart';
 import 'main_navigation_screen.dart';
@@ -38,6 +40,18 @@ class _SplashScreenState extends State<SplashScreen> {
       return;
     }
 
+    final remember = await AccountAuthService.instance.getRememberSession();
+    final loggedOut = await AccountAuthService.instance.isExplicitlyLoggedOut();
+    if (!mounted) return;
+
+    if (provider.activeAccount == null || loggedOut || !remember) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+      );
+      return;
+    }
+
     if (shouldLock) {
       Navigator.pushReplacement(
         context,
@@ -56,7 +70,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF060A12),
+      backgroundColor: Colors.transparent,
       body: Stack(
         children: [
           // Ambient aurora lights

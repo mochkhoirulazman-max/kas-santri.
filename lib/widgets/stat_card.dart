@@ -1,5 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/theme_wallpaper_provider.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/app_feedback.dart';
 
@@ -39,6 +41,7 @@ class SafeVaultCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cardOpacity = Provider.of<ThemeWallpaperProvider>(context).cardOpacity;
     // Serapan Jatah Harian Pondok (%)
     final pct = totalKuotaHariIni > 0
         ? ((totalKeluarHariIni / totalKuotaHariIni) * 100).clamp(0, 100).toInt()
@@ -46,38 +49,46 @@ class SafeVaultCard extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(28),
-        gradient: const RadialGradient(
-          center: Alignment(-0.8, -0.8),
-          radius: 1.4,
-          colors: [
-            Color(0x8C10B981), // Emerald glow
-            Color(0x6606B6D4), // Cyan glow
-            Color(0x40D946EF), // Fuchsia glow
-            Color(0xF0081224), // Dark deep base
-          ],
-          stops: [0.0, 0.45, 0.75, 1.0],
-        ),
-        border: Border.all(
-          color: const Color(0xFF38BDF8).withOpacity(0.48),
-          width: 1.5,
-        ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF10B981).withOpacity(0.35),
-            blurRadius: 30,
-            offset: const Offset(0, 12),
+            color: const Color(0xFF10B981).withOpacity(0.28),
+            blurRadius: 28,
+            offset: const Offset(0, 10),
           ),
           BoxShadow(
-            color: const Color(0xFFD946EF).withOpacity(0.2),
-            blurRadius: 25,
+            color: const Color(0xFFD946EF).withOpacity(0.16),
+            blurRadius: 22,
             offset: const Offset(0, 8),
           ),
         ],
       ),
-      child: Column(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(28),
+              gradient: RadialGradient(
+                center: const Alignment(-0.8, -0.8),
+                radius: 1.4,
+                colors: [
+                  const Color(0xFF10B981).withOpacity((0.55 * cardOpacity).clamp(0.2, 0.65)),
+                  const Color(0xFF06B6D4).withOpacity((0.42 * cardOpacity).clamp(0.16, 0.52)),
+                  const Color(0xFFD946EF).withOpacity((0.28 * cardOpacity).clamp(0.1, 0.36)),
+                  const Color(0xFF081224).withOpacity((0.96 * cardOpacity).clamp(0.45, 0.94)),
+                ],
+                stops: const [0.0, 0.45, 0.75, 1.0],
+              ),
+              border: Border.all(
+                color: const Color(0xFF38BDF8).withOpacity(0.48),
+                width: 1.4,
+              ),
+            ),
+            child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Baris Atas: Title + Eye icon & Santri Count Badge
@@ -402,6 +413,9 @@ class SafeVaultCard extends StatelessWidget {
           // Baris Mini Multi-Dompet: Kas Laci Tunai vs Rekening Bank (PRO)
           _buildMultiDompetStrip(),
         ],
+      ),
+          ),
+        ),
       ),
     );
   }

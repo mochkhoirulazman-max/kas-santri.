@@ -5,7 +5,7 @@ class AppTheme {
   static const Color darkBackground = Color(0xFF060A12);
   static const Color darkSurface = Color(0xFF0E1626);
   static const Color darkCard = Color(0xFF0F172A);
-  static const Color darkGlassBorder = Color(0x22FFFFFF);
+  static const Color darkGlassBorder = Color(0x28FFFFFF);
 
   // Vibrant Accents
   static const Color emerald = Color(0xFF10B981);
@@ -23,7 +23,7 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      scaffoldBackgroundColor: darkBackground,
+      scaffoldBackgroundColor: Colors.transparent,
       colorScheme: const ColorScheme.dark(
         primary: emerald,
         secondary: cyan,
@@ -42,7 +42,7 @@ class AppTheme {
         centerTitle: false,
       ),
       cardTheme: CardThemeData(
-        color: darkSurface.withOpacity(0.85),
+        color: darkSurface.withOpacity(0.72),
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),
@@ -51,7 +51,7 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: const Color(0xFF090E1A),
+        fillColor: const Color(0x99090E1A),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
@@ -84,7 +84,7 @@ class AppTheme {
         ),
       ),
       dialogTheme: DialogThemeData(
-        backgroundColor: const Color(0xFF0F172A),
+        backgroundColor: const Color(0xE60F172A),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),
           side: const BorderSide(color: darkGlassBorder),

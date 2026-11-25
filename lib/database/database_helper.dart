@@ -1143,6 +1143,8 @@ class DatabaseHelper {
   Future<List<TransaksiHarian>> getAllTransaksi({
     String? santriId,
     String? kategoriWaktu,
+    String? tanggalMulai,
+    String? tanggalSelesai,
     int? limit,
   }) async {
     final db = await database;
@@ -1157,6 +1159,16 @@ class DatabaseHelper {
     if (kategoriWaktu != null && kategoriWaktu.isNotEmpty && kategoriWaktu != 'ALL') {
       where += ' AND kategori_waktu = ?';
       args.add(kategoriWaktu);
+    }
+
+    if (tanggalMulai != null && tanggalMulai.isNotEmpty) {
+      where += ' AND tanggal_lokal >= ?';
+      args.add(tanggalMulai);
+    }
+
+    if (tanggalSelesai != null && tanggalSelesai.isNotEmpty) {
+      where += ' AND tanggal_lokal <= ?';
+      args.add(tanggalSelesai);
     }
 
     final maps = await db.query(

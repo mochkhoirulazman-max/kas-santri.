@@ -4,10 +4,12 @@ import '../../models/infak_santri.dart';
 import '../../models/santri.dart';
 import '../../models/setoran.dart';
 import '../../providers/kas_santri_provider.dart';
+import '../../providers/theme_wallpaper_provider.dart';
 import '../../utils/app_feedback.dart';
 import '../../utils/currency_formatter.dart';
 import '../../utils/date_formatter.dart';
 import '../../widgets/sambangan_receipt_dialog.dart';
+import '../../widgets/searchable_santri_picker.dart';
 import 'buku_infak_view.dart';
 
 class SetoranScreen extends StatefulWidget {
@@ -26,7 +28,10 @@ class SetoranScreen extends StatefulWidget {
   State<SetoranScreen> createState() => _SetoranScreenState();
 }
 
-class _SetoranScreenState extends State<SetoranScreen> {
+class _SetoranScreenState extends State<SetoranScreen>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
   String? _selectedSantriId;
   TipeSetoran _tipeSetoran = TipeSetoran.awalBulan;
   bool _potongTunggakan = true;
@@ -53,7 +58,7 @@ class _SetoranScreenState extends State<SetoranScreen> {
   @override
   void initState() {
     super.initState();
-    _tglMasuk = DateTime.now();
+    _tglMasuk = DateTime.now().toLocal();
     _tglHabisYmd =
         InfakSantriModel.hitungTglHabis(DateFormatter.toLocalDateString(_tglMasuk));
   }
@@ -154,22 +159,37 @@ class _SetoranScreenState extends State<SetoranScreen> {
     AppFeedback.tap();
     final initial = isMasuk
         ? _tglMasuk
-        : (DateTime.tryParse(_tglHabisYmd) ?? _tglMasuk);
+        : DateFormatter.parseLocalDate(_tglHabisYmd);
     final picked = await showDatePicker(
       context: context,
       initialDate: initial,
       firstDate: DateTime(2020),
       lastDate: DateTime(2035),
+      builder: (ctx, child) {
+        return Theme(
+          data: Theme.of(ctx).copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: Color(0xFF10B981),
+              onPrimary: Color(0xFF040914),
+              surface: Color(0xFF0F172A),
+              onSurface: Colors.white,
+            ),
+            dialogBackgroundColor: const Color(0xFF0F172A),
+          ),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
     );
     if (picked != null && mounted) {
+      final localPicked = DateTime(picked.year, picked.month, picked.day);
       setState(() {
         if (isMasuk) {
-          _tglMasuk = picked;
+          _tglMasuk = localPicked;
           _tglHabisYmd = InfakSantriModel.hitungTglHabis(
-            DateFormatter.toLocalDateString(picked),
+            DateFormatter.toLocalDateString(localPicked),
           );
         } else {
-          _tglHabisYmd = DateFormatter.toLocalDateString(picked);
+          _tglHabisYmd = DateFormatter.toLocalDateString(localPicked);
         }
       });
     }
@@ -300,7 +320,9 @@ class _SetoranScreenState extends State<SetoranScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final provider = Provider.of<KasSantriProvider>(context);
+    final cardOpacity = Provider.of<ThemeWallpaperProvider>(context).cardOpacity;
     final santriList = provider.allSantri.where((s) => s.statusAktif).toList();
 
     if (_selectedSantriId == null && santriList.isNotEmpty) {
@@ -341,7 +363,7 @@ class _SetoranScreenState extends State<SetoranScreen> {
             child: Container(
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: const Color(0xFF0F172A),
+                color: const Color(0xFF0F172A).withOpacity(cardOpacity),
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(color: Colors.white12),
               ),
@@ -371,7 +393,7 @@ class _SetoranScreenState extends State<SetoranScreen> {
                       Container(
                         padding: const EdgeInsets.all(18),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF0F172A).withOpacity(0.85),
+                          color: const Color(0xFF0F172A).withOpacity(cardOpacity),
                           borderRadius: BorderRadius.circular(28),
                           border: Border.all(color: Colors.white12),
                         ),
@@ -446,7 +468,7 @@ class _SetoranScreenState extends State<SetoranScreen> {
 
                             const SizedBox(height: 16),
 
-                            // Pilih Santri
+                            // Pilih Santri (Universal Searchable Picker)
                             const Text(
                               'PILIH SANTRI',
                               style: TextStyle(
@@ -457,26 +479,18 @@ class _SetoranScreenState extends State<SetoranScreen> {
                               ),
                             ),
                             const SizedBox(height: 6),
-                            DropdownButtonFormField<String>(
-                              value: _selectedSantriId,
-                              isExpanded: true,
-                              dropdownColor: const Color(0xFF090E1A),
-                              style: const TextStyle(color: Colors.white, fontSize: 12.5),
-                              decoration: const InputDecoration(isDense: true),
-                              items: santriList.map((s) {
-                                return DropdownMenuItem<String>(
-                                  value: s.id,
-                                  child: Text(
-                                    '${s.namaLengkap} (${s.kamar}) — Saldo: ${CurrencyFormatter.format(s.saldoTotal)}',
-                                    style: const TextStyle(color: Colors.white, fontSize: 12),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
+                            SearchableSantriField(
+                              selectedSantri: selectedSantri,
+                              placeholder: 'Cari & pilih santri...',
+                              onTap: () async {
+                                final picked = await SearchableSantriPicker.show(
+                                  context,
+                                  santriList: santriList,
+                                  selectedSantriId: _selectedSantriId,
+                                  title: 'Pilih Santri Penyetor',
                                 );
-                              }).toList(),
-                              onChanged: (val) {
-                                if (val != null) {
-                                  AppFeedback.tap();
-                                  setState(() => _selectedSantriId = val);
+                                if (picked != null && mounted) {
+                                  setState(() => _selectedSantriId = picked);
                                 }
                               },
                             ),

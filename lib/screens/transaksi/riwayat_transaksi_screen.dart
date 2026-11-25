@@ -3,10 +3,13 @@ import 'package:provider/provider.dart';
 import '../../database/database_helper.dart';
 import '../../models/transaksi.dart';
 import '../../providers/kas_santri_provider.dart';
+import '../../providers/theme_wallpaper_provider.dart';
 import '../../utils/currency_formatter.dart';
+import '../../utils/date_formatter.dart';
 import '../../utils/time_category_helper.dart';
 import '../../utils/app_feedback.dart';
 import '../../services/yayasan_export_service.dart';
+import '../../widgets/searchable_santri_picker.dart';
 import '../paywall_screen.dart';
 
 class RiwayatTransaksiScreen extends StatefulWidget {
@@ -16,11 +19,18 @@ class RiwayatTransaksiScreen extends StatefulWidget {
   State<RiwayatTransaksiScreen> createState() => _RiwayatTransaksiScreenState();
 }
 
-class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
+class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen>
+    with AutomaticKeepAliveClientMixin {
   String _selectedSantriId = 'ALL';
   String _selectedWaktu = 'ALL';
+  ExportPeriod _dateFilter = ExportPeriod.semua;
+  DateTime? _customStart;
+  DateTime? _customEnd;
   List<TransaksiHarian> _list = [];
   bool _isLoading = true;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -50,7 +60,9 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
           rekeningBank: provider.rekeningBank,
           totalTunggakanPondok: provider.totalTunggakanPondok,
           opnameLogs: provider.opnameLogs,
-          period: ExportPeriod.semua,
+          period: _dateFilter,
+          customStart: _customStart,
+          customEnd: _customEnd,
         );
       } else {
         await YayasanExportService.instance.exportPdfResmiYayasan(
@@ -60,7 +72,9 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
           kasLaciTunai: provider.kasLaciTunai,
           rekeningBank: provider.rekeningBank,
           totalTunggakanPondok: provider.totalTunggakanPondok,
-          period: ExportPeriod.semua,
+          period: _dateFilter,
+          customStart: _customStart,
+          customEnd: _customEnd,
         );
       }
       AppFeedback.success();
@@ -78,15 +92,59 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
 
   Future<void> _fetch() async {
     setState(() => _isLoading = true);
+    final range = YayasanExportService.resolveRange(
+      _dateFilter,
+      customStart: _customStart,
+      customEnd: _customEnd,
+    );
     final results = await DatabaseHelper.instance.getAllTransaksi(
       santriId: _selectedSantriId,
       kategoriWaktu: _selectedWaktu,
+      tanggalMulai: range.mulai,
+      tanggalSelesai: range.selesai,
     );
     if (mounted) {
       setState(() {
         _list = results;
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _pickCustomDateRange() async {
+    AppFeedback.tap();
+    final now = DateTime.now().toLocal();
+    final initialRange = DateTimeRange(
+      start: _customStart ?? now.subtract(const Duration(days: 6)),
+      end: _customEnd ?? now,
+    );
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2035),
+      initialDateRange: initialRange,
+      builder: (ctx, child) {
+        return Theme(
+          data: Theme.of(ctx).copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: Color(0xFF10B981),
+              onPrimary: Color(0xFF040914),
+              surface: Color(0xFF0F172A),
+              onSurface: Colors.white,
+            ),
+            dialogBackgroundColor: const Color(0xFF0F172A),
+          ),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
+    );
+    if (picked != null && mounted) {
+      setState(() {
+        _customStart = DateTime(picked.start.year, picked.start.month, picked.start.day);
+        _customEnd = DateTime(picked.end.year, picked.end.month, picked.end.day);
+        _dateFilter = ExportPeriod.rentangKhusus;
+      });
+      await _fetch();
     }
   }
 
@@ -129,7 +187,9 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final provider = Provider.of<KasSantriProvider>(context);
+    final cardOpacity = Provider.of<ThemeWallpaperProvider>(context).cardOpacity;
     final santriList = provider.allSantri.where((s) => s.statusAktif).toList();
     final bottomSafe = MediaQuery.of(context).padding.bottom;
 
@@ -147,7 +207,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFF0F172A).withOpacity(0.85),
+              color: const Color(0xFF0F172A).withOpacity(cardOpacity),
               borderRadius: BorderRadius.circular(24),
               border: Border.all(color: Colors.white12),
             ),
@@ -188,26 +248,29 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
 
                 const SizedBox(height: 12),
 
-                // 2 Dropdowns: Filter Santri & Filter Waktu
+                // Filter Santri (Searchable) & Filter Waktu
                 Row(
                   children: [
                     Expanded(
-                      child: DropdownButtonFormField<String>(
-                        value: _selectedSantriId,
-                        isExpanded: true,
-                        dropdownColor: const Color(0xFF090E1A),
-                        style: const TextStyle(color: Colors.white, fontSize: 11),
-                        decoration: const InputDecoration(
-                          isDense: true,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                        ),
-                        items: [
-                          const DropdownMenuItem(value: 'ALL', child: Text('Semua Santri', overflow: TextOverflow.ellipsis)),
-                          ...santriList.map((s) => DropdownMenuItem(value: s.id, child: Text(s.namaLengkap, overflow: TextOverflow.ellipsis))),
-                        ],
-                        onChanged: (val) {
-                          if (val != null) {
-                            setState(() => _selectedSantriId = val);
+                      flex: 6,
+                      child: SearchableSantriField(
+                        compact: true,
+                        isAllSelected: _selectedSantriId == 'ALL',
+                        allLabel: 'Semua Santri',
+                        selectedSantri: santriList
+                            .where((s) => s.id == _selectedSantriId)
+                            .firstOrNull,
+                        onTap: () async {
+                          final picked = await SearchableSantriPicker.show(
+                            context,
+                            santriList: santriList,
+                            selectedSantriId: _selectedSantriId,
+                            allowAllOption: true,
+                            allOptionLabel: 'Semua Santri',
+                            title: 'Filter Mutasi per Santri',
+                          );
+                          if (picked != null && mounted) {
+                            setState(() => _selectedSantriId = picked);
                             _fetch();
                           }
                         },
@@ -215,6 +278,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                     ),
                     const SizedBox(width: 8),
                     Expanded(
+                      flex: 4,
                       child: DropdownButtonFormField<String>(
                         value: _selectedWaktu,
                         isExpanded: true,
@@ -241,6 +305,54 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                       ),
                     ),
                   ],
+                ),
+
+                const SizedBox(height: 10),
+
+                // Filter Rentang Tanggal Lokal Akurat
+                SizedBox(
+                  height: 34,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    children: ExportPeriod.values.map((period) {
+                      final selected = _dateFilter == period;
+                      final label = period == ExportPeriod.rentangKhusus
+                          ? (_dateFilter == ExportPeriod.rentangKhusus &&
+                                  _customStart != null &&
+                                  _customEnd != null
+                              ? '📅 ${DateFormatter.toLocalDateString(_customStart!)} → ${DateFormatter.toLocalDateString(_customEnd!)}'
+                              : '📅 Rentang Khusus')
+                          : (period == ExportPeriod.semua
+                              ? 'Semua Tanggal'
+                              : YayasanExportService.periodLabel(period));
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: ChoiceChip(
+                          label: Text(
+                            label,
+                            style: TextStyle(
+                              color: selected ? const Color(0xFF040914) : Colors.white70,
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          selected: selected,
+                          selectedColor: const Color(0xFF34D399),
+                          backgroundColor: const Color(0xFF060B14),
+                          side: BorderSide(color: selected ? Colors.transparent : Colors.white12),
+                          onSelected: (_) {
+                            AppFeedback.tap();
+                            if (period == ExportPeriod.rentangKhusus) {
+                              _pickCustomDateRange();
+                            } else {
+                              setState(() => _dateFilter = period);
+                              _fetch();
+                            }
+                          },
+                        ),
+                      );
+                    }).toList(),
+                  ),
                 ),
 
                 const SizedBox(height: 10),
@@ -335,7 +447,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen> {
                 margin: const EdgeInsets.only(bottom: 8),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0F172A).withOpacity(0.85),
+                  color: const Color(0xFF0F172A).withOpacity(cardOpacity),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: Colors.white12),
                 ),

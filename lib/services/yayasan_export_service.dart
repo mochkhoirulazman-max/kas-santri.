@@ -19,8 +19,10 @@ import '../utils/date_formatter.dart';
 
 enum ExportPeriod {
   hariIni,
+  kemarin,
   tujuhHari,
   bulanIni,
+  rentangKhusus,
   semua,
 }
 
@@ -35,31 +37,63 @@ class YayasanExportService {
   static final YayasanExportService instance = YayasanExportService._init();
   YayasanExportService._init();
 
-  static String periodLabel(ExportPeriod period) {
+  static String periodLabel(
+    ExportPeriod period, {
+    DateTime? customStart,
+    DateTime? customEnd,
+  }) {
     switch (period) {
       case ExportPeriod.hariIni:
         return 'Hari Ini';
+      case ExportPeriod.kemarin:
+        return 'Kemarin';
       case ExportPeriod.tujuhHari:
         return '7 Hari Terakhir';
       case ExportPeriod.bulanIni:
         return 'Bulan Ini';
+      case ExportPeriod.rentangKhusus:
+        if (customStart != null && customEnd != null) {
+          return '${DateFormatter.toLocalDateString(customStart)} s.d. ${DateFormatter.toLocalDateString(customEnd)}';
+        }
+        return '📅 Rentang Khusus';
       case ExportPeriod.semua:
         return 'Semua Riwayat';
     }
   }
 
-  static ({String? mulai, String? selesai, String label}) resolveRange(ExportPeriod period) {
-    final now = DateTime.now();
+  static ({String? mulai, String? selesai, String label}) resolveRange(
+    ExportPeriod period, {
+    DateTime? customStart,
+    DateTime? customEnd,
+  }) {
+    final now = DateTime.now().toLocal();
     final today = DateFormatter.toLocalDateString(now);
     switch (period) {
       case ExportPeriod.hariIni:
         return (mulai: today, selesai: today, label: 'Hari Ini ($today)');
+      case ExportPeriod.kemarin:
+        final yest = DateFormatter.toLocalDateString(
+          now.subtract(const Duration(days: 1)),
+        );
+        return (mulai: yest, selesai: yest, label: 'Kemarin ($yest)');
       case ExportPeriod.tujuhHari:
-        final start = DateFormatter.toLocalDateString(now.subtract(const Duration(days: 6)));
+        final start = DateFormatter.toLocalDateString(
+          now.subtract(const Duration(days: 6)),
+        );
         return (mulai: start, selesai: today, label: '7 Hari ($start s.d. $today)');
       case ExportPeriod.bulanIni:
         final start = DateFormatter.toLocalDateString(DateTime(now.year, now.month, 1));
         return (mulai: start, selesai: today, label: 'Bulan Ini ($start s.d. $today)');
+      case ExportPeriod.rentangKhusus:
+        final sDate = customStart ?? now;
+        final eDate = customEnd ?? sDate;
+        final startStr = DateFormatter.toLocalDateString(sDate);
+        final endStr = DateFormatter.toLocalDateString(eDate);
+        return (
+          mulai: startStr,
+          selesai: endStr,
+          label: 'Rentang ($startStr s.d. $endStr)',
+        );
       case ExportPeriod.semua:
         return (mulai: null, selesai: null, label: 'Semua Periode');
     }
@@ -81,7 +115,705 @@ class YayasanExportService {
     }
   }
 
-  /// Ekspor Excel (.xlsx) Multi-Sheet:
+  static final Border _thinCellBorder = Border(
+    borderStyle: BorderStyle.Thin,
+    borderColorHex: ExcelColor.fromHexString('#CBD5E1'),
+  );
+  static final Border _headerCellBorder = Border(
+    borderStyle: BorderStyle.Thin,
+    borderColorHex: ExcelColor.fromHexString('#0F766E'),
+  );
+  static final Border _totalTopBorder = Border(
+    borderStyle: BorderStyle.Medium,
+    borderColorHex: ExcelColor.fromHexString('#0F766E'),
+  );
+  static final NumFormat _rupiahNumFormat =
+      CustomNumericNumFormat(formatCode: '"Rp "#,##0');
+  static final NumFormat _literNumFormat =
+      CustomNumericNumFormat(formatCode: '0.0" L"');
+
+  CellStyle _kopTitleStyle() => CellStyle(
+        bold: true,
+        fontSize: 13,
+        fontColorHex: ExcelColor.fromHexString('#FFFFFF'),
+        backgroundColorHex: ExcelColor.fromHexString('#0F766E'),
+        horizontalAlign: HorizontalAlign.Center,
+        verticalAlign: VerticalAlign.Center,
+      );
+
+  CellStyle _kopSubStyle() => CellStyle(
+        bold: true,
+        fontSize: 11,
+        fontColorHex: ExcelColor.fromHexString('#0F172A'),
+        backgroundColorHex: ExcelColor.fromHexString('#CCFBF1'),
+        horizontalAlign: HorizontalAlign.Center,
+        verticalAlign: VerticalAlign.Center,
+      );
+
+  CellStyle _kopMetaStyle() => CellStyle(
+        fontSize: 9,
+        fontColorHex: ExcelColor.fromHexString('#334155'),
+        backgroundColorHex: ExcelColor.fromHexString('#F1F5F9'),
+        horizontalAlign: HorizontalAlign.Center,
+        verticalAlign: VerticalAlign.Center,
+      );
+
+  CellStyle _tableHeaderStyle({String bgHex = '#0F172A'}) => CellStyle(
+        bold: true,
+        fontSize: 10,
+        fontColorHex: ExcelColor.fromHexString('#FFFFFF'),
+        backgroundColorHex: ExcelColor.fromHexString(bgHex),
+        horizontalAlign: HorizontalAlign.Center,
+        verticalAlign: VerticalAlign.Center,
+        textWrapping: TextWrapping.WrapText,
+        leftBorder: _headerCellBorder,
+        rightBorder: _headerCellBorder,
+        topBorder: _headerCellBorder,
+        bottomBorder: _headerCellBorder,
+      );
+
+  CellStyle _dataStyle({
+    HorizontalAlign align = HorizontalAlign.Left,
+    String? bgHex,
+    String fontHex = '#0F172A',
+    bool bold = false,
+    NumFormat? numFormat,
+  }) {
+    return CellStyle(
+      bold: bold,
+      fontSize: 10,
+      fontColorHex: ExcelColor.fromHexString(fontHex),
+      backgroundColorHex:
+          bgHex != null ? ExcelColor.fromHexString(bgHex) : ExcelColor.none,
+      horizontalAlign: align,
+      verticalAlign: VerticalAlign.Center,
+      textWrapping: TextWrapping.WrapText,
+      numberFormat: numFormat ?? NumFormat.standard_0,
+      leftBorder: _thinCellBorder,
+      rightBorder: _thinCellBorder,
+      topBorder: _thinCellBorder,
+      bottomBorder: _thinCellBorder,
+    );
+  }
+
+  CellStyle _totalStyle({
+    HorizontalAlign align = HorizontalAlign.Right,
+    NumFormat? numFormat,
+    String bgHex = '#E2E8F0',
+  }) {
+    return CellStyle(
+      bold: true,
+      fontSize: 10,
+      fontColorHex: ExcelColor.fromHexString('#0F172A'),
+      backgroundColorHex: ExcelColor.fromHexString(bgHex),
+      horizontalAlign: align,
+      verticalAlign: VerticalAlign.Center,
+      textWrapping: TextWrapping.WrapText,
+      numberFormat: numFormat ?? NumFormat.standard_0,
+      leftBorder: _thinCellBorder,
+      rightBorder: _thinCellBorder,
+      topBorder: _totalTopBorder,
+      bottomBorder: _totalTopBorder,
+    );
+  }
+
+  ({String bgHex, String fontHex}) _statusPalette(String status) {
+    switch (status.toUpperCase()) {
+      case 'LUNAS':
+      case 'SAH':
+      case 'COCOK':
+      case 'BEBAS':
+        return (bgHex: '#DCFCE7', fontHex: '#166534');
+      case 'CICIL':
+      case 'SELISIH':
+        return (bgHex: '#FEF3C7', fontHex: '#92400E');
+      case 'BELUM':
+      case 'VOID':
+      case 'VOID (DIBATALKAN)':
+        return (bgHex: '#FFE4E6', fontHex: '#9F1239');
+      case 'PULANG':
+      case 'PINDAH':
+        return (bgHex: '#E2E8F0', fontHex: '#334155');
+      default:
+        return (bgHex: '#F8FAFC', fontHex: '#0F172A');
+    }
+  }
+
+  void _writeMergedBanner(
+    Sheet sheet, {
+    required int row,
+    required int lastCol,
+    required String text,
+    required CellStyle style,
+  }) {
+    final start = CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row);
+    final end = CellIndex.indexByColumnRow(columnIndex: lastCol, rowIndex: row);
+    sheet.cell(start).value = TextCellValue(text);
+    sheet.merge(start, end);
+    for (int c = 0; c <= lastCol; c++) {
+      sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: c, rowIndex: row))
+          .cellStyle = style;
+    }
+  }
+
+  void _writeStyledRow(
+    Sheet sheet, {
+    required int row,
+    required List<CellValue> values,
+    required List<CellStyle> styles,
+  }) {
+    for (int c = 0; c < values.length; c++) {
+      final cell =
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: c, rowIndex: row));
+      cell.value = values[c];
+      if (c < styles.length) {
+        cell.cellStyle = styles[c];
+      }
+    }
+  }
+
+  void _applyColumnWidths(Sheet sheet, List<double> widths) {
+    for (int c = 0; c < widths.length; c++) {
+      sheet.setColumnWidth(c, widths[c]);
+    }
+  }
+
+  void _writeSignatureBlock(
+    Sheet sheet, {
+    required int startRow,
+    required int lastCol,
+    required PengaturanAplikasi pengaturan,
+    required String printDate,
+    required String bendaharaRole,
+  }) {
+    final signStyle = CellStyle(
+      fontSize: 10,
+      fontColorHex: ExcelColor.fromHexString('#0F172A'),
+      horizontalAlign: HorizontalAlign.Center,
+      verticalAlign: VerticalAlign.Center,
+    );
+    final signBold = CellStyle(
+      bold: true,
+      fontSize: 10,
+      fontColorHex: ExcelColor.fromHexString('#0F172A'),
+      horizontalAlign: HorizontalAlign.Center,
+      verticalAlign: VerticalAlign.Center,
+    );
+
+    final leftEnd = (lastCol ~/ 2).clamp(1, lastCol);
+    final rightStart = (leftEnd + 1).clamp(1, lastCol);
+
+    void mergePair(int r, String leftText, String rightText, CellStyle st) {
+      final ls = CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: r);
+      final le = CellIndex.indexByColumnRow(columnIndex: leftEnd, rowIndex: r);
+      sheet.cell(ls).value = TextCellValue(leftText);
+      if (leftEnd > 0) sheet.merge(ls, le);
+      for (int c = 0; c <= leftEnd; c++) {
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: c, rowIndex: r)).cellStyle = st;
+      }
+
+      if (rightStart <= lastCol) {
+        final rs = CellIndex.indexByColumnRow(columnIndex: rightStart, rowIndex: r);
+        final re = CellIndex.indexByColumnRow(columnIndex: lastCol, rowIndex: r);
+        sheet.cell(rs).value = TextCellValue(rightText);
+        if (lastCol > rightStart) sheet.merge(rs, re);
+        for (int c = rightStart; c <= lastCol; c++) {
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: c, rowIndex: r)).cellStyle = st;
+        }
+      }
+    }
+
+    mergePair(startRow, 'Mengetahui,', 'Dicetak: $printDate', signStyle);
+    mergePair(startRow + 1, 'Pengasuh Pondok,', bendaharaRole, signBold);
+    mergePair(
+      startRow + 4,
+      '( ........................................ )',
+      '( ${pengaturan.namaPengurus} )',
+      signBold,
+    );
+  }
+
+  /// Menghasilkan bytes Excel (.xlsx) Multi-Sheet Yayasan yang rapi & siap cetak:
+  /// Sheet 1: Rekap Santri
+  /// Sheet 2: Buku Mutasi
+  /// Sheet 3: Dompet & Opname
+  Future<List<int>> buildExcelYayasanBytes({
+    required PengaturanAplikasi pengaturan,
+    required List<Santri> santriList,
+    required List<Map<String, dynamic>> mutasiRows,
+    required List<Map<String, dynamic>> dompetRows,
+    required int totalBrankasFisik,
+    required int kasLaciTunai,
+    required int rekeningBank,
+    required int totalTunggakanPondok,
+    required List<CashOpnameLog> opnameLogs,
+    required String periodeLabel,
+  }) async {
+    final excel = Excel.createExcel();
+    final printDate = _formatTanggalId(DateTime.now().toLocal());
+
+    // ==================== SHEET 1: REKAP SANTRI ====================
+    final sheet1 = excel['Rekap Santri'];
+    _applyColumnWidths(sheet1, [6, 26, 14, 16, 16, 15, 18, 16, 13, 18, 24]);
+
+    int r1 = 0;
+    _writeMergedBanner(
+      sheet1,
+      row: r1++,
+      lastCol: 10,
+      text: pengaturan.namaPondok.toUpperCase(),
+      style: _kopTitleStyle(),
+    );
+    _writeMergedBanner(
+      sheet1,
+      row: r1++,
+      lastCol: 10,
+      text: 'LAPORAN REKAPITULASI SALDO TITIPAN & TUNGGAKAN SANTRI',
+      style: _kopSubStyle(),
+    );
+    _writeMergedBanner(
+      sheet1,
+      row: r1++,
+      lastCol: 10,
+      text: 'Periode: $periodeLabel  |  TA: ${pengaturan.tahunAjaran}  |  Bendahara: ${pengaturan.namaPengurus}  |  Dicetak: $printDate',
+      style: _kopMetaStyle(),
+    );
+    r1++;
+
+    _writeStyledRow(
+      sheet1,
+      row: r1++,
+      values: [
+        TextCellValue('No'),
+        TextCellValue('Nama Lengkap'),
+        TextCellValue('Panggilan'),
+        TextCellValue('Kamar'),
+        TextCellValue('No WA Wali'),
+        TextCellValue('Kode QR'),
+        TextCellValue('Saldo Titipan'),
+        TextCellValue('Jatah Harian'),
+        TextCellValue('Estimasi (Hr)'),
+        TextCellValue('Tunggakan'),
+        TextCellValue('Catatan Tunggakan'),
+      ],
+      styles: List.filled(11, _tableHeaderStyle(bgHex: '#0F172A')),
+    );
+
+    int sumSaldo = 0;
+    int sumTunggakan = 0;
+    for (int i = 0; i < santriList.length; i++) {
+      final s = santriList[i];
+      sumSaldo += s.saldoTotal;
+      sumTunggakan += s.tunggakan;
+      final rowBg = i.isEven ? '#FFFFFF' : '#F8FAFC';
+      final tunggBg = s.tunggakan > 0 ? '#FFE4E6' : rowBg;
+      final tunggFont = s.tunggakan > 0 ? '#9F1239' : '#0F172A';
+
+      _writeStyledRow(
+        sheet1,
+        row: r1++,
+        values: [
+          IntCellValue(i + 1),
+          TextCellValue(s.namaLengkap),
+          TextCellValue(s.namaPanggilan),
+          TextCellValue(s.kamar.isEmpty ? '-' : s.kamar),
+          TextCellValue(s.noWaWali ?? '-'),
+          TextCellValue(s.qrCode),
+          IntCellValue(s.saldoTotal),
+          IntCellValue(s.jatahHarian),
+          IntCellValue(s.estimasiHari),
+          IntCellValue(s.tunggakan),
+          TextCellValue(s.catatanTunggakan.isEmpty ? '-' : s.catatanTunggakan),
+        ],
+        styles: [
+          _dataStyle(align: HorizontalAlign.Center, bgHex: rowBg),
+          _dataStyle(bgHex: rowBg, bold: true),
+          _dataStyle(bgHex: rowBg),
+          _dataStyle(align: HorizontalAlign.Center, bgHex: rowBg),
+          _dataStyle(align: HorizontalAlign.Center, bgHex: rowBg),
+          _dataStyle(align: HorizontalAlign.Center, bgHex: rowBg),
+          _dataStyle(align: HorizontalAlign.Right, bgHex: rowBg, bold: true, numFormat: _rupiahNumFormat),
+          _dataStyle(align: HorizontalAlign.Right, bgHex: rowBg, numFormat: _rupiahNumFormat),
+          _dataStyle(align: HorizontalAlign.Center, bgHex: rowBg),
+          _dataStyle(align: HorizontalAlign.Right, bgHex: tunggBg, fontHex: tunggFont, bold: s.tunggakan > 0, numFormat: _rupiahNumFormat),
+          _dataStyle(bgHex: rowBg),
+        ],
+      );
+    }
+
+    _writeStyledRow(
+      sheet1,
+      row: r1++,
+      values: [
+        TextCellValue('TOTAL'),
+        TextCellValue('${santriList.length} Santri'),
+        TextCellValue(''),
+        TextCellValue(''),
+        TextCellValue(''),
+        TextCellValue(''),
+        IntCellValue(sumSaldo),
+        TextCellValue(''),
+        TextCellValue(''),
+        IntCellValue(sumTunggakan),
+        TextCellValue(''),
+      ],
+      styles: [
+        _totalStyle(align: HorizontalAlign.Center),
+        _totalStyle(align: HorizontalAlign.Left),
+        _totalStyle(align: HorizontalAlign.Left),
+        _totalStyle(align: HorizontalAlign.Left),
+        _totalStyle(align: HorizontalAlign.Left),
+        _totalStyle(align: HorizontalAlign.Left),
+        _totalStyle(align: HorizontalAlign.Right, numFormat: _rupiahNumFormat),
+        _totalStyle(align: HorizontalAlign.Right),
+        _totalStyle(align: HorizontalAlign.Center),
+        _totalStyle(align: HorizontalAlign.Right, numFormat: _rupiahNumFormat),
+        _totalStyle(align: HorizontalAlign.Left),
+      ],
+    );
+    _writeSignatureBlock(
+      sheet1,
+      startRow: r1 + 2,
+      lastCol: 10,
+      pengaturan: pengaturan,
+      printDate: printDate,
+      bendaharaRole: 'Bendahara Kas,',
+    );
+
+    // ==================== SHEET 2: BUKU MUTASI ====================
+    final sheet2 = excel['Buku Mutasi'];
+    _applyColumnWidths(sheet2, [6, 13, 9, 24, 14, 15, 12, 11, 18, 18, 16, 28]);
+
+    int r2 = 0;
+    _writeMergedBanner(
+      sheet2,
+      row: r2++,
+      lastCol: 11,
+      text: pengaturan.namaPondok.toUpperCase(),
+      style: _kopTitleStyle(),
+    );
+    _writeMergedBanner(
+      sheet2,
+      row: r2++,
+      lastCol: 11,
+      text: 'BUKU MUTASI TRANSAKSI SANTRI DETAIL',
+      style: _kopSubStyle(),
+    );
+    _writeMergedBanner(
+      sheet2,
+      row: r2++,
+      lastCol: 11,
+      text: 'Periode: $periodeLabel  |  TA: ${pengaturan.tahunAjaran}  |  Bendahara: ${pengaturan.namaPengurus}',
+      style: _kopMetaStyle(),
+    );
+    r2++;
+
+    _writeStyledRow(
+      sheet2,
+      row: r2++,
+      values: [
+        TextCellValue('No'),
+        TextCellValue('Tanggal'),
+        TextCellValue('Jam'),
+        TextCellValue('Nama Santri'),
+        TextCellValue('Kamar'),
+        TextCellValue('Tipe'),
+        TextCellValue('Sesi'),
+        TextCellValue('Dompet'),
+        TextCellValue('Nominal'),
+        TextCellValue('Saldo Setelah'),
+        TextCellValue('Status'),
+        TextCellValue('Catatan'),
+      ],
+      styles: List.filled(12, _tableHeaderStyle(bgHex: '#0F172A')),
+    );
+
+    int totalSetoranSah = 0;
+    int totalAmbilSah = 0;
+    for (int i = 0; i < mutasiRows.length; i++) {
+      final row = mutasiRows[i];
+      final isVoid = (row['is_void'] as num?)?.toInt() == 1 ||
+          (row['is_voided'] as num?)?.toInt() == 1;
+      final createdRaw = (row['waktu_ambil'] ?? '').toString();
+      final dt = DateTime.tryParse(createdRaw)?.toLocal();
+      final jam = dt != null
+          ? '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}'
+          : '-';
+      final tipe = (row['tipe'] ?? 'PENGAMBILAN').toString();
+      final nom = (row['nominal'] as num?)?.toInt() ?? 0;
+      if (!isVoid) {
+        if (tipe == 'SETORAN') {
+          totalSetoranSah += nom;
+        } else {
+          totalAmbilSah += nom;
+        }
+      }
+      final statusStr = isVoid ? 'VOID (DIBATALKAN)' : 'SAH';
+      final pal = _statusPalette(statusStr);
+      final rowBg = i.isEven ? '#FFFFFF' : '#F8FAFC';
+
+      _writeStyledRow(
+        sheet2,
+        row: r2++,
+        values: [
+          IntCellValue(i + 1),
+          TextCellValue((row['tanggal_lokal'] ?? '-').toString()),
+          TextCellValue(jam),
+          TextCellValue((row['nama_lengkap'] ?? '-').toString()),
+          TextCellValue((row['kamar'] ?? '-').toString()),
+          TextCellValue(tipe),
+          TextCellValue((row['kategori_waktu'] ?? '-').toString()),
+          TextCellValue((row['sumber_dompet'] ?? 'TUNAI').toString()),
+          IntCellValue(nom),
+          IntCellValue((row['saldo_setelah_transaksi'] as num?)?.toInt() ?? 0),
+          TextCellValue(statusStr),
+          TextCellValue((row['catatan'] ?? '-').toString()),
+        ],
+        styles: [
+          _dataStyle(align: HorizontalAlign.Center, bgHex: rowBg),
+          _dataStyle(align: HorizontalAlign.Center, bgHex: rowBg),
+          _dataStyle(align: HorizontalAlign.Center, bgHex: rowBg),
+          _dataStyle(bgHex: rowBg, bold: true),
+          _dataStyle(align: HorizontalAlign.Center, bgHex: rowBg),
+          _dataStyle(align: HorizontalAlign.Center, bgHex: rowBg),
+          _dataStyle(align: HorizontalAlign.Center, bgHex: rowBg),
+          _dataStyle(align: HorizontalAlign.Center, bgHex: rowBg),
+          _dataStyle(align: HorizontalAlign.Right, bgHex: rowBg, bold: true, numFormat: _rupiahNumFormat),
+          _dataStyle(align: HorizontalAlign.Right, bgHex: rowBg, numFormat: _rupiahNumFormat),
+          _dataStyle(align: HorizontalAlign.Center, bgHex: pal.bgHex, fontHex: pal.fontHex, bold: true),
+          _dataStyle(bgHex: rowBg),
+        ],
+      );
+    }
+
+    _writeStyledRow(
+      sheet2,
+      row: r2++,
+      values: [
+        TextCellValue('TOTAL'),
+        TextCellValue('${mutasiRows.length} Mutasi'),
+        TextCellValue(''),
+        TextCellValue('Masuk Sah:'),
+        IntCellValue(totalSetoranSah),
+        TextCellValue('Keluar Sah:'),
+        IntCellValue(totalAmbilSah),
+        TextCellValue(''),
+        TextCellValue(''),
+        TextCellValue(''),
+        TextCellValue(''),
+        TextCellValue(''),
+      ],
+      styles: [
+        _totalStyle(align: HorizontalAlign.Center),
+        _totalStyle(align: HorizontalAlign.Left),
+        _totalStyle(align: HorizontalAlign.Left),
+        _totalStyle(align: HorizontalAlign.Right),
+        _totalStyle(align: HorizontalAlign.Right, numFormat: _rupiahNumFormat),
+        _totalStyle(align: HorizontalAlign.Right),
+        _totalStyle(align: HorizontalAlign.Right, numFormat: _rupiahNumFormat),
+        _totalStyle(align: HorizontalAlign.Left),
+        _totalStyle(align: HorizontalAlign.Right),
+        _totalStyle(align: HorizontalAlign.Right),
+        _totalStyle(align: HorizontalAlign.Center),
+        _totalStyle(align: HorizontalAlign.Left),
+      ],
+    );
+    _writeSignatureBlock(
+      sheet2,
+      startRow: r2 + 2,
+      lastCol: 11,
+      pengaturan: pengaturan,
+      printDate: printDate,
+      bendaharaRole: 'Bendahara Kas,',
+    );
+
+    // ==================== SHEET 3: DOMPET & OPNAME ====================
+    final sheet3 = excel['Dompet & Opname'];
+    _applyColumnWidths(sheet3, [6, 14, 24, 18, 18, 18, 28]);
+
+    int r3 = 0;
+    _writeMergedBanner(
+      sheet3,
+      row: r3++,
+      lastCol: 6,
+      text: pengaturan.namaPondok.toUpperCase(),
+      style: _kopTitleStyle(),
+    );
+    _writeMergedBanner(
+      sheet3,
+      row: r3++,
+      lastCol: 6,
+      text: 'RINGKASAN MULTI-DOMPET & RIWAYAT CASH OPNAME FISIK',
+      style: _kopSubStyle(),
+    );
+    _writeMergedBanner(
+      sheet3,
+      row: r3++,
+      lastCol: 6,
+      text: 'Periode: $periodeLabel  |  TA: ${pengaturan.tahunAjaran}  |  Bendahara: ${pengaturan.namaPengurus}',
+      style: _kopMetaStyle(),
+    );
+    r3++;
+
+    _writeStyledRow(
+      sheet3,
+      row: r3++,
+      values: [
+        TextCellValue('RINGKASAN BRANKAS SAAT INI'),
+        TextCellValue(''),
+        TextCellValue(''),
+        TextCellValue('Nominal'),
+      ],
+      styles: List.filled(4, _tableHeaderStyle(bgHex: '#0F766E')),
+    );
+    final brankasSummary = [
+      ('Total Uang Titipan Santri (Brankas)', totalBrankasFisik),
+      ('Kas Laci Tunai (Uang Jajan)', kasLaciTunai),
+      ('Saldo Rekening Bank', rekeningBank),
+      ('Total Tunggakan Pondok', totalTunggakanPondok),
+    ];
+    for (int i = 0; i < brankasSummary.length; i++) {
+      final bg = i.isEven ? '#FFFFFF' : '#F8FAFC';
+      _writeStyledRow(
+        sheet3,
+        row: r3++,
+        values: [
+          TextCellValue(brankasSummary[i].$1),
+          TextCellValue(''),
+          TextCellValue(''),
+          IntCellValue(brankasSummary[i].$2),
+        ],
+        styles: [
+          _dataStyle(bgHex: bg, bold: true),
+          _dataStyle(bgHex: bg),
+          _dataStyle(bgHex: bg),
+          _dataStyle(align: HorizontalAlign.Right, bgHex: bg, bold: true, numFormat: _rupiahNumFormat),
+        ],
+      );
+    }
+    r3++;
+
+    _writeMergedBanner(
+      sheet3,
+      row: r3++,
+      lastCol: 6,
+      text: 'RIWAYAT MUTASI DOMPET (${dompetRows.length} Catatan)',
+      style: _kopSubStyle(),
+    );
+    _writeStyledRow(
+      sheet3,
+      row: r3++,
+      values: [
+        TextCellValue('No'),
+        TextCellValue('Tanggal'),
+        TextCellValue('Dompet'),
+        TextCellValue('Tipe'),
+        TextCellValue('Nominal'),
+        TextCellValue('Referensi'),
+        TextCellValue('Catatan'),
+      ],
+      styles: List.filled(7, _tableHeaderStyle(bgHex: '#0F172A')),
+    );
+    for (int i = 0; i < dompetRows.length; i++) {
+      final d = dompetRows[i];
+      final bg = i.isEven ? '#FFFFFF' : '#F8FAFC';
+      _writeStyledRow(
+        sheet3,
+        row: r3++,
+        values: [
+          IntCellValue(i + 1),
+          TextCellValue((d['tanggal_lokal'] ?? '-').toString()),
+          TextCellValue((d['jenis_dompet'] ?? 'TUNAI').toString()),
+          TextCellValue((d['tipe'] ?? '-').toString()),
+          IntCellValue((d['nominal'] as num?)?.toInt() ?? 0),
+          TextCellValue((d['referensi_id'] ?? '-').toString()),
+          TextCellValue((d['catatan'] ?? '-').toString()),
+        ],
+        styles: [
+          _dataStyle(align: HorizontalAlign.Center, bgHex: bg),
+          _dataStyle(align: HorizontalAlign.Center, bgHex: bg),
+          _dataStyle(align: HorizontalAlign.Center, bgHex: bg),
+          _dataStyle(align: HorizontalAlign.Center, bgHex: bg, bold: true),
+          _dataStyle(align: HorizontalAlign.Right, bgHex: bg, bold: true, numFormat: _rupiahNumFormat),
+          _dataStyle(align: HorizontalAlign.Center, bgHex: bg),
+          _dataStyle(bgHex: bg),
+        ],
+      );
+    }
+    r3++;
+
+    _writeMergedBanner(
+      sheet3,
+      row: r3++,
+      lastCol: 6,
+      text: 'RIWAYAT CASH OPNAME FISIK (${opnameLogs.length} Catatan)',
+      style: _kopSubStyle(),
+    );
+    _writeStyledRow(
+      sheet3,
+      row: r3++,
+      values: [
+        TextCellValue('No'),
+        TextCellValue('Tanggal'),
+        TextCellValue('Kas Sistem'),
+        TextCellValue('Uang Fisik'),
+        TextCellValue('Selisih'),
+        TextCellValue('Status'),
+        TextCellValue('Catatan'),
+      ],
+      styles: List.filled(7, _tableHeaderStyle(bgHex: '#0F172A')),
+    );
+    for (int i = 0; i < opnameLogs.length; i++) {
+      final op = opnameLogs[i];
+      final statusStr = op.isCocok ? 'COCOK' : 'SELISIH';
+      final pal = _statusPalette(statusStr);
+      final bg = i.isEven ? '#FFFFFF' : '#F8FAFC';
+      _writeStyledRow(
+        sheet3,
+        row: r3++,
+        values: [
+          IntCellValue(i + 1),
+          TextCellValue(op.tanggalLokal),
+          IntCellValue(op.totalSistem),
+          IntCellValue(op.totalFisik),
+          IntCellValue(op.selisih),
+          TextCellValue(statusStr),
+          TextCellValue(op.catatan ?? '-'),
+        ],
+        styles: [
+          _dataStyle(align: HorizontalAlign.Center, bgHex: bg),
+          _dataStyle(align: HorizontalAlign.Center, bgHex: bg),
+          _dataStyle(align: HorizontalAlign.Right, bgHex: bg, numFormat: _rupiahNumFormat),
+          _dataStyle(align: HorizontalAlign.Right, bgHex: bg, bold: true, numFormat: _rupiahNumFormat),
+          _dataStyle(align: HorizontalAlign.Right, bgHex: pal.bgHex, fontHex: pal.fontHex, bold: true, numFormat: _rupiahNumFormat),
+          _dataStyle(align: HorizontalAlign.Center, bgHex: pal.bgHex, fontHex: pal.fontHex, bold: true),
+          _dataStyle(bgHex: bg),
+        ],
+      );
+    }
+
+    _writeSignatureBlock(
+      sheet3,
+      startRow: r3 + 2,
+      lastCol: 6,
+      pengaturan: pengaturan,
+      printDate: printDate,
+      bendaharaRole: 'Bendahara Kas,',
+    );
+
+    if (excel.sheets.containsKey('Sheet1')) {
+      excel.delete('Sheet1');
+    }
+
+    final encoded = excel.save();
+    if (encoded == null) {
+      throw Exception('Gagal membuat file Excel (.xlsx).');
+    }
+    return encoded;
+  }
+
+  /// Ekspor Excel (.xlsx) Multi-Sheet Yayasan:
   /// Sheet 1: Rekap Saldo & Tunggakan Santri
   /// Sheet 2: Buku Mutasi Detail
   /// Sheet 3: Ringkasan Multi-Dompet & Riwayat Cash Opname
@@ -94,9 +826,15 @@ class YayasanExportService {
     required int totalTunggakanPondok,
     required List<CashOpnameLog> opnameLogs,
     required ExportPeriod period,
+    DateTime? customStart,
+    DateTime? customEnd,
     bool shareAfterCreate = true,
   }) async {
-    final range = resolveRange(period);
+    final range = resolveRange(
+      period,
+      customStart: customStart,
+      customEnd: customEnd,
+    );
     final mutasiRows = await DatabaseHelper.instance.getTransaksiByDateRange(
       tanggalMulai: range.mulai,
       tanggalSelesai: range.selesai,
@@ -106,174 +844,18 @@ class YayasanExportService {
       tanggalSelesai: range.selesai,
     );
 
-    final excel = Excel.createExcel();
-
-    // Sheet 1: Rekap Santri
-    final sheet1 = excel['Rekap Santri'];
-    sheet1.appendRow([TextCellValue(pengaturan.namaPondok.toUpperCase())]);
-    sheet1.appendRow([TextCellValue('LAPORAN REKAP SALDO & TUNGGAKAN SANTRI')]);
-    sheet1.appendRow([TextCellValue('Periode: ${range.label} | Dicetak: ${DateFormatter.formatDisplayDate(DateTime.now())}')]);
-    sheet1.appendRow([TextCellValue('')]);
-    sheet1.appendRow([
-      TextCellValue('No'),
-      TextCellValue('Nama Lengkap'),
-      TextCellValue('Panggilan'),
-      TextCellValue('Kamar'),
-      TextCellValue('No WA Wali'),
-      TextCellValue('Kode QR'),
-      TextCellValue('Saldo Titipan (Rp)'),
-      TextCellValue('Jatah Harian (Rp)'),
-      TextCellValue('Estimasi (Hari)'),
-      TextCellValue('Tunggakan (Rp)'),
-      TextCellValue('Catatan Tunggakan'),
-    ]);
-
-    int sumSaldo = 0;
-    int sumTunggakan = 0;
-    for (int i = 0; i < santriList.length; i++) {
-      final s = santriList[i];
-      sumSaldo += s.saldoTotal;
-      sumTunggakan += s.tunggakan;
-      sheet1.appendRow([
-        IntCellValue(i + 1),
-        TextCellValue(s.namaLengkap),
-        TextCellValue(s.namaPanggilan),
-        TextCellValue(s.kamar),
-        TextCellValue(s.noWaWali ?? '-'),
-        TextCellValue(s.qrCode),
-        IntCellValue(s.saldoTotal),
-        IntCellValue(s.jatahHarian),
-        IntCellValue(s.estimasiHari),
-        IntCellValue(s.tunggakan),
-        TextCellValue(s.catatanTunggakan.isEmpty ? '-' : s.catatanTunggakan),
-      ]);
-    }
-    sheet1.appendRow([
-      TextCellValue('TOTAL'),
-      TextCellValue('${santriList.length} Santri'),
-      TextCellValue(''),
-      TextCellValue(''),
-      TextCellValue(''),
-      TextCellValue(''),
-      IntCellValue(sumSaldo),
-      TextCellValue(''),
-      TextCellValue(''),
-      IntCellValue(sumTunggakan),
-      TextCellValue(''),
-    ]);
-
-    // Sheet 2: Buku Mutasi
-    final sheet2 = excel['Buku Mutasi'];
-    sheet2.appendRow([TextCellValue(pengaturan.namaPondok.toUpperCase())]);
-    sheet2.appendRow([TextCellValue('BUKU MUTASI TRANSAKSI SANTRI DETAIL')]);
-    sheet2.appendRow([TextCellValue('Periode: ${range.label}')]);
-    sheet2.appendRow([TextCellValue('')]);
-    sheet2.appendRow([
-      TextCellValue('No'),
-      TextCellValue('Tanggal'),
-      TextCellValue('Waktu'),
-      TextCellValue('Nama Santri'),
-      TextCellValue('Kamar'),
-      TextCellValue('Tipe'),
-      TextCellValue('Sesi Waktu'),
-      TextCellValue('Dompet'),
-      TextCellValue('Nominal (Rp)'),
-      TextCellValue('Saldo Setelah (Rp)'),
-      TextCellValue('Status'),
-      TextCellValue('Catatan'),
-    ]);
-
-    for (int i = 0; i < mutasiRows.length; i++) {
-      final row = mutasiRows[i];
-      final isVoid = (row['is_void'] as num?)?.toInt() == 1 ||
-          (row['is_voided'] as num?)?.toInt() == 1;
-      final createdRaw = (row['waktu_ambil'] ?? '').toString();
-      final dt = DateTime.tryParse(createdRaw);
-      final jam = dt != null
-          ? '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}'
-          : '-';
-      sheet2.appendRow([
-        IntCellValue(i + 1),
-        TextCellValue((row['tanggal_lokal'] ?? '-').toString()),
-        TextCellValue(jam),
-        TextCellValue((row['nama_lengkap'] ?? '-').toString()),
-        TextCellValue((row['kamar'] ?? '-').toString()),
-        TextCellValue((row['tipe'] ?? 'PENGAMBILAN').toString()),
-        TextCellValue((row['kategori_waktu'] ?? '-').toString()),
-        TextCellValue((row['sumber_dompet'] ?? 'TUNAI').toString()),
-        IntCellValue((row['nominal'] as num?)?.toInt() ?? 0),
-        IntCellValue((row['saldo_setelah_transaksi'] as num?)?.toInt() ?? 0),
-        TextCellValue(isVoid ? 'VOID (DIBATALKAN)' : 'SAH'),
-        TextCellValue((row['catatan'] ?? '-').toString()),
-      ]);
-    }
-
-    // Sheet 3: Dompet & Opname
-    final sheet3 = excel['Dompet & Opname'];
-    sheet3.appendRow([TextCellValue(pengaturan.namaPondok.toUpperCase())]);
-    sheet3.appendRow([TextCellValue('RINGKASAN MULTI-DOMPET & RIWAYAT CASH OPNAME')]);
-    sheet3.appendRow([TextCellValue('Periode: ${range.label}')]);
-    sheet3.appendRow([TextCellValue('')]);
-    sheet3.appendRow([TextCellValue('RINGKASAN BRANKAS SAAT INI'), TextCellValue('Nominal (Rp)')]);
-    sheet3.appendRow([TextCellValue('Total Uang Titipan (Brankas)'), IntCellValue(totalBrankasFisik)]);
-    sheet3.appendRow([TextCellValue('Kas Laci Tunai'), IntCellValue(kasLaciTunai)]);
-    sheet3.appendRow([TextCellValue('Rekening Bank'), IntCellValue(rekeningBank)]);
-    sheet3.appendRow([TextCellValue('Total Tunggakan Pondok'), IntCellValue(totalTunggakanPondok)]);
-    sheet3.appendRow([TextCellValue('')]);
-
-    sheet3.appendRow([TextCellValue('RIWAYAT MUTASI DOMPET')]);
-    sheet3.appendRow([
-      TextCellValue('No'),
-      TextCellValue('Tanggal'),
-      TextCellValue('Dompet'),
-      TextCellValue('Tipe'),
-      TextCellValue('Nominal (Rp)'),
-      TextCellValue('Catatan'),
-    ]);
-    for (int i = 0; i < dompetRows.length; i++) {
-      final d = dompetRows[i];
-      sheet3.appendRow([
-        IntCellValue(i + 1),
-        TextCellValue((d['tanggal_lokal'] ?? '-').toString()),
-        TextCellValue((d['jenis_dompet'] ?? 'TUNAI').toString()),
-        TextCellValue((d['tipe'] ?? '-').toString()),
-        IntCellValue((d['nominal'] as num?)?.toInt() ?? 0),
-        TextCellValue((d['catatan'] ?? '-').toString()),
-      ]);
-    }
-
-    sheet3.appendRow([TextCellValue('')]);
-    sheet3.appendRow([TextCellValue('RIWAYAT CASH OPNAME FISIK')]);
-    sheet3.appendRow([
-      TextCellValue('No'),
-      TextCellValue('Tanggal'),
-      TextCellValue('Kas Sistem (Rp)'),
-      TextCellValue('Uang Fisik (Rp)'),
-      TextCellValue('Selisih (Rp)'),
-      TextCellValue('Status'),
-      TextCellValue('Catatan'),
-    ]);
-    for (int i = 0; i < opnameLogs.length; i++) {
-      final op = opnameLogs[i];
-      sheet3.appendRow([
-        IntCellValue(i + 1),
-        TextCellValue(op.tanggalLokal),
-        IntCellValue(op.totalSistem),
-        IntCellValue(op.totalFisik),
-        IntCellValue(op.selisih),
-        TextCellValue(op.isCocok ? 'COCOK' : 'SELISIH'),
-        TextCellValue(op.catatan ?? '-'),
-      ]);
-    }
-
-    if (excel.sheets.containsKey('Sheet1')) {
-      excel.delete('Sheet1');
-    }
-
-    final encoded = excel.save();
-    if (encoded == null) {
-      throw Exception('Gagal membuat file Excel (.xlsx).');
-    }
+    final encoded = await buildExcelYayasanBytes(
+      pengaturan: pengaturan,
+      santriList: santriList,
+      mutasiRows: mutasiRows,
+      dompetRows: dompetRows,
+      totalBrankasFisik: totalBrankasFisik,
+      kasLaciTunai: kasLaciTunai,
+      rekeningBank: rekeningBank,
+      totalTunggakanPondok: totalTunggakanPondok,
+      opnameLogs: opnameLogs,
+      periodeLabel: range.label,
+    );
 
     final dir = await getTemporaryDirectory();
     final safePondok = pengaturan.namaPondok
@@ -303,8 +885,14 @@ class YayasanExportService {
     required int rekeningBank,
     required int totalTunggakanPondok,
     required ExportPeriod period,
+    DateTime? customStart,
+    DateTime? customEnd,
   }) async {
-    final range = resolveRange(period);
+    final range = resolveRange(
+      period,
+      customStart: customStart,
+      customEnd: customEnd,
+    );
     final mutasiRows = await DatabaseHelper.instance.getTransaksiByDateRange(
       tanggalMulai: range.mulai,
       tanggalSelesai: range.selesai,
@@ -1094,7 +1682,7 @@ class YayasanExportService {
     );
   }
 
-  /// Menghasilkan bytes Excel (.xlsx) 4-Sheet Buku Infak:
+  /// Menghasilkan bytes Excel (.xlsx) 4-Sheet Buku Infak rapi & siap cetak:
   /// Sheet 1: Rekap Total & Serah Terima
   /// Sheet 2: Santriyin
   /// Sheet 3: Santriyat
@@ -1111,6 +1699,11 @@ class YayasanExportService {
       for (final item in infakList) item.santriId: item,
     };
     final periodeLabel = _formatPeriodeId(periodeBulan);
+    final taLabel = DateFormatter.formatAcademicYearForPeriode(
+      periodeBulan,
+      configuredTa: pengaturan.tahunAjaran,
+    );
+    final printDate = _formatTanggalId(DateTime.now().toLocal());
     final excel = Excel.createExcel();
 
     final groups = [
@@ -1154,25 +1747,52 @@ class YayasanExportService {
       ));
     }
 
-    // Sheet 1: Rekap Total & Serah Terima
+    // ==================== SHEET 1: REKAP TOTAL & SERAH TERIMA ====================
     final rekapSheet = excel['Rekap Total & Serah Terima'];
-    rekapSheet.appendRow([TextCellValue(pengaturan.namaPondok.toUpperCase())]);
-    rekapSheet.appendRow([TextCellValue('REKAP TOTAL BUKU INFAK & SERAH TERIMA DAPUR / YAYASAN')]);
-    rekapSheet.appendRow([TextCellValue('Tahun Ajaran: ${pengaturan.tahunAjaran} | Bulan: $periodeLabel | Dicetak: ${_formatTanggalId(DateTime.now())}')]);
-    rekapSheet.appendRow([TextCellValue('')]);
-    rekapSheet.appendRow([
-      TextCellValue('Kelompok'),
-      TextCellValue('Jumlah Santri'),
-      TextCellValue('Lunas'),
-      TextCellValue('Cicil'),
-      TextCellValue('Belum'),
-      TextCellValue('Pulang/Pindah'),
-      TextCellValue('Total Masak (Rp)'),
-      TextCellValue('Total Listrik (Rp)'),
-      TextCellValue('Total Beras Uang (Rp)'),
-      TextCellValue('Grand Total Uang (Rp)'),
-      TextCellValue('Total Beras Fisik (Liter)'),
-    ]);
+    _applyColumnWidths(rekapSheet, [18, 12, 9, 9, 9, 13, 18, 18, 19, 20, 17]);
+
+    int rr = 0;
+    _writeMergedBanner(
+      rekapSheet,
+      row: rr++,
+      lastCol: 10,
+      text: pengaturan.namaPondok.toUpperCase(),
+      style: _kopTitleStyle(),
+    );
+    _writeMergedBanner(
+      rekapSheet,
+      row: rr++,
+      lastCol: 10,
+      text: 'REKAP TOTAL BUKU INFAK & SERAH TERIMA DAPUR / YAYASAN',
+      style: _kopSubStyle(),
+    );
+    _writeMergedBanner(
+      rekapSheet,
+      row: rr++,
+      lastCol: 10,
+      text: 'Bulan: $periodeLabel  |  Tahun Ajaran: $taLabel  |  Bendahara: ${pengaturan.namaPengurus}  |  Dicetak: $printDate',
+      style: _kopMetaStyle(),
+    );
+    rr++;
+
+    _writeStyledRow(
+      rekapSheet,
+      row: rr++,
+      values: [
+        TextCellValue('Kelompok'),
+        TextCellValue('Jml Santri'),
+        TextCellValue('Lunas'),
+        TextCellValue('Cicil'),
+        TextCellValue('Belum'),
+        TextCellValue('Pulang/Pindah'),
+        TextCellValue('Total Masak'),
+        TextCellValue('Total Listrik'),
+        TextCellValue('Total Beras Uang'),
+        TextCellValue('Grand Total Uang'),
+        TextCellValue('Beras Fisik (L)'),
+      ],
+      styles: List.filled(11, _tableHeaderStyle(bgHex: '#0F766E')),
+    );
 
     int allSantri = 0;
     int allLunas = 0;
@@ -1185,7 +1805,8 @@ class YayasanExportService {
     int allGrandUang = 0;
     double allBerasLiter = 0.0;
 
-    for (final gs in groupSummaries) {
+    for (int i = 0; i < groupSummaries.length; i++) {
+      final gs = groupSummaries[i];
       allSantri += gs.totalSantri;
       allLunas += gs.countLunas;
       allCicil += gs.countCicil;
@@ -1197,34 +1818,70 @@ class YayasanExportService {
       allGrandUang += gs.grandTotalUang;
       allBerasLiter += gs.totalBerasLiter;
 
-      rekapSheet.appendRow([
-        TextCellValue(gs.label),
-        IntCellValue(gs.totalSantri),
-        IntCellValue(gs.countLunas),
-        IntCellValue(gs.countCicil),
-        IntCellValue(gs.countBelum),
-        IntCellValue(gs.countPulangPindah),
-        IntCellValue(gs.totalMasak),
-        IntCellValue(gs.totalListrik),
-        IntCellValue(gs.totalBerasUang),
-        IntCellValue(gs.grandTotalUang),
-        DoubleCellValue(gs.totalBerasLiter),
-      ]);
+      final bg = i.isEven ? '#FFFFFF' : '#F8FAFC';
+      _writeStyledRow(
+        rekapSheet,
+        row: rr++,
+        values: [
+          TextCellValue(gs.label),
+          IntCellValue(gs.totalSantri),
+          IntCellValue(gs.countLunas),
+          IntCellValue(gs.countCicil),
+          IntCellValue(gs.countBelum),
+          IntCellValue(gs.countPulangPindah),
+          IntCellValue(gs.totalMasak),
+          IntCellValue(gs.totalListrik),
+          IntCellValue(gs.totalBerasUang),
+          IntCellValue(gs.grandTotalUang),
+          DoubleCellValue(gs.totalBerasLiter),
+        ],
+        styles: [
+          _dataStyle(bgHex: bg, bold: true),
+          _dataStyle(align: HorizontalAlign.Center, bgHex: bg),
+          _dataStyle(align: HorizontalAlign.Center, bgHex: '#DCFCE7', fontHex: '#166534', bold: true),
+          _dataStyle(align: HorizontalAlign.Center, bgHex: '#FEF3C7', fontHex: '#92400E', bold: true),
+          _dataStyle(align: HorizontalAlign.Center, bgHex: '#FFE4E6', fontHex: '#9F1239', bold: true),
+          _dataStyle(align: HorizontalAlign.Center, bgHex: '#E2E8F0', fontHex: '#334155'),
+          _dataStyle(align: HorizontalAlign.Right, bgHex: bg, numFormat: _rupiahNumFormat),
+          _dataStyle(align: HorizontalAlign.Right, bgHex: bg, numFormat: _rupiahNumFormat),
+          _dataStyle(align: HorizontalAlign.Right, bgHex: bg, numFormat: _rupiahNumFormat),
+          _dataStyle(align: HorizontalAlign.Right, bgHex: bg, bold: true, numFormat: _rupiahNumFormat),
+          _dataStyle(align: HorizontalAlign.Right, bgHex: bg, bold: true, numFormat: _literNumFormat),
+        ],
+      );
     }
 
-    rekapSheet.appendRow([
-      TextCellValue('TOTAL PONDOK'),
-      IntCellValue(allSantri),
-      IntCellValue(allLunas),
-      IntCellValue(allCicil),
-      IntCellValue(allBelum),
-      IntCellValue(allPp),
-      IntCellValue(allMasak),
-      IntCellValue(allListrik),
-      IntCellValue(allBerasUang),
-      IntCellValue(allGrandUang),
-      DoubleCellValue(allBerasLiter),
-    ]);
+    _writeStyledRow(
+      rekapSheet,
+      row: rr++,
+      values: [
+        TextCellValue('TOTAL PONDOK'),
+        IntCellValue(allSantri),
+        IntCellValue(allLunas),
+        IntCellValue(allCicil),
+        IntCellValue(allBelum),
+        IntCellValue(allPp),
+        IntCellValue(allMasak),
+        IntCellValue(allListrik),
+        IntCellValue(allBerasUang),
+        IntCellValue(allGrandUang),
+        DoubleCellValue(allBerasLiter),
+      ],
+      styles: [
+        _totalStyle(align: HorizontalAlign.Left),
+        _totalStyle(align: HorizontalAlign.Center),
+        _totalStyle(align: HorizontalAlign.Center),
+        _totalStyle(align: HorizontalAlign.Center),
+        _totalStyle(align: HorizontalAlign.Center),
+        _totalStyle(align: HorizontalAlign.Center),
+        _totalStyle(align: HorizontalAlign.Right, numFormat: _rupiahNumFormat),
+        _totalStyle(align: HorizontalAlign.Right, numFormat: _rupiahNumFormat),
+        _totalStyle(align: HorizontalAlign.Right, numFormat: _rupiahNumFormat),
+        _totalStyle(align: HorizontalAlign.Right, numFormat: _rupiahNumFormat, bgHex: '#CCFBF1'),
+        _totalStyle(align: HorizontalAlign.Right, numFormat: _literNumFormat, bgHex: '#FEF3C7'),
+      ],
+    );
+    rr++;
 
     int disetorUangPeriode = 0;
     double disetorBerasPeriode = 0.0;
@@ -1235,90 +1892,167 @@ class YayasanExportService {
       }
     }
 
-    rekapSheet.appendRow([TextCellValue('')]);
-    rekapSheet.appendRow([TextCellValue('POSISI KAS INFAK & GUDANG BERAS (KANTONG 2 & 3)'), TextCellValue('Nilai')]);
-    rekapSheet.appendRow([TextCellValue('Sudah Disetor ke Dapur/Yayasan Periode Ini (Rp)'), IntCellValue(disetorUangPeriode)]);
-    rekapSheet.appendRow([TextCellValue('Sudah Disetor Beras Fisik Periode Ini (Liter)'), DoubleCellValue(disetorBerasPeriode)]);
-    rekapSheet.appendRow([TextCellValue('Sisa Kas Infak Tunai Belum Disetor (Rp)'), IntCellValue((saldoKantongInfak['tunai'] as num?)?.toInt() ?? 0)]);
-    rekapSheet.appendRow([TextCellValue('Sisa Kas Infak Rekening Belum Disetor (Rp)'), IntCellValue((saldoKantongInfak['rekening'] as num?)?.toInt() ?? 0)]);
-    rekapSheet.appendRow([TextCellValue('Total Sisa Kas Infak Belum Disetor (Rp)'), IntCellValue((saldoKantongInfak['total_uang'] as num?)?.toInt() ?? 0)]);
-    rekapSheet.appendRow([TextCellValue('Sisa Stok Beras Fisik di Gudang (Liter)'), DoubleCellValue((saldoKantongInfak['beras_stok'] as num?)?.toDouble() ?? 0.0)]);
+    _writeMergedBanner(
+      rekapSheet,
+      row: rr++,
+      lastCol: 5,
+      text: 'POSISI KAS INFAK & GUDANG BERAS (KANTONG 2 & 3)',
+      style: _tableHeaderStyle(bgHex: '#0F172A'),
+    );
+    final posisiRows = <(String label, CellValue val, NumFormat? fmt)>[
+      ('Sudah Disetor ke Dapur/Yayasan Periode Ini (Uang)', IntCellValue(disetorUangPeriode), _rupiahNumFormat),
+      ('Sudah Disetor Beras Fisik Periode Ini (Liter)', DoubleCellValue(disetorBerasPeriode), _literNumFormat),
+      ('Sisa Kas Infak Tunai Belum Disetor', IntCellValue((saldoKantongInfak['tunai'] as num?)?.toInt() ?? 0), _rupiahNumFormat),
+      ('Sisa Kas Infak Rekening Belum Disetor', IntCellValue((saldoKantongInfak['rekening'] as num?)?.toInt() ?? 0), _rupiahNumFormat),
+      ('Total Sisa Kas Infak Belum Disetor', IntCellValue((saldoKantongInfak['total_uang'] as num?)?.toInt() ?? 0), _rupiahNumFormat),
+      ('Sisa Stok Beras Fisik di Gudang', DoubleCellValue((saldoKantongInfak['beras_stok'] as num?)?.toDouble() ?? 0.0), _literNumFormat),
+    ];
+    for (int i = 0; i < posisiRows.length; i++) {
+      final pr = posisiRows[i];
+      final bg = i >= 4 ? '#ECFDF5' : (i.isEven ? '#FFFFFF' : '#F8FAFC');
+      _writeStyledRow(
+        rekapSheet,
+        row: rr++,
+        values: [
+          TextCellValue(pr.$1),
+          TextCellValue(''),
+          TextCellValue(''),
+          TextCellValue(''),
+          pr.$2,
+          TextCellValue(''),
+        ],
+        styles: [
+          _dataStyle(bgHex: bg, bold: i >= 4),
+          _dataStyle(bgHex: bg),
+          _dataStyle(bgHex: bg),
+          _dataStyle(bgHex: bg),
+          _dataStyle(align: HorizontalAlign.Right, bgHex: bg, bold: true, numFormat: pr.$3),
+          _dataStyle(bgHex: bg),
+        ],
+      );
+    }
+    rr++;
 
-    rekapSheet.appendRow([TextCellValue('')]);
-    rekapSheet.appendRow([TextCellValue('RIWAYAT SERAH TERIMA KE DAPUR / YAYASAN')]);
-    rekapSheet.appendRow([
-      TextCellValue('No'),
-      TextCellValue('Tanggal Serah'),
-      TextCellValue('Periode'),
-      TextCellValue('Pos Infak'),
-      TextCellValue('Sumber Kantong'),
-      TextCellValue('Nominal Uang (Rp)'),
-      TextCellValue('Jumlah Beras (Liter)'),
-      TextCellValue('Penerima'),
-      TextCellValue('Catatan'),
-    ]);
+    _writeMergedBanner(
+      rekapSheet,
+      row: rr++,
+      lastCol: 8,
+      text: 'RIWAYAT SERAH TERIMA KE DAPUR / YAYASAN',
+      style: _kopSubStyle(),
+    );
+    _writeStyledRow(
+      rekapSheet,
+      row: rr++,
+      values: [
+        TextCellValue('No'),
+        TextCellValue('Tanggal Serah'),
+        TextCellValue('Periode'),
+        TextCellValue('Pos Infak'),
+        TextCellValue('Sumber Kantong'),
+        TextCellValue('Nominal Uang'),
+        TextCellValue('Beras Fisik (L)'),
+        TextCellValue('Penerima'),
+        TextCellValue('Catatan'),
+      ],
+      styles: List.filled(9, _tableHeaderStyle(bgHex: '#0F172A')),
+    );
     for (int i = 0; i < serahTerimaList.length; i++) {
       final st = serahTerimaList[i];
-      rekapSheet.appendRow([
-        IntCellValue(i + 1),
-        TextCellValue(st.tanggalSerah),
-        TextCellValue(st.periodeBulan),
-        TextCellValue(st.posInfak),
-        TextCellValue(st.sumberDompet),
-        IntCellValue(st.nominalUang),
-        DoubleCellValue(st.jumlahBerasLiter),
-        TextCellValue(st.penerima),
-        TextCellValue(st.catatan ?? '-'),
-      ]);
+      final bg = i.isEven ? '#FFFFFF' : '#F8FAFC';
+      _writeStyledRow(
+        rekapSheet,
+        row: rr++,
+        values: [
+          IntCellValue(i + 1),
+          TextCellValue(st.tanggalSerah),
+          TextCellValue(st.periodeBulan),
+          TextCellValue(st.posInfak),
+          TextCellValue(st.sumberDompet),
+          IntCellValue(st.nominalUang),
+          DoubleCellValue(st.jumlahBerasLiter),
+          TextCellValue(st.penerima),
+          TextCellValue(st.catatan ?? '-'),
+        ],
+        styles: [
+          _dataStyle(align: HorizontalAlign.Center, bgHex: bg),
+          _dataStyle(align: HorizontalAlign.Center, bgHex: bg),
+          _dataStyle(align: HorizontalAlign.Center, bgHex: bg),
+          _dataStyle(align: HorizontalAlign.Center, bgHex: bg),
+          _dataStyle(align: HorizontalAlign.Center, bgHex: bg),
+          _dataStyle(align: HorizontalAlign.Right, bgHex: bg, bold: true, numFormat: _rupiahNumFormat),
+          _dataStyle(align: HorizontalAlign.Right, bgHex: bg, bold: true, numFormat: _literNumFormat),
+          _dataStyle(bgHex: bg, bold: true),
+          _dataStyle(bgHex: bg),
+        ],
+      );
     }
 
-    // Sheet 2, 3, 4: Santriyin, Santriyat, Santri Baru
+    _writeSignatureBlock(
+      rekapSheet,
+      startRow: rr + 2,
+      lastCol: 10,
+      pengaturan: pengaturan,
+      printDate: printDate,
+      bendaharaRole: 'Bendahara Infak,',
+    );
+
+    // ==================== SHEET 2, 3, 4: SANTRIYIN, SANTRIYAT, SANTRI BARU ====================
     for (final g in groups) {
       final sheet = excel[g.sheetName];
+      _applyColumnWidths(sheet, [6, 26, 15, 13, 17, 17, 17, 13, 13, 13, 26]);
+
       final summary = _summarizeGroupInfak(
         kategori: g.kategori,
         santriList: santriList,
         infakBySantriId: infakBySantriId,
       );
 
-      sheet.appendRow([TextCellValue(pengaturan.namaPondok.toUpperCase())]);
-      sheet.appendRow([TextCellValue(g.title)]);
-      sheet.appendRow([TextCellValue('Tahun Ajaran: ${pengaturan.tahunAjaran} | Bulan: $periodeLabel')]);
-      sheet.appendRow([TextCellValue('')]);
-      sheet.appendRow([
-        TextCellValue('No'),
-        TextCellValue('Nama Santri'),
-        TextCellValue('Kamar'),
-        TextCellValue('Status Santri'),
-        TextCellValue('Infak Masak'),
-        TextCellValue('Infak Listrik'),
-        TextCellValue('Infak Beras'),
-        TextCellValue('Tgl Masuk'),
-        TextCellValue('Tgl Habis'),
-        TextCellValue('Status Infak'),
-        TextCellValue('Keterangan'),
-      ]);
+      int rg = 0;
+      _writeMergedBanner(
+        sheet,
+        row: rg++,
+        lastCol: 10,
+        text: pengaturan.namaPondok.toUpperCase(),
+        style: _kopTitleStyle(),
+      );
+      _writeMergedBanner(
+        sheet,
+        row: rg++,
+        lastCol: 10,
+        text: g.title,
+        style: _kopSubStyle(),
+      );
+      _writeMergedBanner(
+        sheet,
+        row: rg++,
+        lastCol: 10,
+        text: 'Bulan: $periodeLabel  |  Tahun Ajaran: $taLabel  |  Bendahara: ${pengaturan.namaPengurus}',
+        style: _kopMetaStyle(),
+      );
+      rg++;
+
+      _writeStyledRow(
+        sheet,
+        row: rg++,
+        values: [
+          TextCellValue('No'),
+          TextCellValue('Nama Santri'),
+          TextCellValue('Kamar'),
+          TextCellValue('Status Santri'),
+          TextCellValue('Infak Masak'),
+          TextCellValue('Infak Listrik'),
+          TextCellValue('Beras Uang'),
+          TextCellValue('Beras Fisik'),
+          TextCellValue('Tgl Masuk'),
+          TextCellValue('Tgl Habis'),
+          TextCellValue('Status & Keterangan'),
+        ],
+        styles: List.filled(11, _tableHeaderStyle(bgHex: '#0F766E')),
+      );
 
       for (int i = 0; i < summary.sorted.length; i++) {
         final s = summary.sorted[i];
         final inf = infakBySantriId[s.id];
-
-        final masakText = inf == null
-            ? '-'
-            : (inf.isMasakBebas ? '✓ Bebas' : CurrencyFormatter.format(inf.nominalMasak));
-        final listrikText = inf == null
-            ? '-'
-            : (inf.isListrikBebas ? '✓ Bebas' : CurrencyFormatter.format(inf.nominalListrik));
-        final String berasText;
-        if (inf == null || inf.jenisBeras == InfakSantriModel.berasBelum) {
-          berasText = '-';
-        } else if (inf.jenisBeras == InfakSantriModel.berasBebas) {
-          berasText = '✓ Bebas';
-        } else if (inf.jenisBeras == InfakSantriModel.berasFisik) {
-          berasText = '${_formatLiter(inf.berasLiter)} L';
-        } else {
-          berasText = CurrencyFormatter.format(inf.berasUang);
-        }
 
         final String ketText;
         final String statusInfak;
@@ -1330,44 +2064,128 @@ class YayasanExportService {
           ketText = 'PINDAH';
         } else if (inf == null || inf.statusLunas == InfakSantriModel.statusBelumVal) {
           statusInfak = 'BELUM';
-          ketText = 'Belum Bayar';
+          ketText = 'BELUM BAYAR';
         } else if (inf.statusLunas == InfakSantriModel.statusCicilVal) {
           statusInfak = 'CICIL';
           ketText = _buildKetCicil(inf, pengaturan);
         } else {
           statusInfak = 'LUNAS';
-          ketText = 'Lunas';
+          ketText = 'LUNAS';
         }
 
-        sheet.appendRow([
-          IntCellValue(i + 1),
-          TextCellValue(s.namaLengkap),
-          TextCellValue(s.kamar.isEmpty ? '-' : s.kamar),
-          TextCellValue(s.statusSantriLabel),
-          TextCellValue(masakText),
-          TextCellValue(listrikText),
-          TextCellValue(berasText),
-          TextCellValue(inf?.tglMasuk ?? '-'),
-          TextCellValue(inf?.tglHabis ?? '-'),
-          TextCellValue(statusInfak),
-          TextCellValue(ketText),
-        ]);
+        final statusPal = _statusPalette(statusInfak);
+        final rowBg = (s.isPulang || s.isPindah || statusInfak == 'CICIL' || statusInfak == 'LUNAS')
+            ? statusPal.bgHex
+            : (i.isEven ? '#FFFFFF' : '#F8FAFC');
+
+        final CellValue masakCell = inf == null
+            ? TextCellValue('-')
+            : (inf.isMasakBebas ? TextCellValue('✓ Bebas') : IntCellValue(inf.nominalMasak));
+        final CellStyle masakStyle = inf == null
+            ? _dataStyle(align: HorizontalAlign.Center, bgHex: rowBg)
+            : (inf.isMasakBebas
+                ? _dataStyle(align: HorizontalAlign.Center, bgHex: '#DCFCE7', fontHex: '#166534', bold: true)
+                : _dataStyle(align: HorizontalAlign.Right, bgHex: rowBg, numFormat: _rupiahNumFormat));
+
+        final CellValue listrikCell = inf == null
+            ? TextCellValue('-')
+            : (inf.isListrikBebas ? TextCellValue('✓ Bebas') : IntCellValue(inf.nominalListrik));
+        final CellStyle listrikStyle = inf == null
+            ? _dataStyle(align: HorizontalAlign.Center, bgHex: rowBg)
+            : (inf.isListrikBebas
+                ? _dataStyle(align: HorizontalAlign.Center, bgHex: '#DCFCE7', fontHex: '#166534', bold: true)
+                : _dataStyle(align: HorizontalAlign.Right, bgHex: rowBg, numFormat: _rupiahNumFormat));
+
+        final CellValue berasUangCell = (inf != null && inf.jenisBeras == InfakSantriModel.berasUangVal)
+            ? IntCellValue(inf.berasUang)
+            : (inf != null && inf.jenisBeras == InfakSantriModel.berasBebas
+                ? TextCellValue('✓ Bebas')
+                : TextCellValue('-'));
+        final CellStyle berasUangStyle = (inf != null && inf.jenisBeras == InfakSantriModel.berasUangVal)
+            ? _dataStyle(align: HorizontalAlign.Right, bgHex: rowBg, numFormat: _rupiahNumFormat)
+            : (inf != null && inf.jenisBeras == InfakSantriModel.berasBebas
+                ? _dataStyle(align: HorizontalAlign.Center, bgHex: '#DCFCE7', fontHex: '#166534', bold: true)
+                : _dataStyle(align: HorizontalAlign.Center, bgHex: rowBg));
+
+        final CellValue berasFisikCell = (inf != null && inf.jenisBeras == InfakSantriModel.berasFisik)
+            ? DoubleCellValue(inf.berasLiter)
+            : TextCellValue('-');
+        final CellStyle berasFisikStyle = (inf != null && inf.jenisBeras == InfakSantriModel.berasFisik)
+            ? _dataStyle(align: HorizontalAlign.Right, bgHex: rowBg, numFormat: _literNumFormat)
+            : _dataStyle(align: HorizontalAlign.Center, bgHex: rowBg);
+
+        _writeStyledRow(
+          sheet,
+          row: rg++,
+          values: [
+            IntCellValue(i + 1),
+            TextCellValue(s.namaLengkap),
+            TextCellValue(s.kamar.isEmpty ? '-' : s.kamar),
+            TextCellValue(s.statusSantriLabel),
+            masakCell,
+            listrikCell,
+            berasUangCell,
+            berasFisikCell,
+            TextCellValue(inf?.tglMasuk ?? '-'),
+            TextCellValue(inf?.tglHabis ?? '-'),
+            TextCellValue(ketText),
+          ],
+          styles: [
+            _dataStyle(align: HorizontalAlign.Center, bgHex: rowBg),
+            _dataStyle(bgHex: rowBg, bold: true),
+            _dataStyle(align: HorizontalAlign.Center, bgHex: rowBg),
+            _dataStyle(align: HorizontalAlign.Center, bgHex: rowBg),
+            masakStyle,
+            listrikStyle,
+            berasUangStyle,
+            berasFisikStyle,
+            _dataStyle(align: HorizontalAlign.Center, bgHex: rowBg),
+            _dataStyle(align: HorizontalAlign.Center, bgHex: rowBg),
+            _dataStyle(align: HorizontalAlign.Left, bgHex: statusPal.bgHex, fontHex: statusPal.fontHex, bold: true),
+          ],
+        );
       }
 
-      sheet.appendRow([TextCellValue('')]);
-      sheet.appendRow([
-        TextCellValue('TOTAL'),
-        TextCellValue('${summary.sorted.length} Santri'),
-        TextCellValue(''),
-        TextCellValue(''),
-        IntCellValue(summary.totalMasak),
-        IntCellValue(summary.totalListrik),
-        TextCellValue('${_formatLiter(summary.totalBerasLiter)} L + ${CurrencyFormatter.format(summary.totalBerasUang)}'),
-        TextCellValue('Grand Total Uang'),
-        IntCellValue(summary.grandTotalUang),
-        TextCellValue('Lunas: ${summary.countLunas}'),
-        TextCellValue('Cicil: ${summary.countCicil}, Belum: ${summary.countBelum}, PP: ${summary.countPulangPindah}'),
-      ]);
+      // Baris TOTAL Kelompok (Beras Fisik & Beras Uang terpisah)
+      _writeStyledRow(
+        sheet,
+        row: rg++,
+        values: [
+          TextCellValue('TOTAL'),
+          TextCellValue('${summary.sorted.length} Santri'),
+          TextCellValue(''),
+          TextCellValue(''),
+          IntCellValue(summary.totalMasak),
+          IntCellValue(summary.totalListrik),
+          IntCellValue(summary.totalBerasUang),
+          DoubleCellValue(summary.totalBerasLiter),
+          TextCellValue('GRAND TOTAL UANG:'),
+          IntCellValue(summary.grandTotalUang),
+          TextCellValue('Lunas: ${summary.countLunas} | Cicil: ${summary.countCicil} | Belum: ${summary.countBelum} | PP: ${summary.countPulangPindah}'),
+        ],
+        styles: [
+          _totalStyle(align: HorizontalAlign.Center),
+          _totalStyle(align: HorizontalAlign.Left),
+          _totalStyle(align: HorizontalAlign.Left),
+          _totalStyle(align: HorizontalAlign.Left),
+          _totalStyle(align: HorizontalAlign.Right, numFormat: _rupiahNumFormat),
+          _totalStyle(align: HorizontalAlign.Right, numFormat: _rupiahNumFormat),
+          _totalStyle(align: HorizontalAlign.Right, numFormat: _rupiahNumFormat),
+          _totalStyle(align: HorizontalAlign.Right, numFormat: _literNumFormat, bgHex: '#FEF3C7'),
+          _totalStyle(align: HorizontalAlign.Right, bgHex: '#CCFBF1'),
+          _totalStyle(align: HorizontalAlign.Right, numFormat: _rupiahNumFormat, bgHex: '#CCFBF1'),
+          _totalStyle(align: HorizontalAlign.Left),
+        ],
+      );
+
+      _writeSignatureBlock(
+        sheet,
+        startRow: rg + 2,
+        lastCol: 10,
+        pengaturan: pengaturan,
+        printDate: printDate,
+        bendaharaRole: 'Bendahara Infak,',
+      );
     }
 
     if (excel.sheets.containsKey('Sheet1')) {

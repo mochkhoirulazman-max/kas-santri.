@@ -4,10 +4,12 @@ import '../../models/infak_santri.dart';
 import '../../models/pengaturan.dart';
 import '../../models/santri.dart';
 import '../../providers/kas_santri_provider.dart';
+import '../../providers/theme_wallpaper_provider.dart';
 import '../../services/report_service.dart';
 import '../../services/yayasan_export_service.dart';
 import '../../utils/app_feedback.dart';
 import '../../utils/currency_formatter.dart';
+import '../../utils/date_formatter.dart';
 import '../../widgets/infak_edit_bottom_sheet.dart';
 import '../../widgets/serah_terima_bottom_sheet.dart';
 import '../paywall_screen.dart';
@@ -23,6 +25,14 @@ class _BukuInfakViewState extends State<BukuInfakView> {
   String _selectedKategori = 'ALL'; // ALL, SANTRIYIN, SANTRIYAT, SANTRI_BARU
   String _selectedStatusFilter = 'ALL'; // ALL, BELUM, CICIL, JATUH_TEMPO, PULANG_PINDAH
   bool _isExporting = false;
+  final TextEditingController _searchCtrl = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
 
   static const List<String> _bulanNames = [
     '',
@@ -50,10 +60,8 @@ class _BukuInfakViewState extends State<BukuInfakView> {
 
   bool _isJatuhTempoSoon(InfakSantriModel? infak) {
     if (infak == null || infak.tglHabis.isEmpty) return false;
-    final habis = DateTime.tryParse(infak.tglHabis);
-    if (habis == null) return false;
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
+    final habis = DateFormatter.parseLocalDate(infak.tglHabis);
+    final today = DateFormatter.parseLocalDate(DateFormatter.toLocalDateString(DateTime.now()));
     final diff = habis.difference(today).inDays;
     return diff <= 3;
   }
@@ -61,6 +69,7 @@ class _BukuInfakViewState extends State<BukuInfakView> {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<KasSantriProvider>(context);
+    final cardOpacity = Provider.of<ThemeWallpaperProvider>(context).cardOpacity;
     final peng = provider.pengaturan;
     final periode = provider.selectedInfakPeriode;
     final isPro = provider.isProUser;
@@ -95,7 +104,14 @@ class _BukuInfakViewState extends State<BukuInfakView> {
       }
     }
 
+    final q = _searchQuery.trim().toLowerCase();
     final filteredSantri = byKategori.where((s) {
+      if (q.isNotEmpty) {
+        final match = s.namaLengkap.toLowerCase().contains(q) ||
+            s.namaPanggilan.toLowerCase().contains(q) ||
+            s.kamar.toLowerCase().contains(q);
+        if (!match) return false;
+      }
       final inf = provider.getInfakForSantri(s.id);
       final isPulangOrPindah = s.isPulang || s.isPindah;
       if (_selectedStatusFilter == 'PULANG_PINDAH') {
@@ -131,8 +147,11 @@ class _BukuInfakViewState extends State<BukuInfakView> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF0A1D20), Color(0xFF101827)],
+            gradient: LinearGradient(
+              colors: [
+                const Color(0xFF0A1D20).withOpacity((0.95 * cardOpacity).clamp(0.4, 0.94)),
+                const Color(0xFF101827).withOpacity((0.95 * cardOpacity).clamp(0.4, 0.94)),
+              ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -379,7 +398,7 @@ class _BukuInfakViewState extends State<BukuInfakView> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           decoration: BoxDecoration(
-            color: const Color(0xFF0F172A).withOpacity(0.85),
+            color: const Color(0xFF0F172A).withOpacity(cardOpacity),
             borderRadius: BorderRadius.circular(18),
             border: Border.all(color: Colors.white12),
           ),
@@ -401,7 +420,7 @@ class _BukuInfakViewState extends State<BukuInfakView> {
                       style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w900),
                     ),
                     Text(
-                      'TA ${peng.tahunAjaran}',
+                      'TA ${DateFormatter.formatAcademicYearForPeriode(periode, configuredTa: peng.tahunAjaran)}',
                       style: const TextStyle(color: Color(0xFF34D399), fontSize: 10, fontWeight: FontWeight.w700),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -422,6 +441,30 @@ class _BukuInfakViewState extends State<BukuInfakView> {
 
         const SizedBox(height: 10),
 
+        // 2b. Pencarian Santri Instan di Buku Infak
+        TextField(
+          controller: _searchCtrl,
+          onChanged: (v) => setState(() => _searchQuery = v),
+          style: const TextStyle(color: Colors.white, fontSize: 12.5),
+          decoration: InputDecoration(
+            hintText: 'Cari nama santri / panggilan / kamar di Buku Infak...',
+            prefixIcon: const Icon(Icons.search_rounded, size: 18, color: Color(0xFF34D399)),
+            suffixIcon: _searchQuery.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.close_rounded, size: 17, color: Colors.white54),
+                    onPressed: () {
+                      _searchCtrl.clear();
+                      setState(() => _searchQuery = '');
+                    },
+                  )
+                : null,
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          ),
+        ),
+
+        const SizedBox(height: 10),
+
         // 3. Filter Kelompok Santri (Semua | Santriyin | Santriyat | Santri Baru)
         Row(
           children: [
@@ -437,14 +480,14 @@ class _BukuInfakViewState extends State<BukuInfakView> {
 
         const SizedBox(height: 10),
 
-        // 4. 4 Kartu Ringkasan Instan
+        // 4. 4 Kartu Ringkasan Instan (ringkas & lega)
         GridView.count(
           crossAxisCount: 2,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           mainAxisSpacing: 8,
           crossAxisSpacing: 8,
-          childAspectRatio: 2.35,
+          childAspectRatio: 2.55,
           children: [
             _summaryBox('🍛 Total Masak', CurrencyFormatter.format(totalMasak), const Color(0xFF34D399)),
             _summaryBox('⚡ Total Listrik', CurrencyFormatter.format(totalListrik), const Color(0xFF38BDF8)),
@@ -508,7 +551,7 @@ class _BukuInfakViewState extends State<BukuInfakView> {
         else
           ...filteredSantri.map((s) {
             final inf = provider.getInfakForSantri(s.id);
-            return _buildInfakSantriCard(context, s, inf, periode, peng, isPro);
+            return _buildInfakSantriCard(context, s, inf, periode, peng, isPro, cardOpacity);
           }),
       ],
     );
@@ -794,6 +837,7 @@ class _BukuInfakViewState extends State<BukuInfakView> {
     String periode,
     PengaturanAplikasi peng,
     bool isPro,
+    double cardOpacity,
   ) {
     final String badgeText;
     final Color badgeColor;
@@ -836,8 +880,10 @@ class _BukuInfakViewState extends State<BukuInfakView> {
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
         color: s.isPulang
-            ? const Color(0xFF071E18).withOpacity(0.9)
-            : (s.isPindah ? const Color(0xFF111827).withOpacity(0.85) : const Color(0xFF0F172A).withOpacity(0.88)),
+            ? const Color(0xFF071E18).withOpacity(cardOpacity)
+            : (s.isPindah
+                ? const Color(0xFF111827).withOpacity(cardOpacity)
+                : const Color(0xFF0F172A).withOpacity(cardOpacity)),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: badgeColor.withOpacity(0.45)),
       ),

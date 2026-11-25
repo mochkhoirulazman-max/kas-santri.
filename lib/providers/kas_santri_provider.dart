@@ -1,6 +1,10 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../models/bendahara_account.dart';
 import '../models/setoran.dart';
 import '../models/transaksi.dart';
 import '../models/pengaturan.dart';
@@ -10,6 +14,7 @@ import '../models/infak_santri.dart';
 import '../models/serah_terima_infak.dart';
 import '../database/database_helper.dart';
 import '../config/app_config.dart';
+import '../services/account_auth_service.dart';
 import '../services/auth_service.dart';
 import '../services/backup_service.dart';
 import '../services/google_drive_backup_service.dart';
@@ -45,6 +50,15 @@ class KasSantriProvider extends ChangeNotifier {
 
   PengaturanAplikasi _pengaturan = PengaturanAplikasi();
   PengaturanAplikasi get pengaturan => _pengaturan;
+
+  BendaharaAccount? _activeAccount;
+  BendaharaAccount? get activeAccount => _activeAccount;
+
+  String get activeOperatorName =>
+      _activeAccount?.namaLengkap ?? _pengaturan.namaPengurus;
+
+  String get activeOperatorRole =>
+      _activeAccount?.jabatan ?? 'Bendahara Pondok';
 
   /// Helper state global untuk status PRO (dipakai seluruh fitur berlabel 👑)
   bool get isProUser => _pengaturan.isPro;
@@ -193,6 +207,17 @@ class KasSantriProvider extends ChangeNotifier {
         _pengaturan = _pengaturan.copyWith(onboardingDone: true);
         await _db.updatePengaturan(_pengaturan);
       }
+    }
+    _activeAccount = await AccountAuthService.instance.getActiveAccount();
+    if (_activeAccount == null && _pengaturan.onboardingDone) {
+      _activeAccount = await AccountAuthService.instance
+          .ensureLegacySessionIfNeeded(_pengaturan.namaPengurus);
+    }
+    if (_activeAccount != null &&
+        _activeAccount!.namaLengkap.trim().isNotEmpty &&
+        _activeAccount!.namaLengkap != _pengaturan.namaPengurus) {
+      _pengaturan = _pengaturan.copyWith(namaPengurus: _activeAccount!.namaLengkap);
+      await _db.updatePengaturan(_pengaturan);
     }
     await loadAllData();
     await syncSubscriptionEntitlement();
@@ -829,6 +854,70 @@ class KasSantriProvider extends ChangeNotifier {
     _pengaturan = updated;
     await _db.updatePengaturan(updated);
     await loadAllData();
+  }
+
+  Future<void> syncActiveAccountToPengaturan(BendaharaAccount account) async {
+    _activeAccount = account;
+    _pengaturan = _pengaturan.copyWith(
+      namaPengurus: account.namaLengkap,
+      driveAccountEmail: account.authMode == BendaharaAccount.modeGoogle &&
+              account.email != null &&
+              account.email!.isNotEmpty
+          ? account.email
+          : null,
+    );
+    await _db.updatePengaturan(_pengaturan);
+    notifyListeners();
+  }
+
+  Future<void> updateBendaharaProfile({
+    String? namaLengkap,
+    String? jabatan,
+    String? sourceFotoPath,
+    bool clearFoto = false,
+  }) async {
+    String? permanentFotoPath;
+    if (sourceFotoPath != null && sourceFotoPath.trim().isNotEmpty) {
+      final src = File(sourceFotoPath);
+      if (await src.exists()) {
+        final appDir = await getApplicationDocumentsDirectory();
+        final profDir = Directory(p.join(appDir.path, 'profiles'));
+        if (!await profDir.exists()) {
+          await profDir.create(recursive: true);
+        }
+        final ext = p.extension(sourceFotoPath).isNotEmpty
+            ? p.extension(sourceFotoPath)
+            : '.jpg';
+        final dest = p.join(
+          profDir.path,
+          'bendahara_${DateTime.now().millisecondsSinceEpoch}$ext',
+        );
+        await src.copy(dest);
+        permanentFotoPath = dest;
+      }
+    }
+
+    if (_activeAccount == null) {
+      final created = await AccountAuthService.instance.enterOfflineQuickMode(
+        namaLengkap: namaLengkap ?? _pengaturan.namaPengurus,
+        jabatan: jabatan ?? 'Bendahara Pondok',
+      );
+      _activeAccount = created;
+    }
+
+    final updatedAcc = await AccountAuthService.instance.updateActiveProfile(
+      namaLengkap: namaLengkap,
+      jabatan: jabatan,
+      fotoPath: permanentFotoPath,
+      clearFoto: clearFoto,
+    );
+    await syncActiveAccountToPengaturan(updatedAcc);
+  }
+
+  Future<void> logoutBendahara() async {
+    await AccountAuthService.instance.logout();
+    _activeAccount = null;
+    notifyListeners();
   }
 
   Future<void> resetToInitialData() async {

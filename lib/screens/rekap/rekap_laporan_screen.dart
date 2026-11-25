@@ -3,12 +3,14 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../models/santri_status.dart';
 import '../../providers/kas_santri_provider.dart';
+import '../../providers/theme_wallpaper_provider.dart';
 import '../../utils/currency_formatter.dart';
 import '../../utils/date_formatter.dart';
 import '../../utils/time_category_helper.dart';
 import '../../utils/app_feedback.dart';
 import '../../services/report_service.dart';
 import '../../services/yayasan_export_service.dart';
+import '../../widgets/searchable_santri_picker.dart';
 import '../../widgets/struk_gambar_dialog.dart';
 import '../paywall_screen.dart';
 import 'cash_opname_screen.dart';
@@ -20,10 +22,17 @@ class RekapLaporanScreen extends StatefulWidget {
   State<RekapLaporanScreen> createState() => _RekapLaporanScreenState();
 }
 
-class _RekapLaporanScreenState extends State<RekapLaporanScreen> {
+class _RekapLaporanScreenState extends State<RekapLaporanScreen>
+    with AutomaticKeepAliveClientMixin {
   String? _selectedSantriId;
   ExportPeriod _exportPeriod = ExportPeriod.bulanIni;
+  DateTime? _customStart;
+  DateTime? _customEnd;
   bool _isExporting = false;
+  bool _showWaPreview = false;
+
+  @override
+  bool get wantKeepAlive => true;
 
   String _generateWaText(
     SantriStatusHariIni status,
@@ -148,6 +157,8 @@ Salam hormat & ta'dzim,
           totalTunggakanPondok: provider.totalTunggakanPondok,
           opnameLogs: provider.opnameLogs,
           period: _exportPeriod,
+          customStart: _customStart,
+          customEnd: _customEnd,
         );
       } else {
         await YayasanExportService.instance.exportPdfResmiYayasan(
@@ -158,6 +169,8 @@ Salam hormat & ta'dzim,
           rekeningBank: provider.rekeningBank,
           totalTunggakanPondok: provider.totalTunggakanPondok,
           period: _exportPeriod,
+          customStart: _customStart,
+          customEnd: _customEnd,
         );
       }
       AppFeedback.success();
@@ -185,9 +198,46 @@ Salam hormat & ta'dzim,
     );
   }
 
+  Future<void> _pickCustomRange() async {
+    AppFeedback.tap();
+    final now = DateTime.now().toLocal();
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2035),
+      initialDateRange: DateTimeRange(
+        start: _customStart ?? now.subtract(const Duration(days: 6)),
+        end: _customEnd ?? now,
+      ),
+      builder: (ctx, child) {
+        return Theme(
+          data: Theme.of(ctx).copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: Color(0xFF10B981),
+              onPrimary: Color(0xFF040914),
+              surface: Color(0xFF0F172A),
+              onSurface: Colors.white,
+            ),
+            dialogBackgroundColor: const Color(0xFF0F172A),
+          ),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
+    );
+    if (picked != null && mounted) {
+      setState(() {
+        _customStart = DateTime(picked.start.year, picked.start.month, picked.start.day);
+        _customEnd = DateTime(picked.end.year, picked.end.month, picked.end.day);
+        _exportPeriod = ExportPeriod.rentangKhusus;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final provider = Provider.of<KasSantriProvider>(context);
+    final cardOpacity = Provider.of<ThemeWallpaperProvider>(context).cardOpacity;
     final statusList = provider.santriStatusList;
 
     if (_selectedSantriId == null && statusList.isNotEmpty) {
@@ -230,7 +280,7 @@ Salam hormat & ta'dzim,
           Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: const Color(0xFF0F172A).withOpacity(0.85),
+              color: const Color(0xFF0F172A).withOpacity(cardOpacity),
               borderRadius: BorderRadius.circular(28),
               border: Border.all(color: Colors.white12),
             ),
@@ -445,7 +495,7 @@ Salam hormat & ta'dzim,
         Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: const Color(0xFF0F172A).withOpacity(0.85),
+            color: const Color(0xFF0F172A).withOpacity(cardOpacity),
             borderRadius: BorderRadius.circular(28),
             border: Border.all(
               color: provider.isProUser
@@ -516,7 +566,11 @@ Salam hormat & ta'dzim,
                       padding: const EdgeInsets.only(right: 6),
                       child: ChoiceChip(
                         label: Text(
-                          YayasanExportService.periodLabel(period),
+                          YayasanExportService.periodLabel(
+                            period,
+                            customStart: _customStart,
+                            customEnd: _customEnd,
+                          ),
                           style: TextStyle(
                             color: selected ? const Color(0xFF030712) : Colors.white70,
                             fontSize: 10.5,
@@ -529,7 +583,11 @@ Salam hormat & ta'dzim,
                         side: BorderSide(color: selected ? Colors.transparent : Colors.white12),
                         onSelected: (_) {
                           AppFeedback.tap();
-                          setState(() => _exportPeriod = period);
+                          if (period == ExportPeriod.rentangKhusus) {
+                            _pickCustomRange();
+                          } else {
+                            setState(() => _exportPeriod = period);
+                          }
                         },
                       ),
                     );
@@ -586,7 +644,7 @@ Salam hormat & ta'dzim,
         Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: const Color(0xFF0F172A).withOpacity(0.85),
+            color: const Color(0xFF0F172A).withOpacity(cardOpacity),
             borderRadius: BorderRadius.circular(28),
             border: Border.all(color: Colors.white12),
           ),
@@ -605,108 +663,84 @@ Salam hormat & ta'dzim,
 
               const SizedBox(height: 12),
 
-              // Dropdown Santri
-              DropdownButtonFormField<String>(
-                value: _selectedSantriId,
-                isExpanded: true,
-                dropdownColor: const Color(0xFF090E1A),
-                style: const TextStyle(color: Colors.white, fontSize: 12.5),
-                decoration: const InputDecoration(isDense: true),
-                items: statusList.map((s) {
-                  return DropdownMenuItem<String>(
-                    value: s.santri.id,
-                    child: Text(
-                      '${s.santri.namaLengkap} (${s.santri.kamar}) — Saldo: ${CurrencyFormatter.format(s.santri.saldoTotal)}',
-                      style: const TextStyle(color: Colors.white, fontSize: 12),
-                      overflow: TextOverflow.ellipsis,
-                    ),
+              // Searchable Picker Santri (anti dropdown kosong)
+              SearchableSantriField(
+                selectedSantri: selectedStatus?.santri,
+                placeholder: statusList.isEmpty
+                    ? 'Belum ada santri aktif'
+                    : 'Cari & pilih santri...',
+                onTap: () async {
+                  if (statusList.isEmpty) return;
+                  final santris = statusList.map((e) => e.santri).toList();
+                  final picked = await SearchableSantriPicker.show(
+                    context,
+                    santriList: santris,
+                    selectedSantriId: selectedStatus?.santri.id,
+                    title: 'Pilih Santri untuk Laporan WA',
                   );
-                }).toList(),
-                onChanged: (val) {
-                  if (val != null) setState(() => _selectedSantriId = val);
+                  if (picked != null && mounted) {
+                    setState(() => _selectedSantriId = picked);
+                  }
                 },
               ),
 
               const SizedBox(height: 12),
 
-              // Preview Text Box
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF060B14),
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: Colors.white12),
-                ),
-                child: SelectableText(
-                  waPreviewText,
-                  style: const TextStyle(
-                    color: Color(0xFF67E8F9),
-                    fontSize: 10.5,
-                    fontFamily: 'monospace',
-                    height: 1.45,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 14),
-
-              // Tombol Salin Laporan WA
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF10B981),
-                    foregroundColor: const Color(0xFF030712),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                    elevation: 6,
-                    shadowColor: const Color(0xFF10B981).withOpacity(0.4),
-                  ),
-                  onPressed: () => _copyWaText(waPreviewText),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.copy, size: 16),
-                      SizedBox(width: 6),
-                      Text('📋 SALIN TEKS LAPORAN WHATSAPP', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 10),
-
-              // Tombol PRO: Kirim WA 1-Klik & Struk Gambar PNG
+              // Tombol Aksi Utama Langsung Terlihat: Kirim WA 1-Klik & Salin Teks
               Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton(
+                    flex: 5,
+                    child: ElevatedButton.icon(
                       onPressed: selectedStatus == null
                           ? null
                           : () => _sendWaDirect(selectedStatus.santri, waPreviewText),
-                      style: OutlinedButton.styleFrom(
-                        backgroundColor: const Color(0xFF052E16).withOpacity(0.6),
-                        side: BorderSide(
-                          color: provider.isProUser
-                              ? const Color(0xFF34D399)
-                              : const Color(0xFFFBBF24).withOpacity(0.65),
+                      icon: const Text('💬', style: TextStyle(fontSize: 15)),
+                      label: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          provider.isProUser ? 'Kirim WhatsApp' : 'Kirim WA 👑',
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
                         ),
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
-                      child: Text(
-                        provider.isProUser ? '💬 Kirim WA 1-Klik' : '💬 WA 1-Klik 👑',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: provider.isProUser ? const Color(0xFF6EE7B7) : const Color(0xFFFDE68A),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
-                        ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF10B981),
+                        foregroundColor: const Color(0xFF030712),
+                        padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       ),
                     ),
                   ),
                   const SizedBox(width: 8),
+                  Expanded(
+                    flex: 4,
+                    child: OutlinedButton.icon(
+                      onPressed: selectedStatus == null
+                          ? null
+                          : () => _copyWaText(waPreviewText),
+                      icon: const Icon(Icons.copy_rounded, size: 15, color: Color(0xFF67E8F9)),
+                      label: const FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'Salin Teks',
+                          style: TextStyle(color: Color(0xFF67E8F9), fontSize: 11.5, fontWeight: FontWeight.w900),
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: const Color(0xFF38BDF8).withOpacity(0.55)),
+                        padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 8),
+
+              // Baris Struk Gambar PNG & Toggle Expandable Pratinjau
+              Row(
+                children: [
                   Expanded(
                     child: OutlinedButton(
                       onPressed: selectedStatus == null
@@ -727,28 +761,78 @@ Salam hormat & ta'dzim,
                               );
                             },
                       style: OutlinedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1E1B4B).withOpacity(0.55),
+                        backgroundColor: const Color(0xFF1E1B4B).withOpacity(0.45),
                         side: BorderSide(
                           color: provider.isProUser
-                              ? const Color(0xFF38BDF8)
-                              : const Color(0xFFFBBF24).withOpacity(0.65),
+                              ? const Color(0xFF38BDF8).withOpacity(0.6)
+                              : const Color(0xFFFBBF24).withOpacity(0.6),
                         ),
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
-                      child: Text(
-                        provider.isProUser ? '🖼️ Struk Gambar' : '🖼️ Struk PNG 👑',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: provider.isProUser ? const Color(0xFF67E8F9) : const Color(0xFFFDE68A),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          provider.isProUser ? '🖼️ Struk Gambar PNG' : '🖼️ Struk PNG 👑',
+                          style: TextStyle(
+                            color: provider.isProUser ? const Color(0xFF67E8F9) : const Color(0xFFFDE68A),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        AppFeedback.tap();
+                        setState(() => _showWaPreview = !_showWaPreview);
+                      },
+                      icon: Icon(
+                        _showWaPreview ? Icons.expand_less_rounded : Icons.visibility_outlined,
+                        size: 16,
+                        color: Colors.white70,
+                      ),
+                      label: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          _showWaPreview ? 'Tutup Pratinjau' : 'Pratinjau Pesan',
+                          style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.white12),
+                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
                     ),
                   ),
                 ],
               ),
+
+              if (_showWaPreview && waPreviewText.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF060B14).withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: Colors.white12),
+                  ),
+                  child: SelectableText(
+                    waPreviewText,
+                    style: const TextStyle(
+                      color: Color(0xFF67E8F9),
+                      fontSize: 10.5,
+                      fontFamily: 'monospace',
+                      height: 1.45,
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -756,18 +840,18 @@ Salam hormat & ta'dzim,
         const SizedBox(height: 14),
 
         // 3. Prioritas Saldo Kritis (< 3 Hari) - PRO
-        _buildSaldoKritisCard(provider),
+        _buildSaldoKritisCard(provider, cardOpacity),
       ],
     ),
     );
   }
 
-  Widget _buildSaldoKritisCard(KasSantriProvider provider) {
+  Widget _buildSaldoKritisCard(KasSantriProvider provider, double cardOpacity) {
     final kritisList = provider.saldoKritisList;
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F172A).withOpacity(0.85),
+        color: const Color(0xFF0F172A).withOpacity(cardOpacity),
         borderRadius: BorderRadius.circular(28),
         border: Border.all(
           color: kritisList.isNotEmpty

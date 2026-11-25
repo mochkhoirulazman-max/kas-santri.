@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/santri_status.dart';
+import '../providers/theme_wallpaper_provider.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/time_category_helper.dart';
 import '../utils/app_feedback.dart';
@@ -31,47 +33,48 @@ class SantriCard extends StatelessWidget {
     return parts[0].substring(0, parts[0].length >= 2 ? 2 : 1).toUpperCase();
   }
 
-  BoxDecoration _getCardDecoration(BadgeStatusHariIni badge) {
+  BoxDecoration _getCardDecoration(BadgeStatusHariIni badge, double cardOpacity) {
     List<Color> gradientColors;
     Color borderColor;
     Color shadowColor;
+    final darkAlpha = (0.95 * cardOpacity).clamp(0.44, 0.94);
 
     switch (badge) {
       case BadgeStatusHariIni.utuh:
         gradientColors = [
-          const Color(0x9910B981), // Emerald
-          const Color(0x5506B6D4), // Cyan
-          const Color(0xF20B1322), // Dark
+          const Color(0xFF10B981).withOpacity((0.60 * cardOpacity).clamp(0.22, 0.65)),
+          const Color(0xFF06B6D4).withOpacity((0.35 * cardOpacity).clamp(0.14, 0.45)),
+          const Color(0xFF0B1322).withOpacity(darkAlpha),
         ];
         borderColor = const Color(0xFF34D399).withOpacity(0.55);
-        shadowColor = const Color(0xFF10B981).withOpacity(0.35);
+        shadowColor = const Color(0xFF10B981).withOpacity(0.3);
         break;
       case BadgeStatusHariIni.sebagian:
         gradientColors = [
-          const Color(0x9906B6D4), // Cyan
-          const Color(0x556366F1), // Violet
-          const Color(0xF20B1322), // Dark
+          const Color(0xFF06B6D4).withOpacity((0.60 * cardOpacity).clamp(0.22, 0.65)),
+          const Color(0xFF6366F1).withOpacity((0.35 * cardOpacity).clamp(0.14, 0.45)),
+          const Color(0xFF0B1322).withOpacity(darkAlpha),
         ];
         borderColor = const Color(0xFF38BDF8).withOpacity(0.6);
-        shadowColor = const Color(0xFF06B6D4).withOpacity(0.35);
+        shadowColor = const Color(0xFF06B6D4).withOpacity(0.3);
         break;
       case BadgeStatusHariIni.limitHabis:
         gradientColors = [
-          const Color(0x99F59E0B), // Amber
-          const Color(0x55EC4899), // Pink
-          const Color(0xF20B1322), // Dark
+          const Color(0xFFF59E0B).withOpacity((0.60 * cardOpacity).clamp(0.22, 0.65)),
+          const Color(0xFFEC4899).withOpacity((0.35 * cardOpacity).clamp(0.14, 0.45)),
+          const Color(0xFF0B1322).withOpacity(darkAlpha),
         ];
         borderColor = const Color(0xFFFBBF24).withOpacity(0.6);
-        shadowColor = const Color(0xFFF59E0B).withOpacity(0.35);
+        shadowColor = const Color(0xFFF59E0B).withOpacity(0.3);
         break;
       case BadgeStatusHariIni.overlimitKritis:
         gradientColors = [
-          const Color(0xAAEC4899), // Rose
-          const Color(0x66A855F7), // Purple
-          const Color(0xF20B1322), // Dark
+          const Color(0xFFEC4899).withOpacity((0.66 * cardOpacity).clamp(0.24, 0.7)),
+          const Color(0xFFA855F7).withOpacity((0.40 * cardOpacity).clamp(0.16, 0.48)),
+          const Color(0xFF0B1322).withOpacity(darkAlpha),
         ];
         borderColor = const Color(0xFFFB7185).withOpacity(0.65);
-        shadowColor = const Color(0xFFF43F5E).withOpacity(0.4);
+        shadowColor = const Color(0xFFF43F5E).withOpacity(0.35);
         break;
     }
 
@@ -175,6 +178,7 @@ class SantriCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cardOpacity = Provider.of<ThemeWallpaperProvider>(context).cardOpacity;
     final santri = status.santri;
     final initials = _getInitials(santri.namaLengkap);
     final sisaJatah = status.sisaJatahHariIni;
@@ -186,7 +190,7 @@ class SantriCard extends StatelessWidget {
       // 1-Column List Mode
       return Container(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
-        decoration: _getCardDecoration(badge),
+        decoration: _getCardDecoration(badge, cardOpacity),
         child: Material(
           color: Colors.transparent,
           child: InkWell(
@@ -328,7 +332,7 @@ class SantriCard extends StatelessWidget {
 
     // 2-Column Grid Mode (Tactile Button Card Aurora Style)
     return Container(
-      decoration: _getCardDecoration(badge),
+      decoration: _getCardDecoration(badge, cardOpacity),
       child: Material(
         color: Colors.transparent,
         child: InkWell(

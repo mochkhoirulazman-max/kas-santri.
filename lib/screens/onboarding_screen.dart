@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/kas_santri_provider.dart';
+import '../services/account_auth_service.dart';
 import '../utils/app_feedback.dart';
 import '../utils/currency_formatter.dart';
 import 'main_navigation_screen.dart';
@@ -43,6 +44,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       useSimulationData: useSimulationData,
     );
 
+    final quickAcc = await AccountAuthService.instance.enterOfflineQuickMode(
+      namaLengkap: _namaPengurusController.text.trim().isNotEmpty
+          ? _namaPengurusController.text.trim()
+          : 'Pengurus Kas & Keuangan',
+      jabatan: 'Bendahara Pondok',
+      rememberSession: true,
+    );
+    await provider.syncActiveAccountToPengaturan(quickAcc);
+
     if (!mounted) return;
     Navigator.pushReplacement(
       context,
@@ -53,7 +63,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF060A12),
+      backgroundColor: Colors.transparent,
       body: SafeArea(
         child: Stack(
           children: [

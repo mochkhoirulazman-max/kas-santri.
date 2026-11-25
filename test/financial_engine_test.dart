@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:kas_santri/config/app_config.dart';
 import 'package:kas_santri/database/database_helper.dart';
+import 'package:kas_santri/models/bendahara_account.dart';
 import 'package:kas_santri/models/cash_opname_log.dart';
 import 'package:kas_santri/models/infak_santri.dart';
 import 'package:kas_santri/models/pengaturan.dart';
@@ -10,6 +11,7 @@ import 'package:kas_santri/models/santri_status.dart';
 import 'package:kas_santri/models/serah_terima_infak.dart';
 import 'package:kas_santri/models/transaksi.dart';
 import 'package:kas_santri/providers/kas_santri_provider.dart';
+import 'package:kas_santri/services/account_auth_service.dart';
 import 'package:kas_santri/services/auth_service.dart';
 import 'package:kas_santri/services/backup_service.dart';
 import 'package:kas_santri/services/license_service.dart';
@@ -17,7 +19,9 @@ import 'package:kas_santri/services/report_service.dart';
 import 'package:kas_santri/services/subscription_service.dart';
 import 'package:kas_santri/services/yayasan_export_service.dart';
 import 'package:kas_santri/utils/currency_formatter.dart';
+import 'package:kas_santri/utils/date_formatter.dart';
 import 'package:kas_santri/utils/time_category_helper.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
@@ -1191,6 +1195,235 @@ void main() {
       expect(reminderMsg, contains('Umar Santri Baru'));
       expect(reminderMsg, contains('PPS MIFTAHUSSUNAN'));
       expect(reminderMsg, contains('2026-12-25'));
+    });
+
+    test('Y. v3.2: Autentikasi Bendahara, Akurasi Tanggal Lokal & Filter Rentang Mutasi', () async {
+      SharedPreferences.setMockInitialValues({});
+      await AccountAuthService.instance.clearAllForTesting();
+
+      // 1. Register & Login Lokal
+      final acc = await AccountAuthService.instance.registerLocalAccount(
+        namaLengkap: 'Ustadz Ahmad Fauzan',
+        jabatan: 'Bendahara Putra',
+        username: 'fauzan_putra',
+        password: 'password123',
+        rememberSession: true,
+      );
+      expect(acc.authMode, BendaharaAccount.modeLocal);
+      expect(acc.namaLengkap, 'Ustadz Ahmad Fauzan');
+      expect((await AccountAuthService.instance.getActiveAccount())?.id, acc.id);
+
+      // Wrong password rejected
+      await expectLater(
+        () => AccountAuthService.instance.loginLocal(
+          username: 'fauzan_putra',
+          password: 'salahpassword',
+        ),
+        throwsException,
+      );
+
+      // Change password & verify login with new password
+      await AccountAuthService.instance.changePassword(
+        oldPassword: 'password123',
+        newPassword: 'passwordBaru99',
+      );
+      final relogin = await AccountAuthService.instance.loginLocal(
+        username: 'fauzan_putra',
+        password: 'passwordBaru99',
+      );
+      expect(relogin.id, acc.id);
+
+      // Update profile & Logout
+      final updatedProf = await AccountAuthService.instance.updateActiveProfile(
+        jabatan: 'Bendahara Umum',
+      );
+      expect(updatedProf.jabatan, 'Bendahara Umum');
+
+      await AccountAuthService.instance.logout();
+      expect(await AccountAuthService.instance.getActiveAccount(), isNull);
+      expect(await AccountAuthService.instance.isExplicitlyLoggedOut(), true);
+
+      // Offline quick mode always works
+      final offlineAcc = await AccountAuthService.instance.enterOfflineQuickMode(
+        namaLengkap: 'Petugas Malam',
+        jabatan: 'Musyrif Kas',
+      );
+      expect(offlineAcc.authMode, BendaharaAccount.modeOfflineQuick);
+
+      // 2. Akurasi Tanggal Lokal, Tahun Ajaran per Periode & Rolling Date Infak
+      final localParsed = DateFormatter.parseLocalDate('2026-11-26');
+      expect(DateFormatter.toLocalDateString(localParsed), '2026-11-26');
+      expect(
+        DateFormatter.formatAcademicYearForPeriode(
+          '2026-11',
+          configuredTa: '2026/2027 M / 1448 H',
+        ),
+        '2026/2027 M / 1448 H',
+      );
+      expect(
+        DateFormatter.formatAcademicYearForPeriode(
+          '2027-02',
+          configuredTa: '2026/2027 M / 1448 H',
+        ),
+        '2026/2027 M / 1448 H',
+      );
+      expect(
+        DateFormatter.formatAcademicYearForPeriode(
+          '2027-07',
+          configuredTa: '2026/2027 M / 1448 H',
+        ),
+        contains('2027/2028'),
+      );
+      expect(InfakSantriModel.hitungTglHabis('2026-11-26'), '2026-12-26');
+      expect(InfakSantriModel.hitungTglHabis('2024-01-31'), '2024-02-29');
+
+      // 3. Filter Rentang Tanggal SQLite pada getAllTransaksi + ExportPeriod
+      sqfliteFfiInit();
+      final db = await databaseFactoryFfi.openDatabase(inMemoryDatabasePath);
+      await DatabaseHelper.instance.createSchemaForTesting(db);
+      DatabaseHelper.instance.setDatabaseForTesting(db);
+      addTearDown(() async {
+        DatabaseHelper.instance.setDatabaseForTesting(null);
+        await db.close();
+      });
+
+      final s = Santri(
+        id: 'date-filter-s1',
+        namaLengkap: 'Santri Uji Tanggal',
+        namaPanggilan: 'Uji',
+        kamar: 'Kamar 1',
+        saldoTotal: 200000,
+      );
+      await DatabaseHelper.instance.insertSantri(s, sumberDompet: 'TUNAI');
+      await DatabaseHelper.instance.catatPengambilan(
+        santriId: s.id,
+        nominal: 5000,
+        waktuCategory: TimeCategory.pagi,
+        customTimestamp: DateTime(2026, 11, 20, 8, 0),
+      );
+      await DatabaseHelper.instance.catatPengambilan(
+        santriId: s.id,
+        nominal: 7000,
+        waktuCategory: TimeCategory.siang,
+        customTimestamp: DateTime(2026, 11, 25, 13, 0),
+      );
+
+      final range20 = await DatabaseHelper.instance.getAllTransaksi(
+        tanggalMulai: '2026-11-20',
+        tanggalSelesai: '2026-11-20',
+      );
+      expect(range20.length, 1);
+      expect(range20.first.nominal, 5000);
+
+      final rangeCustom = YayasanExportService.resolveRange(
+        ExportPeriod.rentangKhusus,
+        customStart: DateTime(2026, 11, 20),
+        customEnd: DateTime(2026, 11, 25),
+      );
+      expect(rangeCustom.mulai, '2026-11-20');
+      expect(rangeCustom.selesai, '2026-11-25');
+
+      final rangeAll = await DatabaseHelper.instance.getAllTransaksi(
+        tanggalMulai: rangeCustom.mulai,
+        tanggalSelesai: rangeCustom.selesai,
+      );
+      expect(rangeAll.length, 2);
+    });
+
+    test('Z. v3.2 Tahap 2: Validasi Format Excel Rapi (Yayasan 3-Sheet & Buku Infak 4-Sheet)', () async {
+      sqfliteFfiInit();
+      final db = await databaseFactoryFfi.openDatabase(inMemoryDatabasePath);
+      await DatabaseHelper.instance.createSchemaForTesting(db);
+      DatabaseHelper.instance.setDatabaseForTesting(db);
+      addTearDown(() async {
+        DatabaseHelper.instance.setDatabaseForTesting(null);
+        await db.close();
+      });
+
+      final s1 = Santri(
+        id: 'xls-s1',
+        namaLengkap: 'Hasan Al-Basri',
+        namaPanggilan: 'Hasan',
+        kategoriSantri: Santri.kategoriSantriyin,
+        kamar: 'Kamar 1',
+        saldoTotal: 250000,
+        jatahHarian: 10000,
+        tunggakan: 25000,
+      );
+      final s2 = Santri(
+        id: 'xls-s2',
+        namaLengkap: 'Fatimah Azzahra',
+        namaPanggilan: 'Fatimah',
+        kategoriSantri: Santri.kategoriSantriyat,
+        kamar: 'Putri 2',
+        saldoTotal: 150000,
+        jatahHarian: 10000,
+      );
+      await DatabaseHelper.instance.insertSantri(s1, sumberDompet: 'TUNAI');
+      await DatabaseHelper.instance.insertSantri(s2, sumberDompet: 'REKENING');
+
+      await DatabaseHelper.instance.catatPengambilan(
+        santriId: s1.id,
+        nominal: 5000,
+        waktuCategory: TimeCategory.pagi,
+        customTimestamp: DateTime(2026, 11, 26, 8, 15),
+      );
+      await DatabaseHelper.instance.upsertInfakSantri(
+        InfakSantriModel(
+          id: 'inf-xls-1',
+          santriId: s1.id,
+          periodeBulan: '2026-11',
+          nominalMasak: 130000,
+          nominalListrik: 20000,
+          jenisBeras: InfakSantriModel.berasUangVal,
+          berasUang: 150000,
+          tglMasuk: '2026-11-26',
+        ),
+      );
+
+      final peng = await DatabaseHelper.instance.getPengaturan();
+      final santriList = await DatabaseHelper.instance.getAllSantri(onlyActive: false);
+      final mutasiRows = await DatabaseHelper.instance.getTransaksiByDateRange();
+      final dompetRows = await DatabaseHelper.instance.getAllMutasiDompet();
+      final opnames = await DatabaseHelper.instance.getCashOpnameLogs();
+
+      // 1. Validasi Excel Yayasan 3-Sheet rapi & ber-kop
+      final yayasanBytes = await YayasanExportService.instance.buildExcelYayasanBytes(
+        pengaturan: peng,
+        santriList: santriList,
+        mutasiRows: mutasiRows,
+        dompetRows: dompetRows,
+        totalBrankasFisik: 395000,
+        kasLaciTunai: 245000,
+        rekeningBank: 150000,
+        totalTunggakanPondok: 25000,
+        opnameLogs: opnames,
+        periodeLabel: 'Semua Periode',
+      );
+      final decodedYayasan = Excel.decodeBytes(yayasanBytes);
+      expect(decodedYayasan.sheets.keys, contains('Rekap Santri'));
+      expect(decodedYayasan.sheets.keys, contains('Buku Mutasi'));
+      expect(decodedYayasan.sheets.keys, contains('Dompet & Opname'));
+      expect(decodedYayasan.sheets.keys.contains('Sheet1'), false);
+
+      // 2. Validasi Excel Buku Infak 4-Sheet rapi & ber-kop
+      final infakList = await DatabaseHelper.instance.getInfakByPeriode('2026-11');
+      final serahList = await DatabaseHelper.instance.getSerahTerimaInfak(periodeBulan: '2026-11');
+      final saldoKantong = await DatabaseHelper.instance.getSaldoKantongInfak();
+      final infakBytes = await YayasanExportService.instance.buildExcelBukuInfakBytes(
+        pengaturan: peng,
+        periodeBulan: '2026-11',
+        santriList: santriList,
+        infakList: infakList,
+        serahTerimaList: serahList,
+        saldoKantongInfak: saldoKantong,
+      );
+      final decodedInfak = Excel.decodeBytes(infakBytes);
+      expect(decodedInfak.sheets.keys, contains('Rekap Total & Serah Terima'));
+      expect(decodedInfak.sheets.keys, contains('Santriyin'));
+      expect(decodedInfak.sheets.keys, contains('Santriyat'));
+      expect(decodedInfak.sheets.keys, contains('Santri Baru'));
+      expect(decodedInfak.sheets.keys.contains('Sheet1'), false);
     });
   });
 }

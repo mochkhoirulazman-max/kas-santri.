@@ -5,6 +5,7 @@ import '../../models/setoran.dart';
 import '../../providers/kas_santri_provider.dart';
 import '../../utils/currency_formatter.dart';
 import '../../utils/date_formatter.dart';
+import '../../widgets/searchable_santri_picker.dart';
 
 class SetoranFormScreen extends StatefulWidget {
   final String? preselectedSantriId;
@@ -141,25 +142,20 @@ class _SetoranFormScreenState extends State<SetoranFormScreen> {
                       style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF004D40)),
                     ),
                     const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      value: _selectedSantriId,
-                      decoration: const InputDecoration(
-                        labelText: 'Nama Santri *',
-                        prefixIcon: Icon(Icons.person),
-                      ),
-                      isExpanded: true,
-                      items: activeSantris.map((s) {
-                        return DropdownMenuItem(
-                          value: s.id,
-                          child: Text('${s.namaLengkap} (${s.kamar})'),
+                    SearchableSantriField(
+                      selectedSantri: selectedSantri,
+                      placeholder: 'Pilih Nama Santri *',
+                      onTap: () async {
+                        final picked = await SearchableSantriPicker.show(
+                          context,
+                          santriList: activeSantris,
+                          selectedSantriId: _selectedSantriId,
+                          title: 'Pilih Santri',
                         );
-                      }).toList(),
-                      onChanged: (val) {
-                        setState(() {
-                          _selectedSantriId = val;
-                        });
+                        if (picked != null && mounted) {
+                          setState(() => _selectedSantriId = picked);
+                        }
                       },
-                      validator: (val) => val == null ? 'Wajib memilih santri' : null,
                     ),
 
                     if (selectedSantri != null) ...[
