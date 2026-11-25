@@ -42,7 +42,7 @@ class _SetoranScreenState extends State<SetoranScreen> {
   bool _isMasakBebas = false;
   bool _isListrikChecked = true;
   bool _isListrikBebas = false;
-  String _sambanganJenisBeras = InfakSantriModel.berasUang;
+  String _sambanganJenisBeras = InfakSantriModel.berasUangVal;
   late DateTime _tglMasuk;
   late String _tglHabisYmd;
   final TextEditingController _masakController = TextEditingController(text: '130.000');
@@ -98,7 +98,7 @@ class _SetoranScreenState extends State<SetoranScreen> {
       ? CurrencyFormatter.parse(_listrikController.text)
       : 0;
   int get _sambanganBerasUang =>
-      _sambanganJenisBeras == InfakSantriModel.berasUang
+      _sambanganJenisBeras == InfakSantriModel.berasUangVal
           ? CurrencyFormatter.parse(_berasUangController.text)
           : 0;
   double get _sambanganBerasLiter =>
@@ -1061,13 +1061,13 @@ class _SetoranScreenState extends State<SetoranScreen> {
             spacing: 6,
             runSpacing: 6,
             children: [
-              _berasModeChip('💵 Bayar Uang', InfakSantriModel.berasUang, const Color(0xFFFBBF24)),
+              _berasModeChip('💵 Bayar Uang', InfakSantriModel.berasUangVal, const Color(0xFFFBBF24)),
               _berasModeChip('🌾 Fisik (Liter)', InfakSantriModel.berasFisik, const Color(0xFF34D399)),
               _berasModeChip('⏳ Belum Setor', InfakSantriModel.berasBelum, const Color(0xFFF43F5E)),
               _berasModeChip('✓ Bebas Beras', InfakSantriModel.berasBebas, const Color(0xFF38BDF8)),
             ],
           ),
-          if (_sambanganJenisBeras == InfakSantriModel.berasUang) ...[
+          if (_sambanganJenisBeras == InfakSantriModel.berasUangVal) ...[
             const SizedBox(height: 8),
             TextField(
               controller: _berasUangController,

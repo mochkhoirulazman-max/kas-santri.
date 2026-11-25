@@ -73,7 +73,7 @@ class _InfakEditBottomSheetState extends State<InfakEditBottomSheet> {
 
     _isMasakBebas = ex?.isMasakBebas ?? false;
     _isListrikBebas = ex?.isListrikBebas ?? false;
-    _jenisBeras = ex?.jenisBeras ?? InfakSantriModel.berasUang;
+    _jenisBeras = ex?.jenisBeras ?? InfakSantriModel.berasUangVal;
     _sumberDompet = ex?.sumberDompet ?? 'TUNAI';
 
     final masakVal = ex != null ? ex.nominalMasak : peng.defaultInfakMasak;
@@ -147,7 +147,7 @@ class _InfakEditBottomSheetState extends State<InfakEditBottomSheet> {
             ) ??
             0.0)
         : 0.0;
-    final berasUang = _jenisBeras == InfakSantriModel.berasUang
+    final berasUang = _jenisBeras == InfakSantriModel.berasUangVal
         ? CurrencyFormatter.parse(_berasUangController.text)
         : 0;
 
@@ -348,13 +348,13 @@ class _InfakEditBottomSheetState extends State<InfakEditBottomSheet> {
                 spacing: 6,
                 runSpacing: 6,
                 children: [
-                  _berasChip('💵 Bayar Uang', InfakSantriModel.berasUang, const Color(0xFFFBBF24)),
+                  _berasChip('💵 Bayar Uang', InfakSantriModel.berasUangVal, const Color(0xFFFBBF24)),
                   _berasChip('🌾 Fisik (Liter)', InfakSantriModel.berasFisik, const Color(0xFF34D399)),
                   _berasChip('⏳ Belum Setor', InfakSantriModel.berasBelum, const Color(0xFFF43F5E)),
                   _berasChip('✓ Bebas Beras', InfakSantriModel.berasBebas, const Color(0xFF38BDF8)),
                 ],
               ),
-              if (_jenisBeras == InfakSantriModel.berasUang) ...[
+              if (_jenisBeras == InfakSantriModel.berasUangVal) ...[
                 const SizedBox(height: 8),
                 TextField(
                   controller: _berasUangController,

@@ -700,7 +700,7 @@ class KasSantriProvider extends ChangeNotifier {
       isListrikBebas: infak.isListrikBebas,
       jenisBeras: infak.jenisBeras,
       berasLiter: infak.jenisBeras == InfakSantriModel.berasFisik ? infak.berasLiter : 0.0,
-      berasUang: infak.jenisBeras == InfakSantriModel.berasUang ? infak.berasUang : 0,
+      berasUang: infak.jenisBeras == InfakSantriModel.berasUangVal ? infak.berasUang : 0,
       targetMasak: _pengaturan.defaultInfakMasak,
       targetListrik: _pengaturan.defaultInfakListrik,
       targetBerasLiter: _pengaturan.defaultInfakBerasLiter,

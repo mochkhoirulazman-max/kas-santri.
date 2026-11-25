@@ -3,7 +3,7 @@ typedef InfakSantri = InfakSantriModel;
 class InfakSantriModel {
   static const String berasBelum = 'BELUM';
   static const String berasFisik = 'FISIK';
-  static const String berasUang = 'UANG';
+  static const String berasUangVal = 'UANG';
   static const String berasBebas = 'BEBAS';
 
   static const String statusLunasVal = 'LUNAS';
@@ -103,7 +103,7 @@ class InfakSantriModel {
       berasOk = true;
     } else if (jenisBeras == berasFisik) {
       berasOk = berasLiter >= targetBerasLiter;
-    } else if (jenisBeras == berasUang) {
+    } else if (jenisBeras == berasUangVal) {
       berasOk = berasUang >= targetBerasUang;
     } else {
       berasOk = false;

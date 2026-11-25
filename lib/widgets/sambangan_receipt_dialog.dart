@@ -70,7 +70,7 @@ class _SambanganReceiptDialogState extends State<SambanganReceiptDialog> {
       final str = l == l.roundToDouble() ? l.toInt().toString() : l.toString();
       return '🌾 Fisik $str Liter';
     }
-    if (widget.infak.jenisBeras == InfakSantriModel.berasUang) {
+    if (widget.infak.jenisBeras == InfakSantriModel.berasUangVal) {
       return CurrencyFormatter.format(widget.infak.berasUang);
     }
     return '⏳ Belum Setor';

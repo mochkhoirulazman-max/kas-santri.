@@ -2011,7 +2011,7 @@ class DatabaseHelper {
     final int actualMasak = isMasakBebas ? 0 : nominalMasak;
     final int actualListrik = isListrikBebas ? 0 : nominalListrik;
     final int actualBerasUang =
-        jenisBeras == InfakSantriModel.berasUang ? berasUang : 0;
+        jenisBeras == InfakSantriModel.berasUangVal ? berasUang : 0;
     final double actualBerasLiter =
         jenisBeras == InfakSantriModel.berasFisik ? berasLiter : 0.0;
     final int totalInfakUang = actualMasak + actualListrik + actualBerasUang;
@@ -2238,7 +2238,7 @@ class DatabaseHelper {
       final masak = isMasakBebas ? 0 : ((r['nominal_masak'] as num?)?.toInt() ?? 0);
       final listrik =
           isListrikBebas ? 0 : ((r['nominal_listrik'] as num?)?.toInt() ?? 0);
-      final berasUang = jenisBeras == InfakSantriModel.berasUang
+      final berasUang = jenisBeras == InfakSantriModel.berasUangVal
           ? ((r['beras_uang'] as num?)?.toInt() ?? 0)
           : 0;
       final totalUang = masak + listrik + berasUang;

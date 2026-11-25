@@ -84,7 +84,7 @@ class _BukuInfakViewState extends State<BukuInfakView> {
       if (inf != null) {
         if (!inf.isMasakBebas) totalMasak += inf.nominalMasak;
         if (!inf.isListrikBebas) totalListrik += inf.nominalListrik;
-        if (inf.jenisBeras == InfakSantriModel.berasUang) {
+        if (inf.jenisBeras == InfakSantriModel.berasUangVal) {
           totalBerasUang += inf.berasUang;
         } else if (inf.jenisBeras == InfakSantriModel.berasFisik) {
           totalBerasLiter += inf.berasLiter;

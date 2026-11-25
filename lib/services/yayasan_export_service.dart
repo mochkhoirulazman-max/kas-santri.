@@ -558,7 +558,7 @@ class YayasanExportService {
         inf.berasLiter < peng.defaultInfakBerasLiter) {
       final sisaB = peng.defaultInfakBerasLiter - inf.berasLiter;
       kurang.add('Brs -${_formatLiter(sisaB)} L');
-    } else if (inf.jenisBeras == InfakSantriModel.berasUang &&
+    } else if (inf.jenisBeras == InfakSantriModel.berasUangVal &&
         inf.berasUang < peng.defaultInfakBerasUang) {
       final sisaBu = peng.defaultInfakBerasUang - inf.berasUang;
       kurang.add('Brs -${CurrencyFormatter.format(sisaBu)}');
@@ -609,7 +609,7 @@ class YayasanExportService {
       if (inf != null) {
         if (!inf.isMasakBebas) totalMasak += inf.nominalMasak;
         if (!inf.isListrikBebas) totalListrik += inf.nominalListrik;
-        if (inf.jenisBeras == InfakSantriModel.berasUang) {
+        if (inf.jenisBeras == InfakSantriModel.berasUangVal) {
           totalBerasUang += inf.berasUang;
         } else if (inf.jenisBeras == InfakSantriModel.berasFisik) {
           totalBerasLiter += inf.berasLiter;

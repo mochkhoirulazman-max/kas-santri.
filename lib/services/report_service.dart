@@ -335,7 +335,7 @@ Mohon kiranya Bapak/Ibu dapat menyiapkan setoran lanjutan agar kebutuhan harian 
           ? infak.berasLiter.toInt().toString()
           : infak.berasLiter.toString();
       berasLabel = '🌾 Fisik $literStr Liter (Rp 0)';
-    } else if (infak.jenisBeras == InfakSantriModel.berasUang) {
+    } else if (infak.jenisBeras == InfakSantriModel.berasUangVal) {
       berasLabel = CurrencyFormatter.format(infak.berasUang);
     } else {
       berasLabel = '⏳ Belum Setor Beras';
@@ -447,7 +447,7 @@ Mohon kiranya Bapak/Ibu dapat menyiapkan setoran lanjutan agar kebutuhan harian 
             ? infak.berasLiter.toInt().toString()
             : infak.berasLiter.toStringAsFixed(1);
         berasStatus = '$lStr Liter';
-      } else if (infak.jenisBeras == InfakSantriModel.berasUang) {
+      } else if (infak.jenisBeras == InfakSantriModel.berasUangVal) {
         berasStatus = CurrencyFormatter.format(infak.berasUang);
       } else {
         berasStatus = 'Belum';
