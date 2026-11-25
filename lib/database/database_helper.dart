@@ -6,6 +6,8 @@ import '../models/setoran.dart';
 import '../models/transaksi.dart';
 import '../models/pengaturan.dart';
 import '../models/cash_opname_log.dart';
+import '../models/infak_santri.dart';
+import '../models/serah_terima_infak.dart';
 import '../utils/time_category_helper.dart';
 import '../utils/date_formatter.dart';
 import '../utils/currency_formatter.dart';
@@ -23,13 +25,22 @@ class DatabaseHelper {
     return _database!;
   }
 
+  void setDatabaseForTesting(Database? db) {
+    _database = db;
+  }
+
+  Future<void> createSchemaForTesting(Database db) => _createDB(db, 3);
+
+  Future<void> upgradeSchemaForTesting(Database db, int oldVersion, int newVersion) =>
+      _upgradeDB(db, oldVersion, newVersion);
+
   Future<Database> _initDB(String filePath) async {
     final dbPath = await getDatabasesPath();
     final path = p.join(dbPath, filePath);
 
     return await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
       onOpen: (db) async {
@@ -47,6 +58,8 @@ class DatabaseHelper {
   Future<void> _ensureColumnsAndIndexes(Database db) async {
     await _addColumnIfNotExists(db, 'santri', 'foto_path TEXT');
     await _addColumnIfNotExists(db, 'santri', 'qr_code TEXT');
+    await _addColumnIfNotExists(db, 'santri', "kategori_santri TEXT NOT NULL DEFAULT 'SANTRIYIN'");
+    await _addColumnIfNotExists(db, 'santri', "status_santri TEXT NOT NULL DEFAULT 'AKTIF'");
     await _addColumnIfNotExists(db, 'setoran_bulanan', "metode_bayar TEXT NOT NULL DEFAULT 'TUNAI'");
     await _addColumnIfNotExists(db, 'setoran_bulanan', 'potong_tunggakan INTEGER NOT NULL DEFAULT 0');
     await _addColumnIfNotExists(db, 'setoran_bulanan', 'nominal_potong_tunggakan INTEGER NOT NULL DEFAULT 0');
@@ -62,11 +75,65 @@ class DatabaseHelper {
     await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'trial_started_at TEXT');
     await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'trial_expires_at TEXT');
     await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'has_used_trial INTEGER NOT NULL DEFAULT 0');
+    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', "tahun_ajaran TEXT NOT NULL DEFAULT '2026/2027 M / 1448 H'");
+    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'default_infak_masak INTEGER NOT NULL DEFAULT 130000');
+    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'default_infak_listrik INTEGER NOT NULL DEFAULT 20000');
+    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'default_infak_beras_liter REAL NOT NULL DEFAULT 15.0');
+    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'default_infak_beras_uang INTEGER NOT NULL DEFAULT 150000');
+
+    await _createV3InfakTablesAndIndexes(db);
+
     try {
       await db.execute('CREATE INDEX IF NOT EXISTS idx_tx_santri_tgl ON transaksi_harian (santri_id, tanggal_lokal, is_void);');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_santri_qr ON santri (qr_code);');
     } catch (_) {}
     await _backfillQrCodes(db);
+  }
+
+  Future<void> _createV3InfakTablesAndIndexes(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS infak_santri (
+        id TEXT PRIMARY KEY,
+        santri_id TEXT NOT NULL,
+        periode_bulan TEXT NOT NULL,
+        tahun_ajaran TEXT NOT NULL DEFAULT '2026/2027 M / 1448 H',
+        nominal_masak INTEGER NOT NULL DEFAULT 0,
+        is_masak_bebas INTEGER NOT NULL DEFAULT 0,
+        nominal_listrik INTEGER NOT NULL DEFAULT 0,
+        is_listrik_bebas INTEGER NOT NULL DEFAULT 0,
+        jenis_beras TEXT NOT NULL DEFAULT 'BELUM',
+        beras_liter REAL NOT NULL DEFAULT 0.0,
+        beras_uang INTEGER NOT NULL DEFAULT 0,
+        tgl_masuk TEXT NOT NULL,
+        tgl_habis TEXT NOT NULL,
+        status_lunas TEXT NOT NULL DEFAULT 'BELUM',
+        sumber_dompet TEXT NOT NULL DEFAULT 'TUNAI',
+        setoran_id TEXT,
+        catatan TEXT,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (santri_id) REFERENCES santri (id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS serah_terima_infak (
+        id TEXT PRIMARY KEY,
+        tanggal_serah TEXT NOT NULL,
+        periode_bulan TEXT NOT NULL,
+        pos_infak TEXT NOT NULL DEFAULT 'GABUNGAN',
+        sumber_dompet TEXT NOT NULL DEFAULT 'TUNAI',
+        nominal_uang INTEGER NOT NULL DEFAULT 0,
+        jumlah_beras_liter REAL NOT NULL DEFAULT 0.0,
+        penerima TEXT NOT NULL,
+        catatan TEXT,
+        created_at TEXT NOT NULL
+      )
+    ''');
+
+    try {
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_infak_periode_santri ON infak_santri (periode_bulan, santri_id);');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_serah_terima_periode ON serah_terima_infak (periode_bulan, tanggal_serah);');
+    } catch (_) {}
   }
 
   Future<void> _backfillQrCodes(Database db) async {
@@ -164,6 +231,17 @@ class DatabaseHelper {
         }
       } catch (_) {}
     }
+
+    if (oldVersion < 3) {
+      await _addColumnIfNotExists(db, 'santri', "kategori_santri TEXT NOT NULL DEFAULT 'SANTRIYIN'");
+      await _addColumnIfNotExists(db, 'santri', "status_santri TEXT NOT NULL DEFAULT 'AKTIF'");
+      await _addColumnIfNotExists(db, 'pengaturan_aplikasi', "tahun_ajaran TEXT NOT NULL DEFAULT '2026/2027 M / 1448 H'");
+      await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'default_infak_masak INTEGER NOT NULL DEFAULT 130000');
+      await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'default_infak_listrik INTEGER NOT NULL DEFAULT 20000');
+      await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'default_infak_beras_liter REAL NOT NULL DEFAULT 15.0');
+      await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'default_infak_beras_uang INTEGER NOT NULL DEFAULT 150000');
+      await _createV3InfakTablesAndIndexes(db);
+    }
   }
 
   Future<void> _createDB(Database db, int version) async {
@@ -173,6 +251,8 @@ class DatabaseHelper {
         id TEXT PRIMARY KEY,
         nama_lengkap TEXT NOT NULL,
         nama_panggilan TEXT,
+        kategori_santri TEXT NOT NULL DEFAULT 'SANTRIYIN',
+        status_santri TEXT NOT NULL DEFAULT 'AKTIF',
         kamar TEXT NOT NULL,
         no_wa_wali TEXT,
         saldo_total INTEGER NOT NULL DEFAULT 0,
@@ -293,9 +373,16 @@ class DatabaseHelper {
         drive_account_email TEXT,
         trial_started_at TEXT,
         trial_expires_at TEXT,
-        has_used_trial INTEGER NOT NULL DEFAULT 0
+        has_used_trial INTEGER NOT NULL DEFAULT 0,
+        tahun_ajaran TEXT NOT NULL DEFAULT '2026/2027 M / 1448 H',
+        default_infak_masak INTEGER NOT NULL DEFAULT 130000,
+        default_infak_listrik INTEGER NOT NULL DEFAULT 20000,
+        default_infak_beras_liter REAL NOT NULL DEFAULT 15.0,
+        default_infak_beras_uang INTEGER NOT NULL DEFAULT 150000
       )
     ''');
+
+    await _createV3InfakTablesAndIndexes(db);
 
     // Composite & supporting indexes untuk performa query < 100ms
     await db.execute(
@@ -348,6 +435,11 @@ class DatabaseHelper {
       'trial_started_at': null,
       'trial_expires_at': null,
       'has_used_trial': 0,
+      'tahun_ajaran': '2026/2027 M / 1448 H',
+      'default_infak_masak': 130000,
+      'default_infak_listrik': 20000,
+      'default_infak_beras_liter': 15.0,
+      'default_infak_beras_uang': 150000,
     });
   }
 
@@ -459,6 +551,7 @@ class DatabaseHelper {
   Future<void> deleteSantri(String santriId) async {
     final db = await database;
     await db.transaction((txn) async {
+      await txn.delete('infak_santri', where: 'santri_id = ?', whereArgs: [santriId]);
       await txn.delete('tunggakan_log', where: 'santri_id = ?', whereArgs: [santriId]);
       await txn.delete('transaksi_harian', where: 'santri_id = ?', whereArgs: [santriId]);
       await txn.delete('setoran_bulanan', where: 'santri_id = ?', whereArgs: [santriId]);
@@ -1250,10 +1343,12 @@ class DatabaseHelper {
     final tunggakanLogList = await db.query('tunggakan_log');
     final mutasiDompetList = await db.query('mutasi_dompet');
     final cashOpnameList = await db.query('cash_opname_logs');
+    final infakSantriList = await db.query('infak_santri');
+    final serahTerimaInfakList = await db.query('serah_terima_infak');
     final pengaturanList = await db.query('pengaturan_aplikasi');
 
     return {
-      'version': 25,
+      'version': 30,
       'exported_at': DateTime.now().toIso8601String(),
       'santri': santriList,
       'setoran_bulanan': setoranList,
@@ -1261,6 +1356,8 @@ class DatabaseHelper {
       'tunggakan_log': tunggakanLogList,
       'mutasi_dompet': mutasiDompetList,
       'cash_opname_logs': cashOpnameList,
+      'infak_santri': infakSantriList,
+      'serah_terima_infak': serahTerimaInfakList,
       'pengaturan_aplikasi': pengaturanList,
     };
   }
@@ -1291,6 +1388,8 @@ class DatabaseHelper {
 
     final db = await database;
     await db.transaction((txn) async {
+      await txn.delete('infak_santri');
+      await txn.delete('serah_terima_infak');
       await txn.delete('tunggakan_log');
       await txn.delete('mutasi_dompet');
       await txn.delete('cash_opname_logs');
@@ -1368,6 +1467,30 @@ class DatabaseHelper {
         );
       }
 
+      if (data['infak_santri'] is List) {
+        final infakCols = await _getTableColumns(txn, 'infak_santri');
+        for (var row in (data['infak_santri'] as List)) {
+          final map = Map<String, dynamic>.from(row as Map);
+          await txn.insert(
+            'infak_santri',
+            _filterRowColumns(map, infakCols),
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
+        }
+      }
+
+      if (data['serah_terima_infak'] is List) {
+        final serahCols = await _getTableColumns(txn, 'serah_terima_infak');
+        for (var row in (data['serah_terima_infak'] as List)) {
+          final map = Map<String, dynamic>.from(row as Map);
+          await txn.insert(
+            'serah_terima_infak',
+            _filterRowColumns(map, serahCols),
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
+        }
+      }
+
       final pengCols = await _getTableColumns(txn, 'pengaturan_aplikasi');
       final pengList = data['pengaturan_aplikasi'] as List;
       if (pengList.isEmpty) {
@@ -1393,6 +1516,8 @@ class DatabaseHelper {
     final db = await database;
     final currentPengaturan = await getPengaturan();
     await db.transaction((txn) async {
+      await txn.delete('infak_santri');
+      await txn.delete('serah_terima_infak');
       await txn.delete('tunggakan_log');
       await txn.delete('mutasi_dompet');
       await txn.delete('cash_opname_logs');
@@ -1423,6 +1548,14 @@ class DatabaseHelper {
       'last_drive_backup_at': currentPengaturan.lastDriveBackupAt,
       'auto_drive_backup': currentPengaturan.autoDriveBackup ? 1 : 0,
       'drive_account_email': currentPengaturan.driveAccountEmail,
+      'trial_started_at': currentPengaturan.trialStartedAt,
+      'trial_expires_at': currentPengaturan.trialExpiresAt,
+      'has_used_trial': currentPengaturan.hasUsedTrial ? 1 : 0,
+      'tahun_ajaran': currentPengaturan.tahunAjaran,
+      'default_infak_masak': currentPengaturan.defaultInfakMasak,
+      'default_infak_listrik': currentPengaturan.defaultInfakListrik,
+      'default_infak_beras_liter': currentPengaturan.defaultInfakBerasLiter,
+      'default_infak_beras_uang': currentPengaturan.defaultInfakBerasUang,
     });
 
     await seedDemoData(force: true);
@@ -1753,7 +1886,7 @@ class DatabaseHelper {
       FROM transaksi_harian t
       LEFT JOIN santri s ON t.santri_id = s.id
       $whereClause
-      ORDER BY t.created_at DESC
+      ORDER BY t.waktu_ambil DESC
     ''', args);
   }
 
@@ -1780,5 +1913,374 @@ class DatabaseHelper {
       whereArgs: args.isEmpty ? null : args,
       orderBy: 'created_at DESC',
     );
+  }
+
+  // ==================== MODUL INFAK, SAMBANGAN & SERAH TERIMA (v3.0) ====================
+
+  Future<void> upsertInfakSantri(InfakSantriModel infak) async {
+    final db = await database;
+    await db.transaction((txn) async {
+      await _upsertInfakInTxn(txn, infak);
+    });
+  }
+
+  Future<void> _upsertInfakInTxn(Transaction txn, InfakSantriModel infak) async {
+    final existing = await txn.query(
+      'infak_santri',
+      columns: ['id'],
+      where: 'santri_id = ? AND periode_bulan = ?',
+      whereArgs: [infak.santriId, infak.periodeBulan],
+      limit: 1,
+    );
+    final map = infak.toMap();
+    if (existing.isNotEmpty) {
+      final oldId = existing.first['id']?.toString();
+      if (oldId != null && oldId.isNotEmpty) {
+        map['id'] = oldId;
+      }
+      await txn.update(
+        'infak_santri',
+        map,
+        where: 'id = ?',
+        whereArgs: [map['id']],
+      );
+    } else {
+      await txn.insert(
+        'infak_santri',
+        map,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+  }
+
+  Future<List<InfakSantriModel>> getInfakByPeriode(String periodeBulan) async {
+    final db = await database;
+    final rows = await db.query(
+      'infak_santri',
+      where: 'periode_bulan = ?',
+      whereArgs: [periodeBulan],
+      orderBy: 'created_at DESC',
+    );
+    return rows.map((r) => InfakSantriModel.fromMap(r)).toList();
+  }
+
+  Future<InfakSantriModel?> getInfakBySantriPeriode(
+    String santriId,
+    String periodeBulan,
+  ) async {
+    final db = await database;
+    final rows = await db.query(
+      'infak_santri',
+      where: 'santri_id = ? AND periode_bulan = ?',
+      whereArgs: [santriId, periodeBulan],
+      limit: 1,
+    );
+    if (rows.isEmpty) return null;
+    return InfakSantriModel.fromMap(rows.first);
+  }
+
+  Future<({
+    SetoranBulanan? setoran,
+    InfakSantriModel infak,
+    int sisaJajan,
+    int jatahBaru,
+    int nominalPotongTunggakan,
+  })> catatSambanganSmartSplit({
+    required String santriId,
+    required int totalUangDiterima,
+    required DateTime tanggalMasuk,
+    required String tglHabisYmd,
+    required int nominalMasak,
+    required bool isMasakBebas,
+    required int nominalListrik,
+    required bool isListrikBebas,
+    required String jenisBeras,
+    required double berasLiter,
+    required int berasUang,
+    required int durasiHari,
+    bool potongTunggakan = true,
+    String sumberDompet = 'TUNAI',
+    String? catatan,
+  }) async {
+    final db = await database;
+    final dompet = _normalizeDompet(sumberDompet);
+    final tglMasukYmd = DateFormatter.toLocalDateString(tanggalMasuk);
+    final periodeBulan =
+        '${tanggalMasuk.year.toString().padLeft(4, '0')}-${tanggalMasuk.month.toString().padLeft(2, '0')}';
+
+    final int actualMasak = isMasakBebas ? 0 : nominalMasak;
+    final int actualListrik = isListrikBebas ? 0 : nominalListrik;
+    final int actualBerasUang =
+        jenisBeras == InfakSantriModel.berasUang ? berasUang : 0;
+    final double actualBerasLiter =
+        jenisBeras == InfakSantriModel.berasFisik ? berasLiter : 0.0;
+    final int totalInfakUang = actualMasak + actualListrik + actualBerasUang;
+
+    if (totalInfakUang > totalUangDiterima) {
+      throw Exception(
+        'Total potongan infak (${CurrencyFormatter.format(totalInfakUang)}) melebihi uang diterima (${CurrencyFormatter.format(totalUangDiterima)}).',
+      );
+    }
+
+    late SetoranBulanan? createdSetoran;
+    late InfakSantriModel savedInfak;
+    int sisaJajan = 0;
+    int jatahBaru = 0;
+    int nominalPotongTunggakan = 0;
+
+    await db.transaction((txn) async {
+      final pengMaps = await txn.query('pengaturan_aplikasi', where: 'id = 1');
+      final peng = pengMaps.isNotEmpty
+          ? PengaturanAplikasi.fromMap(pengMaps.first)
+          : PengaturanAplikasi();
+
+      final santriMaps = await txn.query('santri', where: 'id = ?', whereArgs: [santriId]);
+      if (santriMaps.isEmpty) {
+        throw Exception('Santri tidak ditemukan');
+      }
+      final currentSantri = Santri.fromMap(santriMaps.first);
+
+      int sisaSetelahInfak = totalUangDiterima - totalInfakUang;
+      int tunggakanBaru = currentSantri.tunggakan;
+      String catatanTunggakanBaru = currentSantri.catatanTunggakan;
+
+      if (potongTunggakan && tunggakanBaru > 0 && sisaSetelahInfak > 0) {
+        if (sisaSetelahInfak >= tunggakanBaru) {
+          nominalPotongTunggakan = tunggakanBaru;
+          sisaSetelahInfak -= tunggakanBaru;
+          tunggakanBaru = 0;
+          catatanTunggakanBaru = '';
+        } else {
+          nominalPotongTunggakan = sisaSetelahInfak;
+          tunggakanBaru -= sisaSetelahInfak;
+          sisaSetelahInfak = 0;
+        }
+
+        await txn.insert('tunggakan_log', {
+          'id': const Uuid().v4(),
+          'santri_id': santriId,
+          'tipe': 'POTONG_SETORAN',
+          'nominal': nominalPotongTunggakan,
+          'saldo_tunggakan_setelah': tunggakanBaru,
+          'catatan': catatan ?? 'Potong otomatis dari Sambangan',
+          'created_at': DateTime.now().toIso8601String(),
+        });
+      }
+
+      sisaJajan = sisaSetelahInfak;
+      final int saldoBaru = currentSantri.saldoTotal + sisaJajan;
+      jatahBaru = (sisaJajan > 0 && durasiHari > 0)
+          ? CurrencyFormatter.hitungJatahHarianBulat(
+              sisaJajan,
+              durasiHari,
+              kelipatan: peng.pembulatanJatah,
+            )
+          : currentSantri.jatahHarian;
+
+      final int jajanDanTunggakan = sisaJajan + nominalPotongTunggakan;
+      if (jajanDanTunggakan > 0) {
+        final setoranId = const Uuid().v4();
+        final transaksiId = const Uuid().v4();
+        final noteText = (catatan != null && catatan.trim().isNotEmpty)
+            ? '${catatan.trim()} (Smart Split Sambangan)'
+            : 'Sambangan Wali (Jajan ${CurrencyFormatter.format(sisaJajan)})';
+
+        createdSetoran = SetoranBulanan(
+          id: setoranId,
+          santriId: santriId,
+          nominalSetoran: jajanDanTunggakan,
+          durasiHari: durasiHari > 0 ? durasiHari : 30,
+          jatahHarianHitung: jatahBaru,
+          tipeSetoran: TipeSetoran.sambanganSplit,
+          tanggalSetor: tanggalMasuk,
+          catatan: noteText,
+        );
+        final setoranMap = createdSetoran!.toMap();
+        setoranMap['metode_bayar'] = dompet;
+        setoranMap['potong_tunggakan'] = nominalPotongTunggakan > 0 ? 1 : 0;
+        setoranMap['nominal_potong_tunggakan'] = nominalPotongTunggakan;
+        await txn.insert('setoran_bulanan', setoranMap);
+
+        final now = DateTime.now();
+        final txMutasi = TransaksiHarian(
+          id: transaksiId,
+          santriId: santriId,
+          nominal: jajanDanTunggakan,
+          waktuAmbil: now,
+          tanggalLokal: tglMasukYmd,
+          kategoriWaktu: TimeCategory.setoran,
+          catatan: noteText,
+          saldoSetelahTransaksi: saldoBaru,
+          tipe: TipeTransaksi.setoran,
+          sumberDompet: dompet,
+        );
+        await txn.insert('transaksi_harian', txMutasi.toMap());
+
+        // Catat HANYA porsi jajan + tunggakan ke mutasi_dompet (Kantong 1)
+        // agar terpisah tegas dari Kas Infak Pondok (Kantong 2).
+        await txn.insert('mutasi_dompet', {
+          'id': const Uuid().v4(),
+          'jenis_dompet': dompet,
+          'tipe': 'MASUK',
+          'nominal': jajanDanTunggakan,
+          'referensi_id': transaksiId,
+          'catatan': 'Sambangan Jajan ${currentSantri.namaLengkap}',
+          'tanggal_lokal': tglMasukYmd,
+          'created_at': now.toIso8601String(),
+        });
+      } else {
+        createdSetoran = null;
+      }
+
+      await txn.update(
+        'santri',
+        {
+          'saldo_total': saldoBaru,
+          'jatah_harian': jatahBaru,
+          'tunggakan': tunggakanBaru,
+          'catatan_tunggakan': catatanTunggakanBaru,
+        },
+        where: 'id = ?',
+        whereArgs: [santriId],
+      );
+
+      final statusLunas = InfakSantriModel.hitungStatusLunas(
+        nominalMasak: actualMasak,
+        isMasakBebas: isMasakBebas,
+        nominalListrik: actualListrik,
+        isListrikBebas: isListrikBebas,
+        jenisBeras: jenisBeras,
+        berasLiter: actualBerasLiter,
+        berasUang: actualBerasUang,
+        targetMasak: peng.defaultInfakMasak,
+        targetListrik: peng.defaultInfakListrik,
+        targetBerasLiter: peng.defaultInfakBerasLiter,
+        targetBerasUang: peng.defaultInfakBerasUang,
+      );
+
+      savedInfak = InfakSantriModel(
+        id: const Uuid().v4(),
+        santriId: santriId,
+        periodeBulan: periodeBulan,
+        tahunAjaran: peng.tahunAjaran,
+        nominalMasak: actualMasak,
+        isMasakBebas: isMasakBebas,
+        nominalListrik: actualListrik,
+        isListrikBebas: isListrikBebas,
+        jenisBeras: jenisBeras,
+        berasLiter: actualBerasLiter,
+        berasUang: actualBerasUang,
+        tglMasuk: tglMasukYmd,
+        tglHabis: tglHabisYmd,
+        statusLunas: statusLunas,
+        sumberDompet: dompet,
+        setoranId: createdSetoran?.id,
+        catatan: catatan?.trim().isNotEmpty == true ? catatan!.trim() : 'Sambangan Wali',
+      );
+      await _upsertInfakInTxn(txn, savedInfak);
+    });
+
+    return (
+      setoran: createdSetoran,
+      infak: savedInfak,
+      sisaJajan: sisaJajan,
+      jatahBaru: jatahBaru,
+      nominalPotongTunggakan: nominalPotongTunggakan,
+    );
+  }
+
+  Future<void> insertSerahTerimaInfak(SerahTerimaInfakModel item) async {
+    final db = await database;
+    await db.insert(
+      'serah_terima_infak',
+      item.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<void> deleteSerahTerimaInfak(String id) async {
+    final db = await database;
+    await db.delete('serah_terima_infak', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<List<SerahTerimaInfakModel>> getSerahTerimaInfak({
+    String? periodeBulan,
+  }) async {
+    final db = await database;
+    final rows = await db.query(
+      'serah_terima_infak',
+      where: periodeBulan != null && periodeBulan.isNotEmpty
+          ? 'periode_bulan = ?'
+          : null,
+      whereArgs: periodeBulan != null && periodeBulan.isNotEmpty
+          ? [periodeBulan]
+          : null,
+      orderBy: 'tanggal_serah DESC, created_at DESC',
+    );
+    return rows.map((r) => SerahTerimaInfakModel.fromMap(r)).toList();
+  }
+
+  Future<Map<String, dynamic>> getSaldoKantongInfak() async {
+    final db = await database;
+    final infakRows = await db.query('infak_santri');
+    final serahRows = await db.query('serah_terima_infak');
+
+    int masukTunai = 0;
+    int masukRekening = 0;
+    double berasMasuk = 0.0;
+
+    for (final r in infakRows) {
+      final dompet = _normalizeDompet(r['sumber_dompet']?.toString() ?? 'TUNAI');
+      final isMasakBebas = (r['is_masak_bebas'] as num?)?.toInt() == 1;
+      final isListrikBebas = (r['is_listrik_bebas'] as num?)?.toInt() == 1;
+      final jenisBeras = r['jenis_beras']?.toString() ?? 'BELUM';
+
+      final masak = isMasakBebas ? 0 : ((r['nominal_masak'] as num?)?.toInt() ?? 0);
+      final listrik =
+          isListrikBebas ? 0 : ((r['nominal_listrik'] as num?)?.toInt() ?? 0);
+      final berasUang = jenisBeras == InfakSantriModel.berasUang
+          ? ((r['beras_uang'] as num?)?.toInt() ?? 0)
+          : 0;
+      final totalUang = masak + listrik + berasUang;
+
+      if (dompet == 'REKENING') {
+        masukRekening += totalUang;
+      } else {
+        masukTunai += totalUang;
+      }
+
+      if (jenisBeras == InfakSantriModel.berasFisik) {
+        berasMasuk += (r['beras_liter'] as num?)?.toDouble() ?? 0.0;
+      }
+    }
+
+    int serahTunai = 0;
+    int serahRekening = 0;
+    double berasSerah = 0.0;
+
+    for (final s in serahRows) {
+      final sumber = (s['sumber_dompet']?.toString() ?? 'TUNAI').toUpperCase();
+      final nom = (s['nominal_uang'] as num?)?.toInt() ?? 0;
+      final liter = (s['jumlah_beras_liter'] as num?)?.toDouble() ?? 0.0;
+      if (sumber == 'REKENING') {
+        serahRekening += nom;
+      } else if (sumber == 'TUNAI') {
+        serahTunai += nom;
+      }
+      berasSerah += liter;
+    }
+
+    final sisaTunai = masukTunai - serahTunai;
+    final sisaRekening = masukRekening - serahRekening;
+    final sisaBeras = berasMasuk - berasSerah;
+
+    return {
+      'tunai': sisaTunai,
+      'rekening': sisaRekening,
+      'total_uang': sisaTunai + sisaRekening,
+      'beras_masuk': berasMasuk,
+      'beras_serah': berasSerah,
+      'beras_stok': sisaBeras < 0 ? 0.0 : sisaBeras,
+    };
   }
 }

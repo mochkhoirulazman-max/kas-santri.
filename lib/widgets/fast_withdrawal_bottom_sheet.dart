@@ -7,6 +7,7 @@ import '../providers/kas_santri_provider.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/time_category_helper.dart';
 import '../utils/app_feedback.dart';
+import 'undo_snackbar.dart';
 
 class FastWithdrawalBottomSheet extends StatefulWidget {
   final SantriStatusHariIni statusSantri;
@@ -147,37 +148,17 @@ class _FastWithdrawalBottomSheetState extends State<FastWithdrawalBottomSheet> {
       final nominalTransaksi = _nominal;
       final namaSantri = _santri.namaLengkap;
       final bottomMargin = MediaQuery.of(context).padding.bottom + 84;
+      final message = isKurang
+          ? 'Dicatat! Tunggakan +${CurrencyFormatter.format(kekurangan < 0 ? 0 : kekurangan)} ($namaSantri)'
+          : 'Ambil ${CurrencyFormatter.format(nominalTransaksi)} ($namaSantri)';
 
       Navigator.pop(context);
-      messenger.hideCurrentSnackBar();
-      messenger.showSnackBar(
-        SnackBar(
-          duration: const Duration(seconds: 5),
-          behavior: SnackBarBehavior.floating,
-          margin: EdgeInsets.fromLTRB(16, 0, 16, bottomMargin),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          backgroundColor: isKurang ? const Color(0xFFE11D48) : const Color(0xFF0F172A),
-          content: Text(
-            isKurang
-                ? 'Dicatat! Saldo habis, ${CurrencyFormatter.format(kekurangan < 0 ? 0 : kekurangan)} masuk tunggakan $namaSantri.'
-                : 'Ambil ${CurrencyFormatter.format(nominalTransaksi)} ($namaSantri) berhasil dicatat.',
-            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
-          ),
-          action: SnackBarAction(
-            label: 'Batalkan (Undo)',
-            textColor: const Color(0xFFFBBF24),
-            onPressed: () async {
-              await provider.undoLastTransaction();
-              messenger.showSnackBar(
-                const SnackBar(
-                  content: Text('Transaksi dibatalkan & saldo dikembalikan.'),
-                  backgroundColor: Color(0xFFF59E0B),
-                  duration: Duration(seconds: 2),
-                ),
-              );
-            },
-          ),
-        ),
+      UndoToastHelper.showPostWithdrawal(
+        messenger: messenger,
+        provider: provider,
+        message: message,
+        bottomMargin: bottomMargin,
+        isWarning: isKurang,
       );
     }
   }

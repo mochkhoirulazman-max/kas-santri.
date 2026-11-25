@@ -20,20 +20,12 @@ class MainNavigationScreen extends StatefulWidget {
 class _MainNavigationScreenState extends State<MainNavigationScreen>
     with WidgetsBindingObserver {
   int _currentIndex = 0;
-
-  final List<Widget> _screens = [];
+  int _setoranSubTab = 0;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _screens.addAll([
-      const HomeFastWithdrawalScreen(),
-      SetoranScreen(onSaved: () => setState(() => _currentIndex = 0)),
-      const RiwayatTransaksiScreen(),
-      const RekapLaporanScreen(),
-      const SettingsScreen(),
-    ]);
     Future.microtask(() {
       if (mounted) {
         Provider.of<KasSantriProvider>(context, listen: false)
@@ -75,10 +67,25 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
       backgroundColor: const Color(0xFF060A12),
       body: Stack(
         children: [
-          // Main Body Screen
+          // Main Body Screen (5 tab utama tetap bersih)
           IndexedStack(
             index: _currentIndex,
-            children: _screens,
+            children: [
+              HomeFastWithdrawalScreen(
+                onOpenBukuInfak: () => setState(() {
+                  _setoranSubTab = 1;
+                  _currentIndex = 1;
+                }),
+              ),
+              SetoranScreen(
+                activeSubTab: _setoranSubTab,
+                onSubTabChanged: (sub) => setState(() => _setoranSubTab = sub),
+                onSaved: () => setState(() => _currentIndex = 0),
+              ),
+              const RiwayatTransaksiScreen(),
+              const RekapLaporanScreen(),
+              const SettingsScreen(),
+            ],
           ),
 
           // Floating Glass Bottom Navigation Bar

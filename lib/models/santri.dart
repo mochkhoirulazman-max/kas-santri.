@@ -1,7 +1,19 @@
+typedef SantriModel = Santri;
+
 class Santri {
+  static const String kategoriSantriyin = 'SANTRIYIN';
+  static const String kategoriSantriyat = 'SANTRIYAT';
+  static const String kategoriSantriBaru = 'SANTRI_BARU';
+
+  static const String statusAktifVal = 'AKTIF';
+  static const String statusPulangVal = 'PULANG';
+  static const String statusPindahVal = 'PINDAH';
+
   final String id;
   final String namaLengkap;
   final String namaPanggilan;
+  final String kategoriSantri; // SANTRIYIN, SANTRIYAT, SANTRI_BARU
+  final String statusSantri; // AKTIF, PULANG, PINDAH
   final String kamar;
   final String? noWaWali;
   final int saldoTotal;
@@ -14,6 +26,30 @@ class Santri {
   final bool statusAktif;
   final DateTime createdAt;
 
+  static String normalizeKategori(String? raw) {
+    switch (raw?.toUpperCase().trim()) {
+      case kategoriSantriyat:
+        return kategoriSantriyat;
+      case kategoriSantriBaru:
+        return kategoriSantriBaru;
+      case kategoriSantriyin:
+      default:
+        return kategoriSantriyin;
+    }
+  }
+
+  static String normalizeStatusSantri(String? raw) {
+    switch (raw?.toUpperCase().trim()) {
+      case statusPulangVal:
+        return statusPulangVal;
+      case statusPindahVal:
+        return statusPindahVal;
+      case statusAktifVal:
+      default:
+        return statusAktifVal;
+    }
+  }
+
   static String generateQrCode(String id) {
     final clean = id.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toUpperCase();
     if (clean.isEmpty) return 'KS-SANTRI';
@@ -25,6 +61,8 @@ class Santri {
     required this.id,
     required this.namaLengkap,
     required this.namaPanggilan,
+    String kategoriSantri = kategoriSantriyin,
+    String statusSantri = statusAktifVal,
     required this.kamar,
     this.noWaWali,
     this.saldoTotal = 0,
@@ -36,10 +74,40 @@ class Santri {
     String? qrCode,
     this.statusAktif = true,
     DateTime? createdAt,
-  })  : qrCode = (qrCode != null && qrCode.trim().isNotEmpty)
+  })  : kategoriSantri = normalizeKategori(kategoriSantri),
+        statusSantri = normalizeStatusSantri(statusSantri),
+        qrCode = (qrCode != null && qrCode.trim().isNotEmpty)
             ? qrCode.trim()
             : generateQrCode(id),
         createdAt = createdAt ?? DateTime.now();
+
+  bool get isPulang => statusSantri == statusPulangVal;
+  bool get isPindah => statusSantri == statusPindahVal;
+  bool get isAktifDiPondok => statusAktif && statusSantri == statusAktifVal;
+
+  String get kategoriLabel {
+    switch (kategoriSantri) {
+      case kategoriSantriyat:
+        return 'Santriyat';
+      case kategoriSantriBaru:
+        return 'Santri Baru';
+      case kategoriSantriyin:
+      default:
+        return 'Santriyin';
+    }
+  }
+
+  String get statusSantriLabel {
+    switch (statusSantri) {
+      case statusPulangVal:
+        return 'Pulang';
+      case statusPindahVal:
+        return 'Pindah';
+      case statusAktifVal:
+      default:
+        return 'Aktif';
+    }
+  }
 
   /// Estimasi berapa hari sisa saldo dapat mencukupi
   /// Estimasi Hari = floor(saldoTotal / jatahHarian)
@@ -53,6 +121,8 @@ class Santri {
     String? id,
     String? namaLengkap,
     String? namaPanggilan,
+    String? kategoriSantri,
+    String? statusSantri,
     String? kamar,
     String? noWaWali,
     int? saldoTotal,
@@ -69,6 +139,8 @@ class Santri {
       id: id ?? this.id,
       namaLengkap: namaLengkap ?? this.namaLengkap,
       namaPanggilan: namaPanggilan ?? this.namaPanggilan,
+      kategoriSantri: kategoriSantri ?? this.kategoriSantri,
+      statusSantri: statusSantri ?? this.statusSantri,
       kamar: kamar ?? this.kamar,
       noWaWali: noWaWali ?? this.noWaWali,
       saldoTotal: saldoTotal ?? this.saldoTotal,
@@ -88,6 +160,8 @@ class Santri {
       'id': id,
       'nama_lengkap': namaLengkap,
       'nama_panggilan': namaPanggilan,
+      'kategori_santri': kategoriSantri,
+      'status_santri': statusSantri,
       'kamar': kamar,
       'no_wa_wali': noWaWali,
       'saldo_total': saldoTotal,
@@ -108,7 +182,9 @@ class Santri {
       id: id,
       namaLengkap: map['nama_lengkap'] as String,
       namaPanggilan: map['nama_panggilan'] as String? ?? '',
-      kamar: map['kamar'] as String,
+      kategoriSantri: normalizeKategori(map['kategori_santri']?.toString()),
+      statusSantri: normalizeStatusSantri(map['status_santri']?.toString()),
+      kamar: map['kamar'] as String? ?? '',
       noWaWali: map['no_wa_wali'] as String?,
       saldoTotal: (map['saldo_total'] as num?)?.toInt() ?? 0,
       jatahHarian: (map['jatah_harian'] as num?)?.toInt() ?? 10000,

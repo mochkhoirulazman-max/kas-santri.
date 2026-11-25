@@ -6,6 +6,8 @@ import 'package:share_plus/share_plus.dart';
 import '../models/santri.dart';
 import '../models/transaksi.dart';
 import '../models/pengaturan.dart';
+import '../models/infak_santri.dart';
+import '../models/serah_terima_infak.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/date_formatter.dart';
 import '../utils/time_category_helper.dart';
@@ -306,5 +308,167 @@ Mohon kiranya Bapak/Ibu dapat menyiapkan setoran lanjutan agar kebutuhan harian 
       onLayout: (PdfPageFormat format) async => pdf.save(),
       name: 'Mutasi_${santri.namaPanggilan}_${DateTime.now().millisecondsSinceEpoch}.pdf',
     );
+  }
+
+  /// Format pesan teks WhatsApp Struk Pembagian Setoran Sambangan (Infak + Uang Jajan)
+  String generateSambanganReceiptText({
+    required Santri santri,
+    required InfakSantriModel infak,
+    required PengaturanAplikasi pengaturan,
+    required int totalDiterima,
+    required int sisaJajan,
+    required int jatahBaru,
+    int nominalPotongTunggakan = 0,
+    bool isProUser = false,
+  }) {
+    final masakLabel = infak.isMasakBebas
+        ? '✓ Bebas / Ikut Saudara'
+        : CurrencyFormatter.format(infak.nominalMasak);
+    final listrikLabel = infak.isListrikBebas
+        ? '✓ Bebas / Ikut Saudara'
+        : CurrencyFormatter.format(infak.nominalListrik);
+    final String berasLabel;
+    if (infak.jenisBeras == InfakSantriModel.berasBebas) {
+      berasLabel = '✓ Bebas Beras';
+    } else if (infak.jenisBeras == InfakSantriModel.berasFisik) {
+      final literStr = infak.berasLiter == infak.berasLiter.roundToDouble()
+          ? infak.berasLiter.toInt().toString()
+          : infak.berasLiter.toString();
+      berasLabel = '🌾 Fisik $literStr Liter (Rp 0)';
+    } else if (infak.jenisBeras == InfakSantriModel.berasUang) {
+      berasLabel = CurrencyFormatter.format(infak.berasUang);
+    } else {
+      berasLabel = '⏳ Belum Setor Beras';
+    }
+
+    final buffer = StringBuffer();
+    buffer.writeln('*Assalamu’alaikum Warahmatullahi Wabarakatuh* 🌸\n');
+    buffer.writeln('Alhamdulillah, telah kami terima titipan *Setoran Sambangan* dari Wali Santri ananda:');
+    buffer.writeln('• Nama: *${santri.namaLengkap}* (${santri.kategoriLabel})');
+    if (santri.kamar.trim().isNotEmpty) {
+      buffer.writeln('• Kamar / Asrama: *${santri.kamar}*');
+    }
+    buffer.writeln('• Total Uang Diterima: *${CurrencyFormatter.format(totalDiterima)}* (${infak.sumberDompet})');
+    buffer.writeln('━━━━━━━━━━━━━━━━━━━━━');
+    buffer.writeln('🌾 *RINCIAN POS INFAK BULANAN (${infak.periodeBulan}):*');
+    buffer.writeln('• Infak Masak / Makan: $masakLabel');
+    buffer.writeln('• Infak Listrik: $listrikLabel');
+    buffer.writeln('• Infak Beras: $berasLabel');
+    buffer.writeln('• Masa Berlaku: *${infak.tglMasuk}* s.d. *${infak.tglHabis}*');
+    buffer.writeln('• Status Infak: *${infak.statusLunas}*');
+    if (nominalPotongTunggakan > 0) {
+      buffer.writeln('• 🚨 Potong Tunggakan: *${CurrencyFormatter.format(nominalPotongTunggakan)}*');
+    }
+    buffer.writeln('━━━━━━━━━━━━━━━━━━━━━');
+    buffer.writeln('💰 *SISA MASUK UANG JAJAN:*');
+    buffer.writeln('• Tambahan Saldo Jajan: *${CurrencyFormatter.format(sisaJajan)}*');
+    buffer.writeln('• Jatah Harian Baru: *${CurrencyFormatter.format(jatahBaru)} / hari*');
+    buffer.writeln('━━━━━━━━━━━━━━━━━━━━━');
+    buffer.writeln('Semoga menjadi amal jariyah yang berkah dan ilmu ananda di *${pengaturan.namaPondok}* bermanfaat. Aamiin.\n');
+    buffer.writeln('Bendahara: *${pengaturan.namaPengurus}*');
+    if (!isProUser) {
+      buffer.writeln('\n_Dicatat dengan Kas-Santri_');
+    }
+    return buffer.toString();
+  }
+
+  /// Format pesan Berita Acara Serah Terima Kas Infak / Beras ke Dapur / Yayasan
+  String generateSerahTerimaBeritaAcaraText({
+    required SerahTerimaInfakModel item,
+    required PengaturanAplikasi pengaturan,
+  }) {
+    final literStr = item.jumlahBerasLiter == item.jumlahBerasLiter.roundToDouble()
+        ? item.jumlahBerasLiter.toInt().toString()
+        : item.jumlahBerasLiter.toString();
+    final buffer = StringBuffer();
+    buffer.writeln('*BERITA ACARA SERAH TERIMA INFAK PONDOK* 🤝\n');
+    buffer.writeln('Pondok: *${pengaturan.namaPondok}*');
+    buffer.writeln('Tahun Ajaran: ${pengaturan.tahunAjaran}');
+    buffer.writeln('Tanggal Serah: *${item.tanggalSerah}*');
+    buffer.writeln('Periode Bulan: *${item.periodeBulan}*');
+    buffer.writeln('━━━━━━━━━━━━━━━━━━━━━');
+    buffer.writeln('• Pos Infak: *${item.posInfak}*');
+    buffer.writeln('• Sumber Kantong: *${item.sumberDompet}*');
+    if (item.nominalUang > 0) {
+      buffer.writeln('• Nominal Diserahkan: *${CurrencyFormatter.format(item.nominalUang)}*');
+    }
+    if (item.jumlahBerasLiter > 0) {
+      buffer.writeln('• Beras Fisik Diserahkan: *$literStr Liter*');
+    }
+    buffer.writeln('• Diterima Oleh: *${item.penerima}*');
+    if (item.catatan != null && item.catatan!.trim().isNotEmpty) {
+      buffer.writeln('• Catatan: ${item.catatan}');
+    }
+    buffer.writeln('━━━━━━━━━━━━━━━━━━━━━');
+    buffer.writeln('Diserahkan oleh: *${pengaturan.namaPengurus}*');
+    return buffer.toString();
+  }
+
+  /// Pesan pengingat jatuh tempo / kewajiban infak bulanan via WhatsApp
+  String generateInfakReminderText({
+    required Santri santri,
+    required PengaturanAplikasi pengaturan,
+    required String periodeBulan,
+    InfakSantriModel? infak,
+  }) {
+    final literDefaultStr = pengaturan.defaultInfakBerasLiter ==
+            pengaturan.defaultInfakBerasLiter.roundToDouble()
+        ? pengaturan.defaultInfakBerasLiter.toInt().toString()
+        : pengaturan.defaultInfakBerasLiter.toStringAsFixed(1);
+
+    final buffer = StringBuffer();
+    buffer.writeln('*Assalamu’alaikum Warahmatullahi Wabarakatuh* 🌸\n');
+    buffer.writeln('Yth. *Bapak/Ibu Wali Santri*');
+    buffer.writeln('dari ananda: *${santri.namaLengkap}* (${santri.kategoriLabel})');
+    if (santri.kamar.trim().isNotEmpty) {
+      buffer.writeln('Kamar / Asrama: *${santri.kamar}*');
+    }
+    buffer.writeln('');
+    buffer.writeln('Dengan hormat menginformasikan jadwal & kewajiban *Infak Bulanan* periode *$periodeBulan* (TA ${pengaturan.tahunAjaran}):');
+    if (infak != null && infak.tglHabis.isNotEmpty) {
+      buffer.writeln('• Masa Berlaku: *${infak.tglMasuk}* s.d. *${infak.tglHabis}*');
+      buffer.writeln('• Status Saat Ini: *${infak.statusLunas}*');
+    } else {
+      buffer.writeln('• Status Saat Ini: *BELUM TERCATAT*');
+    }
+
+    if (infak != null && infak.statusLunas == InfakSantriModel.statusCicilVal) {
+      final masakStatus = infak.isMasakBebas
+          ? 'Bebas'
+          : CurrencyFormatter.format(infak.nominalMasak);
+      final listrikStatus = infak.isListrikBebas
+          ? 'Bebas'
+          : CurrencyFormatter.format(infak.nominalListrik);
+      final String berasStatus;
+      if (infak.jenisBeras == InfakSantriModel.berasBebas) {
+        berasStatus = 'Bebas';
+      } else if (infak.jenisBeras == InfakSantriModel.berasFisik) {
+        final lStr = infak.berasLiter == infak.berasLiter.roundToDouble()
+            ? infak.berasLiter.toInt().toString()
+            : infak.berasLiter.toStringAsFixed(1);
+        berasStatus = '$lStr Liter';
+      } else if (infak.jenisBeras == InfakSantriModel.berasUang) {
+        berasStatus = CurrencyFormatter.format(infak.berasUang);
+      } else {
+        berasStatus = 'Belum';
+      }
+      buffer.writeln('');
+      buffer.writeln('📋 *Tercatat Saat Ini:* Masak $masakStatus | Listrik $listrikStatus | Beras $berasStatus');
+      if (infak.catatan != null && infak.catatan!.trim().isNotEmpty) {
+        buffer.writeln('📝 Catatan: ${infak.catatan!.trim()}');
+      }
+    }
+
+    buffer.writeln('');
+    buffer.writeln('🌾 *Tarif Standar Infak Bulanan Pondok:*');
+    buffer.writeln('• Infak Masak / Makan: *${CurrencyFormatter.format(pengaturan.defaultInfakMasak)}*');
+    buffer.writeln('• Infak Listrik: *${CurrencyFormatter.format(pengaturan.defaultInfakListrik)}*');
+    buffer.writeln('• Infak Beras: *$literDefaultStr Liter* atau uang pengganti *${CurrencyFormatter.format(pengaturan.defaultInfakBerasUang)}*');
+    buffer.writeln('');
+    buffer.writeln('Mohon kiranya Bapak/Ibu berkenan menindaklanjuti agar administrasi ananda di *${pengaturan.namaPondok}* berjalan lancar dan berkah. Aamiin.\n');
+    buffer.writeln('*Jazakumullah Khairan Katsiran*');
+    buffer.writeln('*Wassalamu’alaikum Warahmatullahi Wabarakatuh* 🙏');
+    buffer.writeln('— *${pengaturan.namaPengurus} (${pengaturan.namaPondok})*');
+    return buffer.toString();
   }
 }

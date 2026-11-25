@@ -31,6 +31,8 @@ class _TambahSantriBottomSheetState extends State<TambahSantriBottomSheet> {
   final TextEditingController _jatahController = TextEditingController(text: '10.000');
   final TextEditingController _tunggakanController = TextEditingController(text: '0');
   String _sumberDompet = 'TUNAI';
+  String _kategoriSantri = Santri.kategoriSantriyin;
+  String _statusSantri = Santri.statusAktifVal;
 
   @override
   void dispose() {
@@ -64,6 +66,8 @@ class _TambahSantriBottomSheetState extends State<TambahSantriBottomSheet> {
       id: const Uuid().v4(),
       namaLengkap: nama,
       namaPanggilan: nama.split(' ').first,
+      kategoriSantri: _kategoriSantri,
+      statusSantri: _statusSantri,
       kamar: kamar,
       saldoTotal: setoran,
       setoranAwal: setoran,
@@ -252,6 +256,70 @@ class _TambahSantriBottomSheetState extends State<TambahSantriBottomSheet> {
 
             const SizedBox(height: 12),
 
+            const Text('KELOMPOK SANTRI (BUKU INFAK)', style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                _buildPillChoice(
+                  label: 'Santriyin',
+                  value: Santri.kategoriSantriyin,
+                  selectedValue: _kategoriSantri,
+                  accent: const Color(0xFF38BDF8),
+                  onSelect: (v) => setState(() => _kategoriSantri = v),
+                ),
+                const SizedBox(width: 6),
+                _buildPillChoice(
+                  label: 'Santriyat',
+                  value: Santri.kategoriSantriyat,
+                  selectedValue: _kategoriSantri,
+                  accent: const Color(0xFFD946EF),
+                  onSelect: (v) => setState(() => _kategoriSantri = v),
+                ),
+                const SizedBox(width: 6),
+                _buildPillChoice(
+                  label: 'Santri Baru',
+                  value: Santri.kategoriSantriBaru,
+                  selectedValue: _kategoriSantri,
+                  accent: const Color(0xFFFBBF24),
+                  onSelect: (v) => setState(() => _kategoriSantri = v),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 10),
+
+            const Text('STATUS KEAKTIFAN SANTRI', style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                _buildPillChoice(
+                  label: 'Aktif',
+                  value: Santri.statusAktifVal,
+                  selectedValue: _statusSantri,
+                  accent: const Color(0xFF10B981),
+                  onSelect: (v) => setState(() => _statusSantri = v),
+                ),
+                const SizedBox(width: 6),
+                _buildPillChoice(
+                  label: 'Pulang / Izin',
+                  value: Santri.statusPulangVal,
+                  selectedValue: _statusSantri,
+                  accent: const Color(0xFF34D399),
+                  onSelect: (v) => setState(() => _statusSantri = v),
+                ),
+                const SizedBox(width: 6),
+                _buildPillChoice(
+                  label: 'Pindah / Boyong',
+                  value: Santri.statusPindahVal,
+                  selectedValue: _statusSantri,
+                  accent: const Color(0xFF94A3B8),
+                  onSelect: (v) => setState(() => _statusSantri = v),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 12),
+
             const Text('SUMBER DOMPET SETORAN AWAL', style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.w800)),
             const SizedBox(height: 6),
             Row(
@@ -283,6 +351,44 @@ class _TambahSantriBottomSheetState extends State<TambahSantriBottomSheet> {
         ),
       ),
     ),
+    );
+  }
+
+  Widget _buildPillChoice({
+    required String label,
+    required String value,
+    required String selectedValue,
+    required Color accent,
+    required ValueChanged<String> onSelect,
+  }) {
+    final isSelected = selectedValue == value;
+    return Expanded(
+      child: InkWell(
+        onTap: () {
+          AppFeedback.tap();
+          onSelect(value);
+        },
+        borderRadius: BorderRadius.circular(11),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+          decoration: BoxDecoration(
+            color: isSelected ? accent.withOpacity(0.18) : const Color(0xFF060A14),
+            borderRadius: BorderRadius.circular(11),
+            border: Border.all(color: isSelected ? accent : Colors.white12),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: isSelected ? accent : Colors.white60,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+      ),
     );
   }
 

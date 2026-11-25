@@ -1,5 +1,7 @@
 enum ModeSisaHarian { ketat, akumulasi }
 
+typedef PengaturanModel = PengaturanAplikasi;
+
 class PengaturanAplikasi {
   final int id;
   final String namaPondok;
@@ -24,6 +26,11 @@ class PengaturanAplikasi {
   final String? trialStartedAt;
   final String? trialExpiresAt;
   final bool hasUsedTrial;
+  final String tahunAjaran;
+  final int defaultInfakMasak;
+  final int defaultInfakListrik;
+  final double defaultInfakBerasLiter;
+  final int defaultInfakBerasUang;
 
   PengaturanAplikasi({
     this.id = 1,
@@ -49,6 +56,11 @@ class PengaturanAplikasi {
     this.trialStartedAt,
     this.trialExpiresAt,
     this.hasUsedTrial = false,
+    this.tahunAjaran = '2026/2027 M / 1448 H',
+    this.defaultInfakMasak = 130000,
+    this.defaultInfakListrik = 20000,
+    this.defaultInfakBerasLiter = 15.0,
+    this.defaultInfakBerasUang = 150000,
   });
 
   PengaturanAplikasi copyWith({
@@ -79,6 +91,11 @@ class PengaturanAplikasi {
     String? trialStartedAt,
     String? trialExpiresAt,
     bool? hasUsedTrial,
+    String? tahunAjaran,
+    int? defaultInfakMasak,
+    int? defaultInfakListrik,
+    double? defaultInfakBerasLiter,
+    int? defaultInfakBerasUang,
   }) {
     return PengaturanAplikasi(
       id: id ?? this.id,
@@ -108,6 +125,11 @@ class PengaturanAplikasi {
       trialStartedAt: trialStartedAt ?? this.trialStartedAt,
       trialExpiresAt: trialExpiresAt ?? this.trialExpiresAt,
       hasUsedTrial: hasUsedTrial ?? this.hasUsedTrial,
+      tahunAjaran: tahunAjaran ?? this.tahunAjaran,
+      defaultInfakMasak: defaultInfakMasak ?? this.defaultInfakMasak,
+      defaultInfakListrik: defaultInfakListrik ?? this.defaultInfakListrik,
+      defaultInfakBerasLiter: defaultInfakBerasLiter ?? this.defaultInfakBerasLiter,
+      defaultInfakBerasUang: defaultInfakBerasUang ?? this.defaultInfakBerasUang,
     );
   }
 
@@ -136,6 +158,11 @@ class PengaturanAplikasi {
       'trial_started_at': trialStartedAt,
       'trial_expires_at': trialExpiresAt,
       'has_used_trial': hasUsedTrial ? 1 : 0,
+      'tahun_ajaran': tahunAjaran,
+      'default_infak_masak': defaultInfakMasak,
+      'default_infak_listrik': defaultInfakListrik,
+      'default_infak_beras_liter': defaultInfakBerasLiter,
+      'default_infak_beras_uang': defaultInfakBerasUang,
     };
   }
 
@@ -145,6 +172,7 @@ class PengaturanAplikasi {
     final lastBackupRaw = map['last_drive_backup_at'] as String?;
     final trialStartedRaw = map['trial_started_at'] as String?;
     final trialExpiresRaw = map['trial_expires_at'] as String?;
+    final taRaw = map['tahun_ajaran'] as String?;
     return PengaturanAplikasi(
       id: (map['id'] as num?)?.toInt() ?? 1,
       namaPondok: map['nama_pondok'] as String? ?? 'PPS MIFTAHUSSUNAN',
@@ -175,6 +203,15 @@ class PengaturanAplikasi {
       trialExpiresAt:
           (trialExpiresRaw != null && trialExpiresRaw.isNotEmpty) ? trialExpiresRaw : null,
       hasUsedTrial: (map['has_used_trial'] as int?) == 1,
+      tahunAjaran: (taRaw != null && taRaw.trim().isNotEmpty)
+          ? taRaw.trim()
+          : '2026/2027 M / 1448 H',
+      defaultInfakMasak: (map['default_infak_masak'] as num?)?.toInt() ?? 130000,
+      defaultInfakListrik: (map['default_infak_listrik'] as num?)?.toInt() ?? 20000,
+      defaultInfakBerasLiter:
+          (map['default_infak_beras_liter'] as num?)?.toDouble() ?? 15.0,
+      defaultInfakBerasUang:
+          (map['default_infak_beras_uang'] as num?)?.toInt() ?? 150000,
     );
   }
 }

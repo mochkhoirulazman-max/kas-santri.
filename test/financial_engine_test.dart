@@ -1,8 +1,13 @@
+import 'package:excel/excel.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:kas_santri/config/app_config.dart';
+import 'package:kas_santri/database/database_helper.dart';
+import 'package:kas_santri/models/cash_opname_log.dart';
+import 'package:kas_santri/models/infak_santri.dart';
 import 'package:kas_santri/models/pengaturan.dart';
 import 'package:kas_santri/models/santri_status.dart';
+import 'package:kas_santri/models/serah_terima_infak.dart';
 import 'package:kas_santri/models/transaksi.dart';
 import 'package:kas_santri/providers/kas_santri_provider.dart';
 import 'package:kas_santri/services/auth_service.dart';
@@ -10,8 +15,10 @@ import 'package:kas_santri/services/backup_service.dart';
 import 'package:kas_santri/services/license_service.dart';
 import 'package:kas_santri/services/report_service.dart';
 import 'package:kas_santri/services/subscription_service.dart';
+import 'package:kas_santri/services/yayasan_export_service.dart';
 import 'package:kas_santri/utils/currency_formatter.dart';
 import 'package:kas_santri/utils/time_category_helper.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
   setUpAll(() async {
@@ -642,6 +649,548 @@ void main() {
       expect(day15.isActive, false);
       expect(day15.isExpired, true);
       expect(day15.remainingDays, 0);
+    });
+
+    test('U. Audit Query SQLite Ekspor Excel & PDF (waktu_ambil, mutasi_dompet, opname)', () async {
+      sqfliteFfiInit();
+      final db = await databaseFactoryFfi.openDatabase(inMemoryDatabasePath);
+      await DatabaseHelper.instance.createSchemaForTesting(db);
+      DatabaseHelper.instance.setDatabaseForTesting(db);
+      addTearDown(() async {
+        DatabaseHelper.instance.setDatabaseForTesting(null);
+        await db.close();
+      });
+
+      final santri = Santri(
+        id: 'sql-test-1',
+        namaLengkap: 'Abdullah Muqri',
+        namaPanggilan: 'Muqri',
+        kamar: 'Kamar 3',
+        saldoTotal: 300000,
+        jatahHarian: 10000,
+      );
+      await DatabaseHelper.instance.insertSantri(santri, sumberDompet: 'TUNAI');
+
+      final now = DateTime.now();
+      final today =
+          '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
+      await DatabaseHelper.instance.catatPengambilan(
+        santriId: santri.id,
+        nominal: 5000,
+        catatan: 'Jajan Siang',
+        waktuCategory: TimeCategory.siang,
+        customTimestamp: now,
+      );
+
+      await DatabaseHelper.instance.insertCashOpnameLog(
+        CashOpnameLog(
+          id: 'opname-sql-1',
+          tanggalLokal: today,
+          totalSistem: 295000,
+          totalFisik: 295000,
+          selisih: 0,
+          rincianPecahan: {100000: 2, 50000: 1, 20000: 2, 5000: 1},
+          catatan: 'Cocok',
+          createdAt: now,
+        ),
+      );
+
+      final mutasiAll = await DatabaseHelper.instance.getTransaksiByDateRange();
+      expect(mutasiAll.length, 1);
+      expect(mutasiAll.first['nama_lengkap'], 'Abdullah Muqri');
+      expect(mutasiAll.first['kamar'], 'Kamar 3');
+      expect(mutasiAll.first['waktu_ambil'], isNotNull);
+
+      final mutasiRange = await DatabaseHelper.instance.getTransaksiByDateRange(
+        tanggalMulai: today,
+        tanggalSelesai: today,
+      );
+      expect(mutasiRange.length, 1);
+
+      final dompetRows = await DatabaseHelper.instance.getAllMutasiDompet(
+        tanggalMulai: today,
+        tanggalSelesai: today,
+      );
+      expect(dompetRows.length, 2);
+
+      final opnames = await DatabaseHelper.instance.getCashOpnameLogs();
+      expect(opnames.length, 1);
+
+      final detailTanggal = await DatabaseHelper.instance.getDetailTransaksiTanggal(today);
+      expect(detailTanggal.length, 1);
+
+      final rekapBulan = await DatabaseHelper.instance.getRekapBulanan(now.year, now.month);
+      expect(rekapBulan['pengeluaran'], 5000);
+    });
+
+    test('V. Fondasi v3.0: Migrasi SQLite v2->v3, Model Infak/SerahTerima & Backup 9 Tabel', () async {
+      // 1. Model Santri & PengaturanAplikasi v3.0 roundtrip
+      final santriBaru = Santri(
+        id: 'v3-s1',
+        namaLengkap: 'Fatimah Az-Zahra',
+        namaPanggilan: 'Fatimah',
+        kategoriSantri: Santri.kategoriSantriyat,
+        statusSantri: Santri.statusPulangVal,
+        kamar: 'Asrama Putri 1',
+      );
+      expect(santriBaru.kategoriLabel, 'Santriyat');
+      expect(santriBaru.isPulang, true);
+      expect(santriBaru.isAktifDiPondok, false);
+      final santriRestored = Santri.fromMap(santriBaru.toMap());
+      expect(santriRestored.kategoriSantri, Santri.kategoriSantriyat);
+      expect(santriRestored.statusSantri, Santri.statusPulangVal);
+
+      final peng = PengaturanAplikasi(
+        tahunAjaran: '2026/2027 M / 1448 H',
+        defaultInfakMasak: 140000,
+        defaultInfakListrik: 25000,
+        defaultInfakBerasLiter: 12.5,
+        defaultInfakBerasUang: 160000,
+      );
+      final pengRestored = PengaturanAplikasi.fromMap(peng.toMap());
+      expect(pengRestored.tahunAjaran, '2026/2027 M / 1448 H');
+      expect(pengRestored.defaultInfakMasak, 140000);
+      expect(pengRestored.defaultInfakListrik, 25000);
+      expect(pengRestored.defaultInfakBerasLiter, 12.5);
+      expect(pengRestored.defaultInfakBerasUang, 160000);
+
+      // 2. InfakSantriModel rolling date & status lunas
+      expect(InfakSantriModel.hitungTglHabis('2026-11-18'), '2026-12-18');
+      expect(InfakSantriModel.hitungTglHabis('2026-12-20'), '2027-01-20');
+      expect(InfakSantriModel.hitungTglHabis('2026-01-31'), '2026-02-28');
+
+      final infakLunas = InfakSantriModel(
+        id: 'inf-1',
+        santriId: 'v3-s1',
+        periodeBulan: '2026-11',
+        nominalMasak: 130000,
+        nominalListrik: 20000,
+        jenisBeras: InfakSantriModel.berasUang,
+        berasUang: 150000,
+        tglMasuk: '2026-11-18',
+      );
+      expect(infakLunas.tglHabis, '2026-12-18');
+      expect(infakLunas.statusLunas, InfakSantriModel.statusLunasVal);
+      expect(infakLunas.totalUangMasuk, 300000);
+
+      final serah = SerahTerimaInfakModel(
+        id: 'st-1',
+        tanggalSerah: '2026-11-25',
+        periodeBulan: '2026-11',
+        posInfak: 'BERAS_FISIK',
+        sumberDompet: 'GUDANG_BERAS',
+        jumlahBerasLiter: 15.0,
+        penerima: 'Ustadzah Dapur',
+      );
+      expect(SerahTerimaInfakModel.fromMap(serah.toMap()).penerima, 'Ustadzah Dapur');
+
+      // 3. Simulasi upgrade SQLite aman v2 -> v3 tanpa kehilangan data lama
+      sqfliteFfiInit();
+      final db = await databaseFactoryFfi.openDatabase(inMemoryDatabasePath);
+      await db.execute('''
+        CREATE TABLE santri (
+          id TEXT PRIMARY KEY, nama_lengkap TEXT NOT NULL, nama_panggilan TEXT,
+          kamar TEXT NOT NULL, no_wa_wali TEXT, saldo_total INTEGER NOT NULL DEFAULT 0,
+          jatah_harian INTEGER NOT NULL DEFAULT 10000, setoran_awal INTEGER NOT NULL DEFAULT 300000,
+          tunggakan INTEGER NOT NULL DEFAULT 0, catatan_tunggakan TEXT DEFAULT '',
+          foto_path TEXT, qr_code TEXT, status_aktif INTEGER NOT NULL DEFAULT 1,
+          created_at TEXT NOT NULL
+        )
+      ''');
+      await db.execute('''
+        CREATE TABLE setoran_bulanan (
+          id TEXT PRIMARY KEY, santri_id TEXT NOT NULL, nominal_setoran INTEGER NOT NULL,
+          durasi_hari INTEGER NOT NULL, jatah_harian_hitung INTEGER NOT NULL,
+          tipe_setoran TEXT NOT NULL, tanggal_setor TEXT NOT NULL, catatan TEXT,
+          perlakuan_sisa TEXT, metode_bayar TEXT NOT NULL DEFAULT 'TUNAI',
+          potong_tunggakan INTEGER NOT NULL DEFAULT 0, nominal_potong_tunggakan INTEGER NOT NULL DEFAULT 0
+        )
+      ''');
+      await db.execute('''
+        CREATE TABLE transaksi_harian (
+          id TEXT PRIMARY KEY, santri_id TEXT NOT NULL, nominal INTEGER NOT NULL,
+          waktu_ambil TEXT NOT NULL, tanggal_lokal TEXT NOT NULL, kategori_waktu TEXT NOT NULL,
+          is_overlimit INTEGER NOT NULL DEFAULT 0, catatan TEXT, is_void INTEGER NOT NULL DEFAULT 0,
+          overlimit_handling TEXT, saldo_setelah_transaksi INTEGER NOT NULL DEFAULT 0,
+          tipe TEXT NOT NULL DEFAULT 'PENGAMBILAN', sumber_dompet TEXT NOT NULL DEFAULT 'TUNAI'
+        )
+      ''');
+      await db.execute('CREATE TABLE tunggakan_log (id TEXT PRIMARY KEY, santri_id TEXT NOT NULL, tipe TEXT NOT NULL, nominal INTEGER NOT NULL, saldo_tunggakan_setelah INTEGER NOT NULL DEFAULT 0, catatan TEXT, created_at TEXT NOT NULL)');
+      await db.execute('CREATE TABLE mutasi_dompet (id TEXT PRIMARY KEY, jenis_dompet TEXT NOT NULL DEFAULT "TUNAI", tipe TEXT NOT NULL, nominal INTEGER NOT NULL, referensi_id TEXT, catatan TEXT, tanggal_lokal TEXT NOT NULL, created_at TEXT NOT NULL)');
+      await db.execute('CREATE TABLE cash_opname_logs (id TEXT PRIMARY KEY, tanggal_lokal TEXT NOT NULL, total_sistem INTEGER NOT NULL DEFAULT 0, total_fisik INTEGER NOT NULL DEFAULT 0, selisih INTEGER NOT NULL DEFAULT 0, rincian_pecahan_json TEXT, catatan TEXT, created_at TEXT NOT NULL)');
+      await db.execute('CREATE TABLE pengaturan_aplikasi (id INTEGER PRIMARY KEY, nama_pondok TEXT NOT NULL, nama_pengurus TEXT NOT NULL, kontak_pengurus TEXT, default_jatah_harian INTEGER NOT NULL DEFAULT 10000, default_durasi_hari INTEGER NOT NULL DEFAULT 30, mode_sisa_harian TEXT NOT NULL DEFAULT "KETAT", pin_keamanan TEXT, is_biometric_enabled INTEGER NOT NULL DEFAULT 0, auto_lock_minutes INTEGER NOT NULL DEFAULT 1, logo_path TEXT, is_two_col_grid INTEGER NOT NULL DEFAULT 1, hide_balance INTEGER NOT NULL DEFAULT 0, pembulatan_jatah INTEGER NOT NULL DEFAULT 500, is_pro INTEGER NOT NULL DEFAULT 0, pro_plan TEXT, onboarding_done INTEGER NOT NULL DEFAULT 1, last_drive_backup_at TEXT, auto_drive_backup INTEGER NOT NULL DEFAULT 0, drive_account_email TEXT)');
+
+      await db.insert('santri', {
+        'id': 'legacy-1',
+        'nama_lengkap': 'Santri Lama v2',
+        'nama_panggilan': 'Lama',
+        'kamar': 'Kamar 1',
+        'saldo_total': 125000,
+        'jatah_harian': 10000,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+      await db.insert('pengaturan_aplikasi', {
+        'id': 1,
+        'nama_pondok': 'PPS MIFTAHUSSUNAN',
+        'nama_pengurus': 'Pengurus Lama',
+      });
+
+      await DatabaseHelper.instance.upgradeSchemaForTesting(db, 2, 3);
+      DatabaseHelper.instance.setDatabaseForTesting(db);
+      addTearDown(() async {
+        DatabaseHelper.instance.setDatabaseForTesting(null);
+        await db.close();
+      });
+
+      final upgradedSantri = await DatabaseHelper.instance.getSantriById('legacy-1');
+      expect(upgradedSantri, isNotNull);
+      expect(upgradedSantri!.saldoTotal, 125000);
+      expect(upgradedSantri.kategoriSantri, Santri.kategoriSantriyin);
+      expect(upgradedSantri.statusSantri, Santri.statusAktifVal);
+
+      final upgradedPeng = await DatabaseHelper.instance.getPengaturan();
+      expect(upgradedPeng.defaultInfakMasak, 130000);
+      expect(upgradedPeng.defaultInfakListrik, 20000);
+      expect(upgradedPeng.defaultInfakBerasLiter, 15.0);
+      expect(upgradedPeng.defaultInfakBerasUang, 150000);
+
+      await db.insert('infak_santri', infakLunas.toMap());
+      await db.insert('serah_terima_infak', serah.toMap());
+
+      final dump = await DatabaseHelper.instance.dumpBackupJson();
+      expect(dump['version'], 30);
+      expect((dump['infak_santri'] as List).length, 1);
+      expect((dump['serah_terima_infak'] as List).length, 1);
+
+      final val = BackupService.validateBackupMap(dump);
+      expect(val.isValid, true);
+      expect(val.infakCount, 1);
+      expect(val.serahTerimaInfakCount, 1);
+
+      await DatabaseHelper.instance.restoreFromJson(dump);
+      expect((await db.query('infak_santri')).length, 1);
+      expect((await db.query('serah_terima_infak')).length, 1);
+    });
+
+    test('W. Tahap B: Smart Split Sambangan Atomik, 3 Kantong Kas, Serah Terima & Target Opname', () async {
+      sqfliteFfiInit();
+      final db = await databaseFactoryFfi.openDatabase(inMemoryDatabasePath);
+      await DatabaseHelper.instance.createSchemaForTesting(db);
+      DatabaseHelper.instance.setDatabaseForTesting(db);
+      addTearDown(() async {
+        DatabaseHelper.instance.setDatabaseForTesting(null);
+        await db.close();
+      });
+
+      final santri = Santri(
+        id: 'sambangan-1',
+        namaLengkap: 'Zayd Al-Khair',
+        namaPanggilan: 'Zayd',
+        kategoriSantri: Santri.kategoriSantriyin,
+        kamar: 'Kamar 2',
+        saldoTotal: 0,
+        jatahHarian: 10000,
+      );
+      await DatabaseHelper.instance.insertSantri(santri, sumberDompet: 'TUNAI');
+
+      // 1. Sambangan Rp 500.000 (Tunai): Masak 130rb, Listrik 20rb, Beras Uang 150rb -> Sisa Jajan 200rb
+      final res1 = await DatabaseHelper.instance.catatSambanganSmartSplit(
+        santriId: santri.id,
+        totalUangDiterima: 500000,
+        tanggalMasuk: DateTime(2026, 11, 25),
+        tglHabisYmd: '2026-12-25',
+        nominalMasak: 130000,
+        isMasakBebas: false,
+        nominalListrik: 20000,
+        isListrikBebas: false,
+        jenisBeras: InfakSantriModel.berasUang,
+        berasLiter: 0.0,
+        berasUang: 150000,
+        durasiHari: 30,
+        sumberDompet: 'TUNAI',
+        catatan: 'Sambangan Wali',
+      );
+      expect(res1.sisaJajan, 200000);
+      expect(res1.jatahBaru, 6500); // floor(200000 / (30 * 500)) * 500 = 6500
+      expect(res1.infak.statusLunas, InfakSantriModel.statusLunasVal);
+
+      final updatedSantri = await DatabaseHelper.instance.getSantriById(santri.id);
+      expect(updatedSantri!.saldoTotal, 200000);
+
+      // Verifikasi pemisahan Kantong 1 (Jajan Laci = 200rb) & Kantong 2 (Infak Tunai = 300rb) -> Total 500rb
+      final dompet = await DatabaseHelper.instance.getSaldoDompet();
+      final kantongInfak = await DatabaseHelper.instance.getSaldoKantongInfak();
+      expect(dompet['tunai'], 200000);
+      expect(kantongInfak['tunai'], 300000);
+      expect((dompet['tunai'] ?? 0) + ((kantongInfak['tunai'] as num?)?.toInt() ?? 0), 500000);
+
+      // 2. Sambangan ke-2 bawa Beras Fisik 15 L (via Rekening, Masak 130rb + Listrik 20rb = 150rb infak)
+      final s2 = Santri(
+        id: 'sambangan-2',
+        namaLengkap: 'Hafidz Fisik',
+        namaPanggilan: 'Hafidz',
+        kamar: 'Kamar 4',
+        saldoTotal: 0,
+      );
+      await DatabaseHelper.instance.insertSantri(s2, sumberDompet: 'TUNAI');
+      await DatabaseHelper.instance.catatSambanganSmartSplit(
+        santriId: s2.id,
+        totalUangDiterima: 450000,
+        tanggalMasuk: DateTime(2026, 11, 25),
+        tglHabisYmd: '2026-12-25',
+        nominalMasak: 130000,
+        isMasakBebas: false,
+        nominalListrik: 20000,
+        isListrikBebas: false,
+        jenisBeras: InfakSantriModel.berasFisik,
+        berasLiter: 15.0,
+        berasUang: 0,
+        durasiHari: 30,
+        sumberDompet: 'REKENING',
+      );
+      final k2 = await DatabaseHelper.instance.getSaldoKantongInfak();
+      expect(k2['rekening'], 150000);
+      expect(k2['beras_stok'], 15.0);
+
+      // 3. Serah Terima Rp 200.000 Tunai & 10 Liter Beras ke Dapur -> sisa Infak Tunai = 100rb, sisa Beras = 5 L
+      await DatabaseHelper.instance.insertSerahTerimaInfak(
+        SerahTerimaInfakModel(
+          id: 'st-tunai-1',
+          tanggalSerah: '2026-11-25',
+          periodeBulan: '2026-11',
+          posInfak: 'GABUNGAN',
+          sumberDompet: 'TUNAI',
+          nominalUang: 200000,
+          penerima: 'Ustadzah Dapur',
+        ),
+      );
+      await DatabaseHelper.instance.insertSerahTerimaInfak(
+        SerahTerimaInfakModel(
+          id: 'st-beras-1',
+          tanggalSerah: '2026-11-25',
+          periodeBulan: '2026-11',
+          posInfak: 'BERAS_FISIK',
+          sumberDompet: 'GUDANG_BERAS',
+          jumlahBerasLiter: 10.0,
+          penerima: 'Ustadzah Dapur',
+        ),
+      );
+      final k3 = await DatabaseHelper.instance.getSaldoKantongInfak();
+      expect(k3['tunai'], 100000);
+      expect(k3['beras_stok'], 5.0);
+
+      // Format Struk Sambangan & Berita Acara Serah Terima
+      final peng = await DatabaseHelper.instance.getPengaturan();
+      final strukWa = ReportService.instance.generateSambanganReceiptText(
+        santri: updatedSantri,
+        infak: res1.infak,
+        pengaturan: peng,
+        totalDiterima: 500000,
+        sisaJajan: res1.sisaJajan,
+        jatahBaru: res1.jatahBaru,
+        isProUser: false,
+      );
+      expect(strukWa, contains('Setoran Sambangan'));
+      expect(strukWa, contains('Zayd Al-Khair'));
+      expect(strukWa, contains('_Dicatat dengan Kas-Santri_'));
+
+      final baText = ReportService.instance.generateSerahTerimaBeritaAcaraText(
+        item: SerahTerimaInfakModel(
+          id: 'st-ba',
+          tanggalSerah: '2026-11-25',
+          periodeBulan: '2026-11',
+          nominalUang: 200000,
+          penerima: 'Ustadzah Dapur',
+        ),
+        pengaturan: peng,
+      );
+      expect(baText, contains('BERITA ACARA SERAH TERIMA INFAK PONDOK'));
+      expect(baText, contains('Ustadzah Dapur'));
+    });
+
+    test('X. Tahap C: Smart Split 500rb (Uang vs Fisik), Saldo Infak, WA Reminder, PDF & Excel 4-Sheet', () async {
+      sqfliteFfiInit();
+      final db = await databaseFactoryFfi.openDatabase(inMemoryDatabasePath);
+      await DatabaseHelper.instance.createSchemaForTesting(db);
+      DatabaseHelper.instance.setDatabaseForTesting(db);
+      addTearDown(() async {
+        DatabaseHelper.instance.setDatabaseForTesting(null);
+        await db.close();
+      });
+
+      final sYin = Santri(
+        id: 'c-yin',
+        namaLengkap: 'Ahmad Santriyin',
+        namaPanggilan: 'Ahmad',
+        kategoriSantri: Santri.kategoriSantriyin,
+        kamar: 'Al-Bukhori 1',
+        noWaWali: '628111111111',
+      );
+      final sYat = Santri(
+        id: 'c-yat',
+        namaLengkap: 'Aisyah Santriyat',
+        namaPanggilan: 'Aisyah',
+        kategoriSantri: Santri.kategoriSantriyat,
+        kamar: 'Fatimah 2',
+        noWaWali: '628222222222',
+      );
+      final sBaru = Santri(
+        id: 'c-baru',
+        namaLengkap: 'Umar Santri Baru',
+        namaPanggilan: 'Umar',
+        kategoriSantri: Santri.kategoriSantriBaru,
+        kamar: 'Abu Bakar 1',
+        noWaWali: '628333333333',
+      );
+      final sPulang = Santri(
+        id: 'c-pulang',
+        namaLengkap: 'Bilal Pulang',
+        namaPanggilan: 'Bilal',
+        kategoriSantri: Santri.kategoriSantriyin,
+        statusSantri: Santri.statusPulangVal,
+        kamar: 'Al-Bukhori 2',
+      );
+
+      for (final s in [sYin, sYat, sBaru, sPulang]) {
+        await DatabaseHelper.instance.insertSantri(s, sumberDompet: 'TUNAI');
+      }
+
+      // 1. Smart Split Rp 500.000 dengan Beras Uang Rp 150.000 -> Sisa Jajan Rp 200.000
+      final splitUang = await DatabaseHelper.instance.catatSambanganSmartSplit(
+        santriId: sYin.id,
+        totalUangDiterima: 500000,
+        tanggalMasuk: DateTime(2026, 11, 25),
+        tglHabisYmd: '2026-12-25',
+        nominalMasak: 130000,
+        isMasakBebas: false,
+        nominalListrik: 20000,
+        isListrikBebas: false,
+        jenisBeras: InfakSantriModel.berasUang,
+        berasLiter: 0.0,
+        berasUang: 150000,
+        durasiHari: 30,
+        sumberDompet: 'TUNAI',
+      );
+      expect(splitUang.sisaJajan, 200000);
+      expect(splitUang.infak.statusLunas, InfakSantriModel.statusLunasVal);
+
+      // 2. Smart Split Rp 500.000 dengan Beras Fisik 15 L -> Sisa Jajan Rp 350.000
+      final splitFisik = await DatabaseHelper.instance.catatSambanganSmartSplit(
+        santriId: sYat.id,
+        totalUangDiterima: 500000,
+        tanggalMasuk: DateTime(2026, 11, 25),
+        tglHabisYmd: '2026-12-25',
+        nominalMasak: 130000,
+        isMasakBebas: false,
+        nominalListrik: 20000,
+        isListrikBebas: false,
+        jenisBeras: InfakSantriModel.berasFisik,
+        berasLiter: 15.0,
+        berasUang: 0,
+        durasiHari: 30,
+        sumberDompet: 'TUNAI',
+      );
+      expect(splitFisik.sisaJajan, 350000);
+      expect(splitFisik.infak.statusLunas, InfakSantriModel.statusLunasVal);
+
+      // 3. Cicilan Infak untuk Santri Baru
+      await DatabaseHelper.instance.upsertInfakSantri(
+        InfakSantriModel(
+          id: 'inf-c-baru',
+          santriId: sBaru.id,
+          periodeBulan: '2026-11',
+          nominalMasak: 130000,
+          nominalListrik: 20000,
+          jenisBeras: InfakSantriModel.berasBelum,
+          tglMasuk: '2026-11-25',
+          tglHabis: '2026-12-25',
+          statusLunas: InfakSantriModel.statusCicilVal,
+          sumberDompet: 'TUNAI',
+          catatan: 'Kurang Beras 15L',
+        ),
+      );
+
+      // 4. Serah Terima ke Dapur/Yayasan (Rp 200.000 Tunai & 5 L Beras)
+      await DatabaseHelper.instance.insertSerahTerimaInfak(
+        SerahTerimaInfakModel(
+          id: 'st-c-1',
+          tanggalSerah: '2026-11-25',
+          periodeBulan: '2026-11',
+          posInfak: 'GABUNGAN',
+          sumberDompet: 'TUNAI',
+          nominalUang: 200000,
+          penerima: 'Ustadzah Dapur',
+        ),
+      );
+      await DatabaseHelper.instance.insertSerahTerimaInfak(
+        SerahTerimaInfakModel(
+          id: 'st-c-2',
+          tanggalSerah: '2026-11-25',
+          periodeBulan: '2026-11',
+          posInfak: 'BERAS_FISIK',
+          sumberDompet: 'GUDANG_BERAS',
+          jumlahBerasLiter: 5.0,
+          penerima: 'Ustadzah Dapur',
+        ),
+      );
+
+      // Total Infak Tunai masuk = 300rb + 150rb + 150rb = 600rb; disetor 200rb -> sisa 400rb
+      // Beras masuk = 15 L; disetor 5 L -> sisa 10 L
+      final saldoKantong = await DatabaseHelper.instance.getSaldoKantongInfak();
+      expect(saldoKantong['tunai'], 400000);
+      expect(saldoKantong['beras_stok'], 10.0);
+
+      // 5. Audit seluruh query SQLite ekspor (waktu_ambil + Buku Infak) -> 0 SQLite error
+      final mutasiRows = await DatabaseHelper.instance.getTransaksiByDateRange();
+      expect(mutasiRows.length, 2);
+      expect(mutasiRows.first['waktu_ambil'], isNotNull);
+
+      final peng = await DatabaseHelper.instance.getPengaturan();
+      final allSantri = await DatabaseHelper.instance.getAllSantri(onlyActive: false);
+      final infakPeriode = await DatabaseHelper.instance.getInfakByPeriode('2026-11');
+      final serahList = await DatabaseHelper.instance.getSerahTerimaInfak(periodeBulan: '2026-11');
+
+      // 6. Generator PDF Resmi Buku Infak (Semua Kelompok Terpisah per Halaman)
+      final pdfBytes = await YayasanExportService.instance.buildBukuInfakPdfBytes(
+        pengaturan: peng,
+        periodeBulan: '2026-11',
+        santriList: allSantri,
+        infakList: infakPeriode,
+        serahTerimaList: serahList,
+        saldoKantongInfak: saldoKantong,
+        scope: InfakPrintScope.semuaTerpisah,
+        loadAssetLogo: false,
+      );
+      expect(pdfBytes.length, greaterThan(500));
+      expect(String.fromCharCodes(pdfBytes.take(4)), '%PDF');
+
+      // 7. Generator Excel 4-Sheet Buku Infak
+      final xlsxBytes = await YayasanExportService.instance.buildExcelBukuInfakBytes(
+        pengaturan: peng,
+        periodeBulan: '2026-11',
+        santriList: allSantri,
+        infakList: infakPeriode,
+        serahTerimaList: serahList,
+        saldoKantongInfak: saldoKantong,
+      );
+      final decoded = Excel.decodeBytes(xlsxBytes);
+      expect(decoded.sheets.keys, contains('Rekap Total & Serah Terima'));
+      expect(decoded.sheets.keys, contains('Santriyin'));
+      expect(decoded.sheets.keys, contains('Santriyat'));
+      expect(decoded.sheets.keys, contains('Santri Baru'));
+      expect(decoded.sheets.keys.contains('Sheet1'), false);
+
+      // 8. Pesan Pengingat Jatuh Tempo Infak via WA
+      final reminderMsg = ReportService.instance.generateInfakReminderText(
+        santri: sBaru,
+        pengaturan: peng,
+        periodeBulan: '2026-11',
+        infak: infakPeriode.where((i) => i.santriId == sBaru.id).firstOrNull,
+      );
+      expect(reminderMsg, contains('Umar Santri Baru'));
+      expect(reminderMsg, contains('PPS MIFTAHUSSUNAN'));
+      expect(reminderMsg, contains('2026-12-25'));
     });
   });
 }

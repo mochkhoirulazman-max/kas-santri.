@@ -97,7 +97,7 @@ class _CashOpnameScreenState extends State<CashOpnameScreen> {
     setState(() => _isSaving = true);
 
     final provider = Provider.of<KasSantriProvider>(context, listen: false);
-    final totalSistem = provider.kasLaciTunai;
+    final totalSistem = provider.targetUangFisikDiLaci;
     final totalFisik = _totalFisik;
     final selisih = totalFisik - totalSistem;
 
@@ -132,7 +132,9 @@ class _CashOpnameScreenState extends State<CashOpnameScreen> {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<KasSantriProvider>(context);
-    final kasSistem = provider.kasLaciTunai;
+    final kasJajanTunai = provider.kasLaciTunai;
+    final kasInfakTunai = provider.kasInfakTunai;
+    final kasSistem = provider.targetUangFisikDiLaci;
     final totalFisik = _totalFisik;
     final selisih = totalFisik - kasSistem;
     final logs = provider.opnameLogs;
@@ -204,7 +206,7 @@ class _CashOpnameScreenState extends State<CashOpnameScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              '💵 KAS LACI (SISTEM)',
+                              '💵 TARGET LACI (SISTEM)',
                               style: TextStyle(color: Color(0xFF7DD3FC), fontSize: 9.5, fontWeight: FontWeight.w800),
                             ),
                             const SizedBox(height: 3),
@@ -252,7 +254,38 @@ class _CashOpnameScreenState extends State<CashOpnameScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF060B14),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Colors.white10),
+                    ),
+                    child: Column(
+                      children: [
+                        _opnameBreakdownRow(
+                          'Kas Laci Tunai (Titipan Uang Jajan)',
+                          CurrencyFormatter.format(kasJajanTunai),
+                          Colors.white70,
+                        ),
+                        const SizedBox(height: 4),
+                        _opnameBreakdownRow(
+                          'Kas Infak Tunai (Belum Disetor ke Yayasan)',
+                          CurrencyFormatter.format(kasInfakTunai),
+                          const Color(0xFFFDE68A),
+                        ),
+                        const Divider(color: Colors.white12, height: 12),
+                        _opnameBreakdownRow(
+                          'Target Total Uang Fisik Seharusnya di Laci',
+                          CurrencyFormatter.format(kasSistem),
+                          const Color(0xFF67E8F9),
+                          isBold: true,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
@@ -496,6 +529,40 @@ class _CashOpnameScreenState extends State<CashOpnameScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _opnameBreakdownRow(
+    String label,
+    String val,
+    Color color, {
+    bool isBold = false,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isBold ? Colors.white : Colors.white60,
+              fontSize: 10.5,
+              fontWeight: isBold ? FontWeight.w800 : FontWeight.w600,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          val,
+          style: TextStyle(
+            color: color,
+            fontSize: 11,
+            fontWeight: isBold ? FontWeight.w900 : FontWeight.w700,
+            fontFamily: 'monospace',
+          ),
+        ),
+      ],
     );
   }
 }

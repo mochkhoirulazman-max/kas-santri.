@@ -145,6 +145,34 @@ class SantriCard extends StatelessWidget {
     );
   }
 
+  Widget _buildStatusKeaktifanPill(Santri santri) {
+    final isPulang = santri.isPulang;
+    final bg = isPulang
+        ? const Color(0xFF34D399).withOpacity(0.22)
+        : const Color(0xFF94A3B8).withOpacity(0.22);
+    final border = isPulang
+        ? const Color(0xFF6EE7B7).withOpacity(0.55)
+        : const Color(0xFFCBD5E1).withOpacity(0.45);
+    final textColor =
+        isPulang ? const Color(0xFFA7F3D0) : const Color(0xFFE2E8F0);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: border),
+      ),
+      child: Text(
+        isPulang ? '🏡 Pulang' : '📦 Pindah',
+        style: TextStyle(
+          color: textColor,
+          fontSize: 8.5,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final santri = status.santri;
@@ -226,19 +254,25 @@ class SantriCard extends StatelessWidget {
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                              decoration: BoxDecoration(
-                                color: Colors.black45,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: Colors.white12),
+                            if (santri.kamar.trim().isNotEmpty) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color: Colors.black45,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: Colors.white12),
+                                ),
+                                child: Text(
+                                  santri.kamar.trim(),
+                                  style: const TextStyle(color: Colors.white70, fontSize: 9, fontWeight: FontWeight.w600),
+                                ),
                               ),
-                              child: Text(
-                                santri.kamar,
-                                style: const TextStyle(color: Colors.white70, fontSize: 9, fontWeight: FontWeight.w600),
-                              ),
-                            ),
+                            ],
+                            if (santri.isPulang || santri.isPindah) ...[
+                              const SizedBox(width: 6),
+                              _buildStatusKeaktifanPill(santri),
+                            ],
                           ],
                         ),
                         const SizedBox(height: 3),
@@ -354,27 +388,29 @@ class SantriCard extends StatelessWidget {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 4),
-                          Flexible(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.4),
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: Colors.white12),
-                              ),
-                              child: Text(
-                                santri.kamar,
-                                style: const TextStyle(
-                                  color: Color(0xFFE2E8F0),
-                                  fontSize: 8,
-                                  fontWeight: FontWeight.w700,
+                          if (santri.kamar.trim().isNotEmpty) ...[
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.4),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: Colors.white12),
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                                child: Text(
+                                  santri.kamar.trim(),
+                                  style: const TextStyle(
+                                    color: Color(0xFFE2E8F0),
+                                    fontSize: 8,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                             ),
-                          ),
+                          ],
                         ],
                       ),
                     ),
@@ -411,17 +447,27 @@ class SantriCard extends StatelessWidget {
 
                 const SizedBox(height: 8),
 
-                // 2. Nama Santri
-                Text(
-                  santri.namaLengkap,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.2,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                // 2. Nama Santri (+ Badge Pulang / Pindah lembut pengganti stabilo manual)
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        santri.namaLengkap,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.2,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (santri.isPulang || santri.isPindah) ...[
+                      const SizedBox(width: 4),
+                      _buildStatusKeaktifanPill(santri),
+                    ],
+                  ],
                 ),
 
                 const SizedBox(height: 6),

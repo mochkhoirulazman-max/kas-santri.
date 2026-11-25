@@ -16,7 +16,10 @@ import 'paywall_screen.dart';
 import 'santri/qr_scanner_screen.dart';
 
 class HomeFastWithdrawalScreen extends StatefulWidget {
-  const HomeFastWithdrawalScreen({Key? key}) : super(key: key);
+  final VoidCallback? onOpenBukuInfak;
+
+  const HomeFastWithdrawalScreen({Key? key, this.onOpenBukuInfak})
+      : super(key: key);
 
   @override
   State<HomeFastWithdrawalScreen> createState() => _HomeFastWithdrawalScreenState();
@@ -564,6 +567,34 @@ class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen>
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                   children: [
                     _buildFilterPill('✨ Semua', 'ALL', provider),
+                    if (widget.onOpenBukuInfak != null)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: InkWell(
+                          onTap: () {
+                            AppFeedback.tap();
+                            widget.onOpenBukuInfak!.call();
+                          },
+                          borderRadius: BorderRadius.circular(20),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF064E3B).withOpacity(0.55),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: const Color(0xFF34D399).withOpacity(0.75)),
+                            ),
+                            alignment: Alignment.center,
+                            child: const Text(
+                              '🌾 Infak',
+                              style: TextStyle(
+                                color: Color(0xFF6EE7B7),
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     _buildFilterPill(
                       isPro ? '⚠️ Saldo Kritis (<3 Hr)' : '⚠️ Saldo Kritis (<3 Hr) 👑',
                       'KRITIS',

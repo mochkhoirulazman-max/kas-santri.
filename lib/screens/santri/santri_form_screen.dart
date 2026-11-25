@@ -26,6 +26,8 @@ class _SantriFormScreenState extends State<SantriFormScreen> {
   late TextEditingController _saldoAwalController;
 
   bool _statusAktif = true;
+  late String _kategoriSantri;
+  late String _statusSantri;
 
   @override
   void initState() {
@@ -44,6 +46,8 @@ class _SantriFormScreenState extends State<SantriFormScreen> {
       text: CurrencyFormatter.formatWithoutSymbol(s?.saldoTotal ?? 0),
     );
     _statusAktif = s?.statusAktif ?? true;
+    _kategoriSantri = s?.kategoriSantri ?? Santri.kategoriSantriyin;
+    _statusSantri = s?.statusSantri ?? Santri.statusAktifVal;
   }
 
   @override
@@ -78,6 +82,8 @@ class _SantriFormScreenState extends State<SantriFormScreen> {
       id: isEdit ? widget.santriToEdit!.id : const Uuid().v4(),
       namaLengkap: _namaLengkapController.text.trim(),
       namaPanggilan: _namaPanggilanController.text.trim(),
+      kategoriSantri: _kategoriSantri,
+      statusSantri: _statusSantri,
       kamar: _kamarController.text.trim(),
       noWaWali: _noWaWaliController.text.trim().isNotEmpty ? _noWaWaliController.text.trim() : null,
       saldoTotal: parsedSaldo,
@@ -168,6 +174,38 @@ class _SantriFormScreenState extends State<SantriFormScreen> {
                             : null,
                       ),
                       validator: (v) => (v == null || v.trim().isEmpty) ? 'Kamar wajib diisi' : null,
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      value: _kategoriSantri,
+                      decoration: const InputDecoration(
+                        labelText: 'Kelompok Santri',
+                        prefixIcon: Icon(Icons.groups_outlined),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: Santri.kategoriSantriyin, child: Text('Santriyin (Putra)')),
+                        DropdownMenuItem(value: Santri.kategoriSantriyat, child: Text('Santriyat (Putri)')),
+                        DropdownMenuItem(value: Santri.kategoriSantriBaru, child: Text('Santri Baru')),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) setState(() => _kategoriSantri = val);
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      value: _statusSantri,
+                      decoration: const InputDecoration(
+                        labelText: 'Status Keaktifan',
+                        prefixIcon: Icon(Icons.verified_user_outlined),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: Santri.statusAktifVal, child: Text('Aktif di Pondok')),
+                        DropdownMenuItem(value: Santri.statusPulangVal, child: Text('Pulang / Izin')),
+                        DropdownMenuItem(value: Santri.statusPindahVal, child: Text('Pindah / Boyong')),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) setState(() => _statusSantri = val);
+                      },
                     ),
                   ],
                 ),

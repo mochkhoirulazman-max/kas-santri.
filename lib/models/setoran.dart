@@ -1,4 +1,4 @@
-enum TipeSetoran { awalBulan, susulanTopUp, susulanTopup }
+enum TipeSetoran { awalBulan, susulanTopUp, susulanTopup, sambanganSplit }
 
 enum OpsiSetoranSusulan { tambahJatahHarian, perpanjangHari }
 
@@ -28,13 +28,26 @@ class SetoranBulanan {
   });
 
   Map<String, dynamic> toMap() {
+    final String tipeStr;
+    switch (tipeSetoran) {
+      case TipeSetoran.awalBulan:
+        tipeStr = 'AWAL_BULAN';
+        break;
+      case TipeSetoran.sambanganSplit:
+        tipeStr = 'SAMBANGAN_SPLIT';
+        break;
+      case TipeSetoran.susulanTopUp:
+      case TipeSetoran.susulanTopup:
+        tipeStr = 'SUSULAN_TOPUP';
+        break;
+    }
     return {
       'id': id,
       'santri_id': santriId,
       'nominal_setoran': nominalSetoran,
       'durasi_hari': durasiHari,
       'jatah_harian_hitung': jatahHarianHitung,
-      'tipe_setoran': tipeSetoran == TipeSetoran.awalBulan ? 'AWAL_BULAN' : 'SUSULAN_TOPUP',
+      'tipe_setoran': tipeStr,
       'tanggal_setor': tanggalSetor.toIso8601String().substring(0, 10),
       'catatan': catatan,
       'perlakuan_sisa': perlakuanSisa == PerlakuanSisaSaldoLalu.gabungBulanBaru
@@ -44,15 +57,22 @@ class SetoranBulanan {
   }
 
   factory SetoranBulanan.fromMap(Map<String, dynamic> map) {
+    final tipeRaw = map['tipe_setoran']?.toString();
+    final TipeSetoran tipe;
+    if (tipeRaw == 'SUSULAN_TOPUP') {
+      tipe = TipeSetoran.susulanTopup;
+    } else if (tipeRaw == 'SAMBANGAN_SPLIT') {
+      tipe = TipeSetoran.sambanganSplit;
+    } else {
+      tipe = TipeSetoran.awalBulan;
+    }
     return SetoranBulanan(
       id: map['id'] as String,
       santriId: map['santri_id'] as String,
       nominalSetoran: (map['nominal_setoran'] as num).toInt(),
       durasiHari: (map['durasi_hari'] as num).toInt(),
       jatahHarianHitung: (map['jatah_harian_hitung'] as num).toInt(),
-      tipeSetoran: map['tipe_setoran'] == 'SUSULAN_TOPUP'
-          ? TipeSetoran.susulanTopup
-          : TipeSetoran.awalBulan,
+      tipeSetoran: tipe,
       tanggalSetor: map['tanggal_setor'] != null
           ? DateTime.tryParse(map['tanggal_setor'].toString()) ?? DateTime.now()
           : DateTime.now(),

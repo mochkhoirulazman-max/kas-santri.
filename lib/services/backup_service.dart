@@ -9,6 +9,8 @@ class BackupValidationResult {
   final int tunggakanLogCount;
   final int mutasiDompetCount;
   final int cashOpnameCount;
+  final int infakCount;
+  final int serahTerimaInfakCount;
   final String? exportedAt;
   final Map<String, dynamic>? parsedData;
 
@@ -21,6 +23,8 @@ class BackupValidationResult {
     this.tunggakanLogCount = 0,
     this.mutasiDompetCount = 0,
     this.cashOpnameCount = 0,
+    this.infakCount = 0,
+    this.serahTerimaInfakCount = 0,
     this.exportedAt,
     this.parsedData,
   });
@@ -42,6 +46,11 @@ class BackupService {
     'mutasi_dompet',
     'cash_opname_logs',
     'pengaturan_aplikasi',
+  ];
+
+  static const List<String> optionalV3Tables = [
+    'infak_santri',
+    'serah_terima_infak',
   ];
 
   static BackupValidationResult validateJsonString(String rawJson) {
@@ -84,12 +93,31 @@ class BackupService {
       }
     }
 
+    for (final table in optionalV3Tables) {
+      if (!data.containsKey(table) || data[table] == null) continue;
+      final rows = data[table];
+      if (rows is! List) {
+        return BackupValidationResult.invalid(
+          'Struktur backup tidak valid: tabel "$table" harus berupa daftar/array.',
+        );
+      }
+      for (int i = 0; i < rows.length; i++) {
+        if (rows[i] is! Map) {
+          return BackupValidationResult.invalid(
+            'Baris ke-${i + 1} pada tabel "$table" bukan objek data yang valid.',
+          );
+        }
+      }
+    }
+
     final santriList = data['santri'] as List;
     final setoranList = data['setoran_bulanan'] as List;
     final txList = data['transaksi_harian'] as List;
     final tunggakanList = data['tunggakan_log'] as List;
     final dompetList = data['mutasi_dompet'] as List;
     final opnameList = data['cash_opname_logs'] as List;
+    final infakList = (data['infak_santri'] as List?) ?? const [];
+    final serahTerimaList = (data['serah_terima_infak'] as List?) ?? const [];
 
     return BackupValidationResult(
       isValid: true,
@@ -99,6 +127,8 @@ class BackupService {
       tunggakanLogCount: tunggakanList.length,
       mutasiDompetCount: dompetList.length,
       cashOpnameCount: opnameList.length,
+      infakCount: infakList.length,
+      serahTerimaInfakCount: serahTerimaList.length,
       exportedAt: data['exported_at']?.toString(),
       parsedData: data,
     );

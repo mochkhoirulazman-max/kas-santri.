@@ -12,6 +12,7 @@ import '../../database/database_helper.dart';
 import '../../services/auth_service.dart';
 import '../../services/backup_service.dart';
 import '../../utils/app_feedback.dart';
+import '../../utils/currency_formatter.dart';
 import '../../utils/date_formatter.dart';
 import '../paywall_screen.dart';
 import '../pin_lock_screen.dart';
@@ -27,21 +28,88 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   late TextEditingController _namaPondokController;
   late TextEditingController _namaPengurusController;
+  late TextEditingController _tahunAjaranController;
+  late TextEditingController _infakMasakController;
+  late TextEditingController _infakListrikController;
+  late TextEditingController _infakBerasLiterController;
+  late TextEditingController _infakBerasUangController;
   bool _isDriveBusy = false;
 
   @override
   void initState() {
     super.initState();
     final provider = Provider.of<KasSantriProvider>(context, listen: false);
-    _namaPondokController = TextEditingController(text: provider.pengaturan.namaPondok);
-    _namaPengurusController = TextEditingController(text: provider.pengaturan.namaPengurus);
+    final s = provider.pengaturan;
+    _namaPondokController = TextEditingController(text: s.namaPondok);
+    _namaPengurusController = TextEditingController(text: s.namaPengurus);
+    _tahunAjaranController = TextEditingController(text: s.tahunAjaran);
+    _infakMasakController = TextEditingController(
+      text: CurrencyFormatter.formatWithoutSymbol(s.defaultInfakMasak),
+    );
+    _infakListrikController = TextEditingController(
+      text: CurrencyFormatter.formatWithoutSymbol(s.defaultInfakListrik),
+    );
+    final literStr = s.defaultInfakBerasLiter == s.defaultInfakBerasLiter.roundToDouble()
+        ? s.defaultInfakBerasLiter.toInt().toString()
+        : s.defaultInfakBerasLiter.toString();
+    _infakBerasLiterController = TextEditingController(text: literStr);
+    _infakBerasUangController = TextEditingController(
+      text: CurrencyFormatter.formatWithoutSymbol(s.defaultInfakBerasUang),
+    );
   }
 
   @override
   void dispose() {
     _namaPondokController.dispose();
     _namaPengurusController.dispose();
+    _tahunAjaranController.dispose();
+    _infakMasakController.dispose();
+    _infakListrikController.dispose();
+    _infakBerasLiterController.dispose();
+    _infakBerasUangController.dispose();
     super.dispose();
+  }
+
+  Future<void> _saveTarifInfak(
+    KasSantriProvider provider,
+    PengaturanAplikasi settings,
+  ) async {
+    AppFeedback.tap();
+    final ta = _tahunAjaranController.text.trim().isNotEmpty
+        ? _tahunAjaranController.text.trim()
+        : '2026/2027 M / 1448 H';
+    final masak = CurrencyFormatter.parse(_infakMasakController.text);
+    final listrik = CurrencyFormatter.parse(_infakListrikController.text);
+    final liter = double.tryParse(
+          _infakBerasLiterController.text.trim().replaceAll(',', '.'),
+        ) ??
+        settings.defaultInfakBerasLiter;
+    final berasUang = CurrencyFormatter.parse(_infakBerasUangController.text);
+
+    await provider.savePengaturan(
+      settings.copyWith(
+        tahunAjaran: ta,
+        defaultInfakMasak: masak > 0 ? masak : settings.defaultInfakMasak,
+        defaultInfakListrik: listrik > 0 ? listrik : settings.defaultInfakListrik,
+        defaultInfakBerasLiter: liter > 0 ? liter : settings.defaultInfakBerasLiter,
+        defaultInfakBerasUang:
+            berasUang > 0 ? berasUang : settings.defaultInfakBerasUang,
+      ),
+    );
+    AppFeedback.success();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Tarif default Infak & Tahun Ajaran berhasil disimpan!',
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
+          backgroundColor: const Color(0xFF10B981),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        ),
+      );
+    }
   }
 
   Future<void> _lockAppNow() async {
@@ -199,7 +267,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 '• Transaksi Harian: ${validation.transaksiCount}\n'
                 '• Log Tunggakan: ${validation.tunggakanLogCount}\n'
                 '• Mutasi Dompet: ${validation.mutasiDompetCount}\n'
-                '• Cash Opname: ${validation.cashOpnameCount}',
+                '• Cash Opname: ${validation.cashOpnameCount}\n'
+                '• Data Infak Santri: ${validation.infakCount}\n'
+                '• Serah Terima Infak: ${validation.serahTerimaInfakCount}',
                 style: const TextStyle(color: Colors.white70, fontSize: 11.5, height: 1.45),
               ),
             ),
@@ -587,6 +657,180 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       SizedBox(width: 6),
                       Text('Reset Simulasi Awal', style: TextStyle(color: Color(0xFFFECDD3), fontSize: 10.5, fontWeight: FontWeight.bold)),
                     ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // 1B. KONFIGURASI TARIF DEFAULT INFAK & TAHUN AJARAN (v3.0)
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0F172A).withOpacity(0.85),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: const Color(0xFF10B981).withOpacity(0.35)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'MODUL INFAK PONDOK v3.0',
+                style: TextStyle(
+                  color: Color(0xFF34D399),
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              const SizedBox(height: 2),
+              const Text(
+                '🌾 Konfigurasi Tarif Default Infak & Tahun Ajaran',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 14),
+              const Text(
+                'TAHUN AJARAN',
+                style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 4),
+              TextField(
+                controller: _tahunAjaranController,
+                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                decoration: const InputDecoration(
+                  isDense: true,
+                  hintText: '2026/2027 M / 1448 H',
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'DEFAULT INFAK MASAK',
+                          style: TextStyle(color: Colors.white54, fontSize: 9.5, fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: 4),
+                        TextField(
+                          controller: _infakMasakController,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [RibuanInputFormatter()],
+                          style: const TextStyle(
+                            color: Color(0xFF6EE7B7),
+                            fontSize: 13,
+                            fontFamily: 'monospace',
+                            fontWeight: FontWeight.bold,
+                          ),
+                          decoration: const InputDecoration(isDense: true, prefixText: 'Rp '),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'DEFAULT INFAK LISTRIK',
+                          style: TextStyle(color: Colors.white54, fontSize: 9.5, fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: 4),
+                        TextField(
+                          controller: _infakListrikController,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [RibuanInputFormatter()],
+                          style: const TextStyle(
+                            color: Color(0xFF38BDF8),
+                            fontSize: 13,
+                            fontFamily: 'monospace',
+                            fontWeight: FontWeight.bold,
+                          ),
+                          decoration: const InputDecoration(isDense: true, prefixText: 'Rp '),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'BERAS FISIK (LITER)',
+                          style: TextStyle(color: Colors.white54, fontSize: 9.5, fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: 4),
+                        TextField(
+                          controller: _infakBerasLiterController,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          style: const TextStyle(
+                            color: Color(0xFFFDE68A),
+                            fontSize: 13,
+                            fontFamily: 'monospace',
+                            fontWeight: FontWeight.bold,
+                          ),
+                          decoration: const InputDecoration(isDense: true, suffixText: ' Liter'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'BERAS PENGGANTI UANG',
+                          style: TextStyle(color: Colors.white54, fontSize: 9.5, fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: 4),
+                        TextField(
+                          controller: _infakBerasUangController,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [RibuanInputFormatter()],
+                          style: const TextStyle(
+                            color: Color(0xFFFBBF24),
+                            fontSize: 13,
+                            fontFamily: 'monospace',
+                            fontWeight: FontWeight.bold,
+                          ),
+                          decoration: const InputDecoration(isDense: true, prefixText: 'Rp '),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                height: 44,
+                child: ElevatedButton.icon(
+                  onPressed: () => _saveTarifInfak(provider, settings),
+                  icon: const Icon(Icons.save_rounded, size: 17),
+                  label: const Text(
+                    'Simpan Tarif Default Infak',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF10B981),
+                    foregroundColor: const Color(0xFF030712),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
                 ),
               ),
@@ -1035,11 +1279,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 child: Column(
                   children: [
-                    _buildCreditRow('Instansi Pondok', 'PPS MIFTAHUSSUNAN', const Color(0xFF34D399)),
+                    _buildCreditRow('Instansi Pondok', settings.namaPondok, const Color(0xFF34D399)),
                     const Divider(color: Colors.white12, height: 16),
                     _buildCreditRow('Hari & Tanggal Dibuat', 'Senin, 23 November 2026', const Color(0xFF7DD3FC)),
                     const Divider(color: Colors.white12, height: 16),
-                    _buildCreditRow('Versi & Tema UI', 'v2.5 • Aurora Tactile 2-Grid', const Color(0xFFF0ABFC)),
+                    _buildCreditRow('Versi & Tema UI', 'v3.0 PRO • Aurora Tactile 2-Grid', const Color(0xFFF0ABFC)),
                     const Divider(color: Colors.white12, height: 16),
                     _buildCreditRow('Lisensi & Hak Cipta', '© 2026 Moch Khoirul Azman', Colors.white),
                   ],

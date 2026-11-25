@@ -6,6 +6,8 @@ import '../models/transaksi.dart';
 import '../models/pengaturan.dart';
 import '../models/santri_status.dart';
 import '../models/cash_opname_log.dart';
+import '../models/infak_santri.dart';
+import '../models/serah_terima_infak.dart';
 import '../database/database_helper.dart';
 import '../config/app_config.dart';
 import '../services/auth_service.dart';
@@ -115,6 +117,31 @@ class KasSantriProvider extends ChangeNotifier {
   int _rekeningBank = 0;
   int get rekeningBank => _rekeningBank;
 
+  // 3 Kantong Kas v3.0: Kas Infak Pondok & Gudang Beras Fisik
+  String _selectedInfakPeriode =
+      '${DateTime.now().year.toString().padLeft(4, '0')}-${DateTime.now().month.toString().padLeft(2, '0')}';
+  String get selectedInfakPeriode => _selectedInfakPeriode;
+
+  List<InfakSantriModel> _infakPeriodeList = [];
+  List<InfakSantriModel> get infakPeriodeList => _infakPeriodeList;
+
+  List<SerahTerimaInfakModel> _serahTerimaList = [];
+  List<SerahTerimaInfakModel> get serahTerimaList => _serahTerimaList;
+
+  int _kasInfakTunai = 0;
+  int get kasInfakTunai => _kasInfakTunai;
+
+  int _kasInfakRekening = 0;
+  int get kasInfakRekening => _kasInfakRekening;
+
+  int get totalKasInfakBelumDisetor => _kasInfakTunai + _kasInfakRekening;
+
+  double _stokBerasFisikLiter = 0.0;
+  double get stokBerasFisikLiter => _stokBerasFisikLiter;
+
+  /// Target total uang tunai fisik di laci bendahara (Kantong Jajan + Kantong Infak Tunai)
+  int get targetUangFisikDiLaci => _kasLaciTunai + _kasInfakTunai;
+
   // Cash Opname PRO Logs
   List<CashOpnameLog> _opnameLogs = [];
   List<CashOpnameLog> get opnameLogs => _opnameLogs;
@@ -133,7 +160,8 @@ class KasSantriProvider extends ChangeNotifier {
   int _totalTunggakanPondok = 0;
   int get totalTunggakanPondok => _totalTunggakanPondok;
 
-  int get countSantriTunggakan => _allSantri.where((s) => s.statusAktif && s.tunggakan > 0).length;
+  int get countSantriTunggakan =>
+      _allSantri.where((s) => s.isAktifDiPondok && s.tunggakan > 0).length;
 
   int _rekapPagiSiang = 0;
   int get rekapPagiSiang => _rekapPagiSiang;
@@ -354,11 +382,19 @@ class KasSantriProvider extends ChangeNotifier {
     _santriStatusList = statuses;
     _totalKuotaHariIni = totalKuota;
 
-    // 2. Metrics, Brankas, Multi-Dompet & Cash Opname
+    // 2. Metrics, Brankas, Multi-Dompet, Kantong Infak & Cash Opname
     _totalBrankasFisik = await _db.getTotalSaldoBrankasFisik();
     final saldoDompet = await _db.getSaldoDompet();
     _kasLaciTunai = saldoDompet['tunai'] ?? 0;
     _rekeningBank = saldoDompet['rekening'] ?? 0;
+
+    final kantongInfak = await _db.getSaldoKantongInfak();
+    _kasInfakTunai = (kantongInfak['tunai'] as num?)?.toInt() ?? 0;
+    _kasInfakRekening = (kantongInfak['rekening'] as num?)?.toInt() ?? 0;
+    _stokBerasFisikLiter = (kantongInfak['beras_stok'] as num?)?.toDouble() ?? 0.0;
+    _infakPeriodeList = await _db.getInfakByPeriode(_selectedInfakPeriode);
+    _serahTerimaList = await _db.getSerahTerimaInfak();
+
     _opnameLogs = await _db.getCashOpnameLogs(limit: 15);
     _totalPengeluaranHariIni = await _db.getTotalPengeluaranHariIni(todayStr);
     _totalTunggakanPondok = await _db.getTotalTunggakanPondok();
@@ -414,7 +450,7 @@ class KasSantriProvider extends ChangeNotifier {
 
   List<SantriStatusHariIni> get saldoKritisList {
     final list = _santriStatusList
-        .where((item) => item.santri.estimasiHari < 3)
+        .where((item) => item.santri.isAktifDiPondok && item.santri.estimasiHari < 3)
         .toList();
     list.sort((a, b) {
       final hariCmp = a.santri.estimasiHari.compareTo(b.santri.estimasiHari);
@@ -446,9 +482,9 @@ class KasSantriProvider extends ChangeNotifier {
 
       // Filter status / tunggakan
       if (_activeFilter == 'TUNGGAKAN') {
-        if (item.santri.tunggakan <= 0) return false;
+        if (!item.santri.isAktifDiPondok || item.santri.tunggakan <= 0) return false;
       } else if (_activeFilter == 'KRITIS') {
-        if (item.santri.estimasiHari >= 3) return false;
+        if (!item.santri.isAktifDiPondok || item.santri.estimasiHari >= 3) return false;
       } else if (_activeFilter == 'UTUH') {
         if (item.badgeStatus != BadgeStatusHariIni.utuh) return false;
       } else if (_activeFilter == 'SEBAGIAN') {
@@ -583,6 +619,106 @@ class KasSantriProvider extends ChangeNotifier {
       createdAt: now,
     );
     await _db.insertCashOpnameLog(log);
+    await markLocalDataChanged();
+    await loadAllData();
+  }
+
+  // ==================== INFAK, SAMBANGAN & SERAH TERIMA (v3.0) ====================
+
+  Future<void> setSelectedInfakPeriode(String periodeYm) async {
+    _selectedInfakPeriode = periodeYm;
+    _infakPeriodeList = await _db.getInfakByPeriode(_selectedInfakPeriode);
+    notifyListeners();
+  }
+
+  Future<void> shiftInfakPeriode(int deltaMonths) async {
+    final parts = _selectedInfakPeriode.split('-');
+    if (parts.length != 2) return;
+    final y = int.tryParse(parts[0]) ?? DateTime.now().year;
+    final m = int.tryParse(parts[1]) ?? DateTime.now().month;
+    final shifted = DateTime(y, m + deltaMonths, 1);
+    final nextYm =
+        '${shifted.year.toString().padLeft(4, '0')}-${shifted.month.toString().padLeft(2, '0')}';
+    await setSelectedInfakPeriode(nextYm);
+  }
+
+  InfakSantriModel? getInfakForSantri(String santriId) {
+    return _infakPeriodeList.where((i) => i.santriId == santriId).firstOrNull;
+  }
+
+  Future<({
+    SetoranBulanan? setoran,
+    InfakSantriModel infak,
+    int sisaJajan,
+    int jatahBaru,
+    int nominalPotongTunggakan,
+  })> catatSambanganSmartSplit({
+    required String santriId,
+    required int totalUangDiterima,
+    required DateTime tanggalMasuk,
+    required String tglHabisYmd,
+    required int nominalMasak,
+    required bool isMasakBebas,
+    required int nominalListrik,
+    required bool isListrikBebas,
+    required String jenisBeras,
+    required double berasLiter,
+    required int berasUang,
+    required int durasiHari,
+    bool potongTunggakan = true,
+    String sumberDompet = 'TUNAI',
+    String? catatan,
+  }) async {
+    final res = await _db.catatSambanganSmartSplit(
+      santriId: santriId,
+      totalUangDiterima: totalUangDiterima,
+      tanggalMasuk: tanggalMasuk,
+      tglHabisYmd: tglHabisYmd,
+      nominalMasak: nominalMasak,
+      isMasakBebas: isMasakBebas,
+      nominalListrik: nominalListrik,
+      isListrikBebas: isListrikBebas,
+      jenisBeras: jenisBeras,
+      berasLiter: berasLiter,
+      berasUang: berasUang,
+      durasiHari: durasiHari,
+      potongTunggakan: potongTunggakan,
+      sumberDompet: sumberDompet,
+      catatan: catatan,
+    );
+    _selectedInfakPeriode = res.infak.periodeBulan;
+    await markLocalDataChanged();
+    await loadAllData();
+    return res;
+  }
+
+  Future<void> simpanInfakSantri(InfakSantriModel infak) async {
+    final statusLunas = InfakSantriModel.hitungStatusLunas(
+      nominalMasak: infak.isMasakBebas ? 0 : infak.nominalMasak,
+      isMasakBebas: infak.isMasakBebas,
+      nominalListrik: infak.isListrikBebas ? 0 : infak.nominalListrik,
+      isListrikBebas: infak.isListrikBebas,
+      jenisBeras: infak.jenisBeras,
+      berasLiter: infak.jenisBeras == InfakSantriModel.berasFisik ? infak.berasLiter : 0.0,
+      berasUang: infak.jenisBeras == InfakSantriModel.berasUang ? infak.berasUang : 0,
+      targetMasak: _pengaturan.defaultInfakMasak,
+      targetListrik: _pengaturan.defaultInfakListrik,
+      targetBerasLiter: _pengaturan.defaultInfakBerasLiter,
+      targetBerasUang: _pengaturan.defaultInfakBerasUang,
+    );
+    await _db.upsertInfakSantri(infak.copyWith(statusLunas: statusLunas));
+    await markLocalDataChanged();
+    await loadAllData();
+  }
+
+  Future<void> catatSerahTerimaInfak(SerahTerimaInfakModel item) async {
+    await _db.insertSerahTerimaInfak(item);
+    await markLocalDataChanged();
+    await loadAllData();
+  }
+
+  Future<void> hapusSerahTerimaInfak(String id) async {
+    await _db.deleteSerahTerimaInfak(id);
     await markLocalDataChanged();
     await loadAllData();
   }

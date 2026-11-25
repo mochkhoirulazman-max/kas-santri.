@@ -36,6 +36,8 @@ class _QuickEditSantriBottomSheetState extends State<QuickEditSantriBottomSheet>
   late TextEditingController _jatahHarianController;
 
   String? _fotoPath;
+  late String _kategoriSantri;
+  late String _statusSantri;
   bool _isLoading = false;
 
   @override
@@ -50,6 +52,8 @@ class _QuickEditSantriBottomSheetState extends State<QuickEditSantriBottomSheet>
       text: CurrencyFormatter.formatWithoutSymbol(s.jatahHarian),
     );
     _fotoPath = s.fotoPath;
+    _kategoriSantri = s.kategoriSantri;
+    _statusSantri = s.statusSantri;
   }
 
   @override
@@ -105,6 +109,8 @@ class _QuickEditSantriBottomSheetState extends State<QuickEditSantriBottomSheet>
       namaPanggilan: _namaPanggilanController.text.trim().isNotEmpty
           ? _namaPanggilanController.text.trim()
           : (nama.split(' ').isNotEmpty ? nama.split(' ').first : nama),
+      kategoriSantri: _kategoriSantri,
+      statusSantri: _statusSantri,
       kamar: _kamarController.text.trim().isNotEmpty ? _kamarController.text.trim() : widget.santri.kamar,
       noWaWali: _noWaWaliController.text.trim().isNotEmpty ? _noWaWaliController.text.trim() : null,
       jatahHarian: jatah,
@@ -283,6 +289,73 @@ class _QuickEditSantriBottomSheetState extends State<QuickEditSantriBottomSheet>
                 Expanded(
                   flex: 2,
                   child: _buildField('JATAH/HARI (RP)', _jatahHarianController, '10.000', isNumber: true, isCurrency: true),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 10),
+            const Text(
+              'KELOMPOK SANTRI (BUKU INFAK)',
+              style: TextStyle(color: Colors.white54, fontSize: 9.5, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                _buildChoiceChip(
+                  label: 'Santriyin',
+                  value: Santri.kategoriSantriyin,
+                  selectedValue: _kategoriSantri,
+                  accent: const Color(0xFF38BDF8),
+                  onSelect: (v) => setState(() => _kategoriSantri = v),
+                ),
+                const SizedBox(width: 6),
+                _buildChoiceChip(
+                  label: 'Santriyat',
+                  value: Santri.kategoriSantriyat,
+                  selectedValue: _kategoriSantri,
+                  accent: const Color(0xFFD946EF),
+                  onSelect: (v) => setState(() => _kategoriSantri = v),
+                ),
+                const SizedBox(width: 6),
+                _buildChoiceChip(
+                  label: 'Santri Baru',
+                  value: Santri.kategoriSantriBaru,
+                  selectedValue: _kategoriSantri,
+                  accent: const Color(0xFFFBBF24),
+                  onSelect: (v) => setState(() => _kategoriSantri = v),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'STATUS KEAKTIFAN',
+              style: TextStyle(color: Colors.white54, fontSize: 9.5, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                _buildChoiceChip(
+                  label: 'Aktif',
+                  value: Santri.statusAktifVal,
+                  selectedValue: _statusSantri,
+                  accent: const Color(0xFF10B981),
+                  onSelect: (v) => setState(() => _statusSantri = v),
+                ),
+                const SizedBox(width: 6),
+                _buildChoiceChip(
+                  label: 'Pulang / Izin',
+                  value: Santri.statusPulangVal,
+                  selectedValue: _statusSantri,
+                  accent: const Color(0xFF34D399),
+                  onSelect: (v) => setState(() => _statusSantri = v),
+                ),
+                const SizedBox(width: 6),
+                _buildChoiceChip(
+                  label: 'Pindah / Boyong',
+                  value: Santri.statusPindahVal,
+                  selectedValue: _statusSantri,
+                  accent: const Color(0xFF94A3B8),
+                  onSelect: (v) => setState(() => _statusSantri = v),
                 ),
               ],
             ),
@@ -487,6 +560,44 @@ class _QuickEditSantriBottomSheetState extends State<QuickEditSantriBottomSheet>
               child: const Text('Ya, Hapus Permanen', style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChoiceChip({
+    required String label,
+    required String value,
+    required String selectedValue,
+    required Color accent,
+    required ValueChanged<String> onSelect,
+  }) {
+    final isSelected = selectedValue == value;
+    return Expanded(
+      child: InkWell(
+        onTap: () {
+          AppFeedback.tap();
+          onSelect(value);
+        },
+        borderRadius: BorderRadius.circular(11),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+          decoration: BoxDecoration(
+            color: isSelected ? accent.withOpacity(0.18) : const Color(0xFF0F172A),
+            borderRadius: BorderRadius.circular(11),
+            border: Border.all(color: isSelected ? accent : Colors.white12),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: isSelected ? accent : Colors.white60,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
         ),
       ),
     );
