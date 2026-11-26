@@ -513,8 +513,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onPressed: () async {
               final provider = Provider.of<KasSantriProvider>(context, listen: false);
               await provider.resetToInitialData();
-              if (mounted) {
+              if (ctx.mounted) {
                 Navigator.pop(ctx);
+              }
+              if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Data simulasi berhasil di-reset!'), backgroundColor: Color(0xFF10B981)),
                 );

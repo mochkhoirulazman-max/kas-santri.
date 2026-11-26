@@ -82,19 +82,19 @@ class _PinSettingsScreenState extends State<PinSettingsScreen> {
       return;
     }
 
+    final provider = Provider.of<KasSantriProvider>(context, listen: false);
     await AuthService.instance.setPin(newPin);
     await AuthService.instance.updateLastActive();
-    if (mounted) {
-      await Provider.of<KasSantriProvider>(context, listen: false).loadAllData();
-      AppFeedback.success();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Kunci PIN aman berhasil diperbarui!'),
-          backgroundColor: Color(0xFF10B981),
-        ),
-      );
-      Navigator.pop(context);
-    }
+    await provider.loadAllData();
+    if (!mounted) return;
+    AppFeedback.success();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Kunci PIN aman berhasil diperbarui!'),
+        backgroundColor: Color(0xFF10B981),
+      ),
+    );
+    Navigator.pop(context);
   }
 
   Future<void> _removePin() async {
@@ -115,14 +115,15 @@ class _PinSettingsScreenState extends State<PinSettingsScreen> {
     );
 
     if (confirm == true) {
+      if (!mounted) return;
+      final provider = Provider.of<KasSantriProvider>(context, listen: false);
       await AuthService.instance.setPin(null);
-      if (mounted) {
-        await Provider.of<KasSantriProvider>(context, listen: false).loadAllData();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Kunci PIN berhasil dinonaktifkan')),
-        );
-        Navigator.pop(context);
-      }
+      await provider.loadAllData();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Kunci PIN berhasil dinonaktifkan')),
+      );
+      Navigator.pop(context);
     }
   }
 

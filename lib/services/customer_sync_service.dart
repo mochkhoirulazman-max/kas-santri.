@@ -110,6 +110,8 @@ class CustomerSyncService {
   }
 
   /// Membangun payload telemetri non-sensitif yang terjamin bebas data santri/saldo.
+  /// Pada build Google Play Store (`isPlayStoreBuild == true`), `p_nama_bendahara` dan `p_no_wa`
+  /// dikosongkan agar tidak mengumpulkan Personal Identifiers (nama & nomor telepon).
   static Map<String, dynamic> buildTelemetryPayload({
     required String deviceId,
     required String namaPondok,
@@ -119,12 +121,13 @@ class CustomerSyncService {
     DateTime? expiryDate,
     String appVersion = AppConfig.appVersion,
     String paymentChannel = 'FREE',
+    bool isPlayStoreBuild = kIsPlayStoreBuild,
   }) {
     return {
       'p_device_id': deviceId.trim().toUpperCase(),
       'p_nama_pondok': namaPondok.trim(),
-      'p_nama_bendahara': namaBendahara.trim(),
-      'p_no_wa': noWaPengurus.trim(),
+      'p_nama_bendahara': isPlayStoreBuild ? '' : namaBendahara.trim(),
+      'p_no_wa': isPlayStoreBuild ? '' : noWaPengurus.trim(),
       'p_tier': tier.trim().toUpperCase(),
       'p_expiry_date': expiryDate?.toUtc().toIso8601String(),
       'p_app_version': appVersion.trim(),

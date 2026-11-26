@@ -16,7 +16,7 @@
 
   const DEFAULT_REMOTE_CONFIG = {
     id: 1,
-    latest_version: '3.4.0',
+    latest_version: '4.2.0',
     min_version: '3.0.0',
     announcement_title: '',
     announcement_body: '',
@@ -33,24 +33,34 @@
     }
   }
 
+  function utf8ToBytes(text) {
+    if (typeof TextEncoder !== 'undefined') {
+      return new TextEncoder().encode(text);
+    }
+    const encoded = unescape(encodeURIComponent(text));
+    const out = new Uint8Array(encoded.length);
+    for (let i = 0; i < encoded.length; i++) {
+      out[i] = encoded.charCodeAt(i);
+    }
+    return out;
+  }
+
   async function sha256Hex(text) {
-    if (typeof crypto !== 'undefined' && crypto.subtle && typeof TextEncoder !== 'undefined') {
-      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+    const inputBytes = utf8ToBytes(text);
+    if (typeof crypto !== 'undefined' && crypto.subtle) {
+      const buf = await crypto.subtle.digest('SHA-256', inputBytes);
       return Array.from(new Uint8Array(buf))
         .map((b) => b.toString(16).padStart(2, '0'))
         .join('');
     }
-    // Fallback deterministik ringan jika context HTTP non-secure tanpa crypto.subtle
-    let h1 = 0xdeadbeef ^ text.length;
-    let h2 = 0x41c6ce57 ^ text.length;
-    for (let i = 0; i < text.length; i++) {
-      const ch = text.charCodeAt(i);
-      h1 = Math.imul(h1 ^ ch, 2654435761);
-      h2 = Math.imul(h2 ^ ch, 1597334677);
+    // Fallback kriptografis penuh menggunakan SHA-512 RFC 8032 lokal dari ed25519.js (bukan hash 64-bit lemah)
+    if (root.KasSantriEd25519 && typeof root.KasSantriEd25519.sha512 === 'function') {
+      const digest512 = root.KasSantriEd25519.sha512(inputBytes);
+      return Array.from(digest512.slice(0, 32))
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('');
     }
-    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
-    h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
-    return (h2 >>> 0).toString(16).padStart(8, '0') + (h1 >>> 0).toString(16).padStart(8, '0');
+    throw new Error('Mesin kriptografi lokal (WebCrypto / KasSantriEd25519) tidak tersedia.');
   }
 
   function randomSaltHex() {
@@ -87,7 +97,16 @@
     },
 
     getSupabaseSession() {
-      return safeParse(localStorage.getItem(KEYS.SUPABASE_SESSION), null);
+      const sess = safeParse(sessionStorage.getItem(KEYS.SUPABASE_SESSION), null);
+      if (sess) return sess;
+      // Migrasi satu kali jika ada sesi lama di localStorage, lalu bersihkan dari localStorage
+      const legacy = safeParse(localStorage.getItem(KEYS.SUPABASE_SESSION), null);
+      if (legacy) {
+        sessionStorage.setItem(KEYS.SUPABASE_SESSION, JSON.stringify(legacy));
+        localStorage.removeItem(KEYS.SUPABASE_SESSION);
+        return legacy;
+      }
+      return null;
     },
 
     getActiveMode() {
@@ -152,18 +171,55 @@
       if (!resp.ok || !json.access_token) {
         throw new Error(json.error_description || json.msg || 'Login Supabase gagal. Periksa email/password Admin.');
       }
-      localStorage.setItem(KEYS.SUPABASE_SESSION, JSON.stringify({
+      const sessionPayload = {
         access_token: json.access_token,
         refresh_token: json.refresh_token,
         email: json.user?.email || email,
         user_id: json.user?.id || '',
         logged_in_at: new Date().toISOString(),
-      }));
+      };
+      sessionStorage.setItem(KEYS.SUPABASE_SESSION, JSON.stringify(sessionPayload));
+      localStorage.removeItem(KEYS.SUPABASE_SESSION);
       return json;
+    },
+
+    async refreshSupabaseSession() {
+      const cfg = this.getSupabaseConfig();
+      const sess = this.getSupabaseSession();
+      if (!cfg.url || !cfg.anonKey || !sess?.refresh_token) {
+        return null;
+      }
+      try {
+        const resp = await fetch(`${cfg.url}/auth/v1/token?grant_type=refresh_token`, {
+          method: 'POST',
+          headers: {
+            apikey: cfg.anonKey,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ refresh_token: sess.refresh_token }),
+        });
+        const json = await resp.json().catch(() => ({}));
+        if (!resp.ok || !json.access_token) {
+          return null;
+        }
+        const nextSess = {
+          access_token: json.access_token,
+          refresh_token: json.refresh_token || sess.refresh_token,
+          email: json.user?.email || sess.email || '',
+          user_id: json.user?.id || sess.user_id || '',
+          logged_in_at: new Date().toISOString(),
+        };
+        sessionStorage.setItem(KEYS.SUPABASE_SESSION, JSON.stringify(nextSess));
+        localStorage.removeItem(KEYS.SUPABASE_SESSION);
+        return nextSess;
+      } catch (_) {
+        return null;
+      }
     },
 
     logout() {
       sessionStorage.removeItem('ks_admin_offline_unlocked');
+      sessionStorage.removeItem(KEYS.SUPABASE_SESSION);
       localStorage.removeItem(KEYS.SUPABASE_SESSION);
     },
 
@@ -181,10 +237,10 @@
       }
     },
 
-    // --- Supabase HTTP Helper ---
-    async _sbFetch(path, options = {}) {
+    // --- Supabase HTTP Helper (dengan Auto-Refresh Token saat HTTP 401) ---
+    async _sbFetch(path, options = {}, _retried = false) {
       const cfg = this.getSupabaseConfig();
-      const sess = this.getSupabaseSession();
+      let sess = this.getSupabaseSession();
       if (!cfg.url || !cfg.anonKey || !sess?.access_token) {
         throw new Error('Sesi Cloud Supabase belum aktif.');
       }
@@ -196,6 +252,12 @@
       };
       const resp = await fetch(`${cfg.url}${path}`, { ...options, headers });
       if (resp.status === 401) {
+        if (!_retried && sess.refresh_token) {
+          const refreshed = await this.refreshSupabaseSession();
+          if (refreshed && refreshed.access_token) {
+            return this._sbFetch(path, options, true);
+          }
+        }
         this.logout();
         throw new Error('Sesi Supabase habis. Silakan login ulang.');
       }
@@ -247,7 +309,7 @@
         expiry_date: customer.expiry_date || null,
         trial_started_at: customer.trial_started_at || null,
         last_seen_at: customer.last_seen_at || nowIso,
-        app_version: String(customer.app_version || '3.4.0').trim(),
+        app_version: String(customer.app_version || '4.2.0').trim(),
         total_paid_idr: Number(customer.total_paid_idr || 0),
         payment_channel: String(customer.payment_channel || 'FREE').toUpperCase(),
         is_revoked: Boolean(customer.is_revoked),
@@ -350,7 +412,7 @@
     async saveRemoteConfig(cfg) {
       const payload = {
         id: 1,
-        latest_version: String(cfg.latest_version || '3.4.0').trim(),
+        latest_version: String(cfg.latest_version || '4.2.0').trim(),
         min_version: String(cfg.min_version || '3.0.0').trim(),
         announcement_title: String(cfg.announcement_title || '').trim(),
         announcement_body: String(cfg.announcement_body || '').trim(),
@@ -386,7 +448,7 @@
           status: 'AKTIF',
           expiry_date: new Date(now + 280 * dayMs).toISOString(),
           last_seen_at: new Date(now - 2 * 3600000).toISOString(),
-          app_version: '3.4.0',
+          app_version: '4.2.0',
           total_paid_idr: 179000,
           payment_channel: 'DANA',
           is_revoked: false,
@@ -402,7 +464,7 @@
           trial_started_at: new Date(now - 11 * dayMs).toISOString(),
           expiry_date: new Date(now + 3 * dayMs).toISOString(),
           last_seen_at: new Date(now - 5 * 3600000).toISOString(),
-          app_version: '3.4.0',
+          app_version: '4.2.0',
           total_paid_idr: 0,
           payment_channel: 'TRIAL',
           is_revoked: false,
@@ -417,7 +479,7 @@
           status: 'AKTIF',
           expiry_date: null,
           last_seen_at: new Date(now - 12 * 3600000).toISOString(),
-          app_version: '3.4.0',
+          app_version: '4.2.0',
           total_paid_idr: 399000,
           payment_channel: 'DANA',
           is_revoked: false,

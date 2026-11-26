@@ -181,16 +181,17 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen>
             onPressed: () async {
               final provider = Provider.of<KasSantriProvider>(context, listen: false);
               await provider.voidTransaksi(tx.id);
-              if (mounted) {
+              if (ctx.mounted) {
                 Navigator.pop(ctx);
-                await _fetch();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Transaksi dibatalkan & saldo dikembalikan.'),
-                    backgroundColor: Color(0xFF10B981),
-                  ),
-                );
               }
+              await _fetch();
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Transaksi dibatalkan & saldo dikembalikan.'),
+                  backgroundColor: Color(0xFF10B981),
+                ),
+              );
             },
             child: const Text('Ya, Batalkan Transaksi'),
           ),

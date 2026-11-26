@@ -195,7 +195,9 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> {
               final newNominal = int.tryParse(controller.text) ?? tx.nominal;
               final provider = Provider.of<KasSantriProvider>(context, listen: false);
               await provider.editTransaksi(tx.id, newNominal, noteController.text);
-              Navigator.pop(ctx);
+              if (ctx.mounted) {
+                Navigator.pop(ctx);
+              }
               await _loadMutasi();
             },
             child: const Text('Simpan Koreksi'),
@@ -220,7 +222,9 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> {
             onPressed: () async {
               final provider = Provider.of<KasSantriProvider>(context, listen: false);
               await provider.voidTransaksi(tx.id);
-              Navigator.pop(ctx);
+              if (ctx.mounted) {
+                Navigator.pop(ctx);
+              }
               await _loadMutasi();
             },
             child: const Text('Ya, Batalkan Transaksi'),

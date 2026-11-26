@@ -36,6 +36,7 @@ import 'package:kas_santri/services/yayasan_export_service.dart';
 import 'package:kas_santri/utils/currency_formatter.dart';
 import 'package:kas_santri/utils/date_formatter.dart';
 import 'package:kas_santri/utils/time_category_helper.dart';
+import 'package:kas_santri/widgets/legal_document_sheet.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -2289,6 +2290,69 @@ void main() {
       provider.dispose();
       await db.close();
       DatabaseHelper.instance.setDatabaseForTesting(null);
+    });
+
+    test('AH. Batch 3 v4.2: Kepatuhan Data Safety Play Store, LegalDocumentSheet Dual-Mode & Ed25519 --dart-define', () async {
+      // 1. Verifikasi CustomerSyncService.buildTelemetryPayload pada Play Store build vs Direct APK
+      final directPayload = CustomerSyncService.buildTelemetryPayload(
+        deviceId: 'ks-9a2b4c1d',
+        namaPondok: 'PP Al-Ikhlas',
+        namaBendahara: 'Ustadz Ahmad',
+        noWaPengurus: '081234567890',
+        tier: 'yearly',
+        isPlayStoreBuild: false,
+      );
+      expect(directPayload['p_device_id'], 'KS-9A2B4C1D');
+      expect(directPayload['p_nama_bendahara'], 'Ustadz Ahmad');
+      expect(directPayload['p_no_wa'], '081234567890');
+
+      final playStorePayload = CustomerSyncService.buildTelemetryPayload(
+        deviceId: 'ks-9a2b4c1d',
+        namaPondok: 'PP Al-Ikhlas',
+        namaBendahara: 'Ustadz Ahmad',
+        noWaPengurus: '081234567890',
+        tier: 'yearly',
+        isPlayStoreBuild: true,
+      );
+      expect(playStorePayload['p_device_id'], 'KS-9A2B4C1D');
+      expect(playStorePayload['p_nama_pondok'], 'PP Al-Ikhlas');
+      // Build Play Store wajib mengosongkan Personal Identifiers (nama & nomor WA)
+      expect(playStorePayload['p_nama_bendahara'], '');
+      expect(playStorePayload['p_no_wa'], '');
+
+      // 2. Verifikasi LegalDocumentSheet.buildTermsSections & buildPrivacySections pada Play Store build
+      final playTerms = LegalDocumentSheet.buildTermsSections(
+        isPlayStoreBuild: true,
+      );
+      final playTermsAllText =
+          playTerms.map((s) => '${s.heading}\n${s.body}').join('\n');
+      expect(playTermsAllText.contains('Google Play Billing'), true);
+      expect(playTermsAllText.contains('DANA'), false);
+      expect(playTermsAllText.contains('082130678956'), false);
+      expect(playTermsAllText.contains('Direct APK'), false);
+
+      final directTerms = LegalDocumentSheet.buildTermsSections(
+        isPlayStoreBuild: false,
+      );
+      final directTermsAllText =
+          directTerms.map((s) => '${s.heading}\n${s.body}').join('\n');
+      expect(directTermsAllText.contains('Direct APK'), true);
+      expect(directTermsAllText.contains('Google Play Billing'), true);
+
+      final privacySections = LegalDocumentSheet.buildPrivacySections(
+        isPlayStoreBuild: true,
+      );
+      final privacyText =
+          privacySections.map((s) => '${s.heading}\n${s.body}').join('\n');
+      expect(privacyText.contains('drive.appdata'), true);
+      expect(privacyText.contains('HTTP Date'), true);
+
+      // 3. Verifikasi LicenseService.defaultPublicKeyBase64 (fallback RFC 8032 saat --dart-define tidak diset)
+      expect(LicenseService.defaultPublicKeyBase64.isNotEmpty, true);
+      expect(
+        base64Decode(LicenseService.defaultPublicKeyBase64).length,
+        32,
+      );
     });
   });
 }

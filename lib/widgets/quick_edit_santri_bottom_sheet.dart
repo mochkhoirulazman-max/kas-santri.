@@ -558,27 +558,26 @@ class _QuickEditSantriBottomSheetState extends State<QuickEditSantriBottomSheet>
                         ),
                       ),
                       onPressed: () async {
-                        Navigator.pop(ctx);
-                        Navigator.pop(context);
-                        AppFeedback.tap();
+                        final messenger = ScaffoldMessenger.of(context);
                         final provider = Provider.of<KasSantriProvider>(
                           context,
                           listen: false,
                         );
+                        Navigator.pop(ctx);
+                        Navigator.pop(context);
+                        AppFeedback.tap();
                         await provider.tutupBukuArsipSantri(
                           [s.id],
                           statusTujuan: Santri.statusAlumniVal,
                         );
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                '${s.namaLengkap} diarsipkan sebagai Boyong/Lulus (Riwayat tetap aman).',
-                              ),
-                              backgroundColor: const Color(0xFF10B981),
+                        messenger.showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              '${s.namaLengkap} diarsipkan sebagai Boyong/Lulus (Riwayat tetap aman).',
                             ),
-                          );
-                        }
+                            backgroundColor: const Color(0xFF10B981),
+                          ),
+                        );
                       },
                       icon: const Icon(Icons.archive_outlined, size: 16),
                       label: const Text(
@@ -645,19 +644,18 @@ class _QuickEditSantriBottomSheetState extends State<QuickEditSantriBottomSheet>
               onPressed: !confirmedCheck
                   ? null
                   : () async {
+                      final messenger = ScaffoldMessenger.of(context);
+                      final provider = Provider.of<KasSantriProvider>(context, listen: false);
                       Navigator.pop(ctx);
                       Navigator.pop(context); // close bottom sheet
                       AppFeedback.tap();
-                      final provider = Provider.of<KasSantriProvider>(context, listen: false);
                       await provider.deleteSantri(s.id);
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Santri ${s.namaLengkap} berhasil dihapus dari daftar.'),
-                            backgroundColor: const Color(0xFFE11D48),
-                          ),
-                        );
-                      }
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text('Santri ${s.namaLengkap} berhasil dihapus dari daftar.'),
+                          backgroundColor: const Color(0xFFE11D48),
+                        ),
+                      );
                     },
               child: const Text('Ya, Hapus Permanen', style: TextStyle(fontWeight: FontWeight.bold)),
             ),

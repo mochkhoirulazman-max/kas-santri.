@@ -126,24 +126,23 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
       ),
     );
 
-    if (confirm != true) return;
+    if (confirm != true || !mounted) return;
 
+    final provider = Provider.of<KasSantriProvider>(context, listen: false);
     setState(() => _isProcessing = true);
     final db = await DatabaseHelper.instance.database;
     await db.delete('transaksi_harian');
     await db.delete('setoran_bulanan');
     await db.delete('santri');
 
-    final provider = Provider.of<KasSantriProvider>(context, listen: false);
     await provider.loadAllData();
 
+    if (!mounted) return;
     setState(() => _isProcessing = false);
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Database telah dibersihkan.'), backgroundColor: Colors.orange),
-      );
-    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Database telah dibersihkan.'), backgroundColor: Colors.orange),
+    );
   }
 
   @override

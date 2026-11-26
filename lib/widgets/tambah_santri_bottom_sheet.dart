@@ -132,6 +132,7 @@ class _TambahSantriBottomSheetState extends State<TambahSantriBottomSheet> {
     if (!mounted) return;
     final openSetoranCb = widget.onOpenSetoran;
     final parentNav = Navigator.of(context);
+    final parentMessenger = ScaffoldMessenger.of(context);
     parentNav.pop();
 
     if (openSetoranCb != null) {
@@ -199,7 +200,7 @@ class _TambahSantriBottomSheetState extends State<TambahSantriBottomSheet> {
         ),
       );
     } else {
-      ScaffoldMessenger.of(parentNav.context).showSnackBar(
+      parentMessenger.showSnackBar(
         SnackBar(
           content: Text('Santri $nama berhasil ditambahkan (Saldo awal Rp 0).'),
           backgroundColor: const Color(0xFF10B981),

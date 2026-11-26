@@ -37,10 +37,13 @@ class LicenseService {
   LicenseService._init();
 
   /// Public Key Ed25519 (32-byte raw Base64) untuk memverifikasi tanda tangan lisensi.
-  /// GANTI nilai placeholder valid RFC 8032 ini dengan PUBLIC KEY hasil:
-  /// `dart run tool/generate_keypair.dart --generate-keys`
-  static const String defaultPublicKeyBase64 =
-      '11qYAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURo=';
+  /// Dapat disuntikkan saat build release melalui:
+  /// `--dart-define=KAS_SANTRI_ED25519_PUBKEY=<BASE64_32_BYTE_PUBLIC_KEY>`
+  /// Fallback default menggunakan RFC 8032 test vector agar unit test berjalan deterministik.
+  static const String defaultPublicKeyBase64 = String.fromEnvironment(
+    'KAS_SANTRI_ED25519_PUBKEY',
+    defaultValue: '11qYAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURo=',
+  );
 
   static const String _keyDeviceId = 'ks_device_id';
   static const String _keyLicenseCode = 'ks_pro_license_code';

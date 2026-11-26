@@ -18,6 +18,71 @@ class LegalDocumentSheet extends StatelessWidget {
     required this.sections,
   }) : super(key: key);
 
+  static List<({String heading, String body})> buildTermsSections({
+    bool isPlayStoreBuild = kIsPlayStoreBuild,
+  }) {
+    return [
+      (
+        heading: '1. Ruang Lingkup & Lisensi Gratis',
+        body:
+            'Aplikasi Kas-Santri dirancang khusus untuk membantu bendahara, musyrif, dan pengurus pondok pesantren dalam mencatat uang saku, setoran, serta tunggakan santri secara offline-first. Versi Gratis dapat digunakan selamanya tanpa biaya untuk mengelola maksimal 15 santri aktif beserta seluruh fitur inti transaksi cepat, mutasi, tunggakan, PIN keamanan, dan backup JSON lokal.',
+      ),
+      (
+        heading: '2. Paket Kas-Santri PRO (Prabayar & Lifetime)',
+        body:
+            'Paket Kas-Santri PRO membuka kapasitas santri tanpa batas serta fitur lanjutan (Multi-Dompet Tunai/Bank, Cash Opname Fisik, Scan & Cetak Kartu QR, Ekspor Excel/PDF Berkop Logo, Kirim WA 1-Klik & Struk Gambar PNG bebas watermark, Biometrik, serta Auto-Backup Google Drive).\n\n• Pro Bulanan (1 Bulan): Rp 25.000.\n• Pro Tahun Ajaran (12 Bulan): Rp 179.000.\n• Pro Selamanya (Lifetime): Rp 399.000 sekali bayar untuk satu perangkat/akun pondok.',
+      ),
+      (
+        heading: '3. Uji Coba Gratis 14 Hari',
+        body:
+            'Setiap perangkat berhak mengaktifkan 1 (satu) kali Uji Coba Gratis Kas-Santri PRO selama 14 hari penuh tanpa kewajiban membayar di muka. Setelah masa 14 hari berakhir, akun otomatis kembali ke Mode Gratis tanpa menghapus data santri maupun riwayat transaksi yang sudah tercatat.',
+      ),
+      (
+        heading: '4. Ketentuan Pembayaran & Aktivasi PRO',
+        body: isPlayStoreBuild
+            ? 'Seluruh pembelian dan aktivasi paket Kas-Santri PRO diproses secara resmi dan aman melalui sistem Google Play Billing sesuai ketentuan Google Play. Status PRO akan aktif secara otomatis setelah transaksi terverifikasi pada akun Google Play Anda.'
+            : 'Pada distribusi Direct APK, pembayaran ditujukan ke DANA/QRIS resmi a.n. ${AppConfig.adminAccountName} (${AppConfig.adminDanaNumber}) dan menghasilkan Kode Aktivasi PRO Ed25519 yang terikat pada ID Perangkat unik. Pada distribusi Google Play Store, seluruh transaksi diproses melalui Google Play Billing sesuai ketentuan Google Play.',
+      ),
+      (
+        heading: '5. Hak Cipta & Tanggung Jawab Data',
+        body:
+            'Hak cipta aplikasi dan rancangan sistem dimiliki penuh oleh Moch Khoirul Azman (© 2026). Pengurus pondok bertanggung jawab mencadangkan data secara berkala melalui fitur Backup JSON/.KSBAK atau Cloud Google Drive sebelum mengganti atau mereset perangkat.',
+      ),
+    ];
+  }
+
+  static List<({String heading, String body})> buildPrivacySections({
+    bool isPlayStoreBuild = kIsPlayStoreBuild,
+  }) {
+    return [
+      (
+        heading: '1. Penyimpanan Data Lokal (SQLite Offline-First)',
+        body:
+            'Seluruh data santri, nominal saldo, transaksi harian, tunggakan, mutasi dompet, buku infak, catatan keperluan, nomor WhatsApp wali, serta foto profil santri disimpan 100% secara lokal di dalam basis data SQLite pada perangkat pengurus (dan opsional di ruang tersembunyi drive.appdata akun Google Drive milik pengurus sendiri). Data keuangan santri dan pondok Anda tidak pernah dikirim ke server pengembang.',
+      ),
+      (
+        heading: '2. Penggunaan Izin Kamera & Galeri',
+        body:
+            'Izin kamera hanya digunakan secara lokal saat pengurus memindai Kode QR Kartu Santri atau mengambil foto profil santri / logo pondok. Tidak ada gambar atau video yang dikirim ke server eksternal mana pun.',
+      ),
+      (
+        heading: '3. Cadangan Privat Google Drive (drive.appdata)',
+        body:
+            'Jika Anda mengaktifkan fitur PRO Cloud Backup Google Drive, aplikasi hanya meminta akses ke ruang tersembunyi khusus aplikasi (scope drive.appdata) pada akun Google milik pondok/pengurus sendiri. Aplikasi tidak dapat melihat atau membaca file pribadi lain di Google Drive Anda.',
+      ),
+      (
+        heading: '4. Keamanan PIN, Biometrik, Sinkronisasi Waktu & Metadata Lisensi',
+        body:
+            'PIN keamanan 4–6 digit disimpan dalam bentuk hash kriptografis terenkripsi melalui Android Keystore / EncryptedSharedPreferences. Autentikasi sidik jari ditangani langsung oleh sistem biometrik Android tanpa menyimpan data biometrik mentah di aplikasi.\n\nUntuk menjaga integritas masa aktif lisensi dan informasi versi terbaru aplikasi, aplikasi hanya melakukan sinkronisasi metadata lisensi ringan non-sensitif (ID Perangkat, Nama Pondok, Status Paket Lisensi, dan Versi Aplikasi${isPlayStoreBuild ? '' : ', serta metadata kontak pengurus pada distribusi Direct APK'}) dan pengecekan ringan header standar HTTP Date jaringan untuk sinkronisasi waktu anti-manipulasi jam.',
+      ),
+      (
+        heading: '5. Kontak Dukungan Resmi Pengembang',
+        body:
+            'Untuk bantuan teknis, konsultasi penggunaan aplikasi, atau pertanyaan privasi data, silakan hubungi:\n• Pengembang: ${AppConfig.adminAccountName}\n• Kontak Dukungan: ${AppConfig.adminDanaNumber}',
+      ),
+    ];
+  }
+
   static Future<void> showTerms(BuildContext context) async {
     AppFeedback.tap();
     await showModalBottomSheet(
@@ -25,38 +90,12 @@ class LegalDocumentSheet extends StatelessWidget {
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => const LegalDocumentSheet(
+      builder: (_) => LegalDocumentSheet(
         title: 'Syarat & Ketentuan Kas-Santri',
         badge: 'DOKUMEN RESMI OFFLINE',
         icon: Icons.gavel_rounded,
-        accentColor: Color(0xFF38BDF8),
-        sections: [
-          (
-            heading: '1. Ruang Lingkup & Lisensi Gratis',
-            body:
-                'Aplikasi Kas-Santri dirancang khusus untuk membantu bendahara, musyrif, dan pengurus pondok pesantren dalam mencatat uang saku, setoran, serta tunggakan santri secara offline-first. Versi Gratis dapat digunakan selamanya tanpa biaya untuk mengelola maksimal 15 santri aktif beserta seluruh fitur inti transaksi cepat, mutasi, tunggakan, PIN keamanan, dan backup JSON lokal.',
-          ),
-          (
-            heading: '2. Paket Kas-Santri PRO (Prabayar & Lifetime)',
-            body:
-                'Paket Kas-Santri PRO membuka kapasitas santri tanpa batas serta fitur lanjutan (Multi-Dompet Tunai/Bank, Cash Opname Fisik, Scan & Cetak Kartu QR, Ekspor Excel/PDF Berkop Logo, Kirim WA 1-Klik & Struk Gambar PNG bebas watermark, Biometrik, serta Auto-Backup Google Drive).\n\n• Pro Bulanan (1 Bulan): Rp 25.000 prabayar (tidak menagih otomatis).\n• Pro Tahun Ajaran (12 Bulan): Rp 179.000 prabayar (tidak menagih otomatis).\n• Pro Selamanya (Lifetime): Rp 399.000 sekali bayar untuk satu perangkat/akun pondok.',
-          ),
-          (
-            heading: '3. Uji Coba Gratis 14 Hari',
-            body:
-                'Setiap perangkat berhak mengaktifkan 1 (satu) kali Uji Coba Gratis Kas-Santri PRO selama 14 hari penuh tanpa kewajiban membayar di muka. Setelah masa 14 hari berakhir, akun otomatis kembali ke Mode Gratis tanpa menghapus data santri maupun riwayat transaksi yang sudah tercatat.',
-          ),
-          (
-            heading: '4. Kode Lisensi & Ketentuan Pembayaran',
-            body:
-                'Pada distribusi Direct APK, pembayaran ditujukan ke DANA/QRIS resmi a.n. ${AppConfig.adminAccountName} (${AppConfig.adminDanaNumber}) dan menghasilkan Kode Aktivasi PRO yang terikat pada ID Perangkat unik. Pada distribusi Google Play Store, seluruh transaksi diproses melalui Google Play Billing sesuai ketentuan Google Play.',
-          ),
-          (
-            heading: '5. Hak Cipta & Tanggung Jawab Data',
-            body:
-                'Hak cipta aplikasi dan rancangan sistem dimiliki penuh oleh Moch Khoirul Azman (© 2026). Pengurus pondok bertanggung jawab mencadangkan data secara berkala melalui fitur Backup JSON atau Cloud Google Drive sebelum mengganti atau mereset perangkat.',
-          ),
-        ],
+        accentColor: const Color(0xFF38BDF8),
+        sections: buildTermsSections(),
       ),
     );
   }
@@ -68,38 +107,12 @@ class LegalDocumentSheet extends StatelessWidget {
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => const LegalDocumentSheet(
+      builder: (_) => LegalDocumentSheet(
         title: 'Kebijakan Privasi Kas-Santri',
         badge: '100% OFFLINE-FIRST & AMAN',
         icon: Icons.privacy_tip_rounded,
-        accentColor: Color(0xFF34D399),
-        sections: [
-          (
-            heading: '1. Penyimpanan Data Lokal (SQLite Offline-First)',
-            body:
-                'Seluruh data santri, nominal saldo, catatan keperluan, nomor WhatsApp wali, foto profil santri, serta buku mutasi disimpan sepenuhnya di dalam basis data SQLite lokal pada perangkat pengurus. Pengembang tidak mengoperasikan server terpusat dan tidak pernah mengumpulkan, membaca, atau menjual data keuangan pondok Anda.',
-          ),
-          (
-            heading: '2. Penggunaan Izin Kamera & Galeri',
-            body:
-                'Izin kamera hanya digunakan secara lokal saat pengurus memindai Kode QR Kartu Santri atau mengambil foto profil santri / logo pondok. Tidak ada gambar atau video yang dikirim ke server eksternal mana pun.',
-          ),
-          (
-            heading: '3. Cadangan Privat Google Drive (drive.appdata)',
-            body:
-                'Jika Anda mengaktifkan fitur PRO Cloud Backup Google Drive, aplikasi hanya meminta akses ke ruang tersembunyi khusus aplikasi (scope drive.appdata) pada akun Google milik pondok/pengurus sendiri. Aplikasi tidak dapat melihat atau membaca file pribadi lain di Google Drive Anda.',
-          ),
-          (
-            heading: '4. Keamanan PIN, Biometrik & ID Perangkat',
-            body:
-                'PIN keamanan 4–6 digit disimpan dalam bentuk hash SHA-256 terenkripsi melalui Android Keystore / EncryptedSharedPreferences. Autentikasi sidik jari ditangani langsung oleh sistem biometrik Android tanpa menyimpan data biometrik mentah di aplikasi. ID Perangkat (format KS-XXXX-XXXX) hanya digunakan secara lokal untuk memverifikasi lisensi PRO.',
-          ),
-          (
-            heading: '5. Kontak Dukungan Resmi Pengembang',
-            body:
-                'Untuk bantuan teknis, aktivasi lisensi pondok, atau pertanyaan privasi data, silakan hubungi:\n• Pengembang: ${AppConfig.adminAccountName}\n• WhatsApp Resmi: ${AppConfig.adminDanaNumber}',
-          ),
-        ],
+        accentColor: const Color(0xFF34D399),
+        sections: buildPrivacySections(),
       ),
     );
   }

@@ -40,7 +40,7 @@ create table if not exists public.app_customers (
   expiry_date timestamptz null,
   trial_started_at timestamptz null,
   last_seen_at timestamptz not null default now(),
-  app_version text not null default '3.4.0',
+  app_version text not null default '4.2.0',
   total_paid_idr bigint not null default 0,
   payment_channel text not null default 'FREE', -- FREE, TRIAL, DANA, PLAY_STORE
   is_revoked boolean not null default false,
@@ -70,7 +70,7 @@ create index if not exists idx_license_tx_device on public.license_transactions 
 -- 5. Tabel Remote Config & Pengumuman Update Aplikasi (Singleton id = 1)
 create table if not exists public.app_remote_config (
   id integer primary key default 1 check (id = 1),
-  latest_version text not null default '3.4.0',
+  latest_version text not null default '4.2.0',
   min_version text not null default '3.0.0',
   announcement_title text not null default '',
   announcement_body text not null default '',
@@ -90,7 +90,7 @@ insert into public.app_remote_config (
 )
 values (
   1,
-  '3.4.0',
+  '4.2.0',
   '3.0.0',
   '',
   '',
@@ -162,7 +162,7 @@ create or replace function public.sync_device_telemetry(
   p_no_wa text default '',
   p_tier text default 'FREE',
   p_expiry_date timestamptz default null,
-  p_app_version text default '3.4.0',
+  p_app_version text default '4.2.0',
   p_payment_channel text default 'FREE'
 )
 returns jsonb
@@ -178,8 +178,9 @@ declare
   v_row public.app_customers%rowtype;
   v_cfg public.app_remote_config%rowtype;
 begin
-  if length(v_device_id) < 4 then
-    raise exception 'device_id tidak valid';
+  -- Validasi format Device ID sesuai LicenseService.getOrCreateDeviceId() (KS-XXXXXXXX maupun format lama KS-XXXX-XXXX)
+  if v_device_id !~ '^KS-[A-Z0-9]{4,16}(-[A-Z0-9]{4,16})?$' then
+    raise exception 'device_id tidak valid (wajib format KS-XXXXXXXX)';
   end if;
 
   if v_tier not in ('FREE', 'TRIAL_14D', 'MONTHLY', 'YEARLY', 'LIFETIME') then
@@ -188,6 +189,25 @@ begin
 
   if v_channel not in ('FREE', 'TRIAL', 'DANA', 'PLAY_STORE') then
     v_channel := 'FREE';
+  end if;
+
+  -- Cegah klien anonim menaikkan tier sepihak ke paket berbayar tanpa bukti transaksi sah di license_transactions
+  -- (kecuali kanal PLAY_STORE atau pelanggan yang memang sudah diaktifkan Admin di app_customers)
+  if v_tier in ('MONTHLY', 'YEARLY', 'LIFETIME') and v_channel <> 'PLAY_STORE' then
+    if not exists (
+      select 1
+      from public.license_transactions lt
+      where lt.device_id = v_device_id
+    ) and not exists (
+      select 1
+      from public.app_customers ac
+      where ac.device_id = v_device_id
+        and ac.tier in ('MONTHLY', 'YEARLY', 'LIFETIME')
+        and not ac.is_revoked
+    ) then
+      v_tier := 'FREE';
+      v_channel := 'FREE';
+    end if;
   end if;
 
   if v_tier = 'TRIAL_14D' then
@@ -222,7 +242,7 @@ begin
     p_expiry_date,
     case when v_tier = 'TRIAL_14D' then now() else null end,
     now(),
-    left(trim(coalesce(p_app_version, '3.4.0')), 32),
+    left(trim(coalesce(p_app_version, '4.2.0')), 32),
     v_channel,
     now()
   )
