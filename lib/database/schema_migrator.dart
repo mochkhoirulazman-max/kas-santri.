@@ -60,6 +60,12 @@ class SchemaMigrator {
       "status_santri TEXT NOT NULL DEFAULT 'AKTIF'",
       existingColumns: santriCols,
     );
+    await addColumnIfNotExists(
+      db,
+      'santri',
+      'saldo_tabungan INTEGER NOT NULL DEFAULT 0',
+      existingColumns: santriCols,
+    );
 
     final setoranCols = await getExistingColumns(db, 'setoran_bulanan');
     await addColumnIfNotExists(
@@ -189,6 +195,7 @@ class SchemaMigrator {
 
     await createV3InfakTablesAndIndexes(db);
     await createV33AuditTableAndIndex(db);
+    await createV43TabunganTableAndIndex(db);
 
     try {
       await db.execute(
@@ -270,6 +277,29 @@ class SchemaMigrator {
     try {
       await db.execute(
         'CREATE INDEX IF NOT EXISTS idx_audit_log_created ON audit_log (created_at);',
+      );
+    } catch (_) {}
+  }
+
+  Future<void> createV43TabunganTableAndIndex(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS transaksi_tabungan (
+        id TEXT PRIMARY KEY,
+        santri_id TEXT NOT NULL,
+        tipe TEXT NOT NULL,
+        nominal INTEGER NOT NULL,
+        sumber_dompet TEXT NOT NULL DEFAULT 'TUNAI',
+        saldo_tabungan_setelah INTEGER NOT NULL DEFAULT 0,
+        tanggal_lokal TEXT NOT NULL,
+        catatan TEXT,
+        is_void INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (santri_id) REFERENCES santri (id) ON DELETE CASCADE
+      )
+    ''');
+    try {
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_tx_tabungan_santri ON transaksi_tabungan (santri_id, tanggal_lokal, is_void);',
       );
     } catch (_) {}
   }
@@ -467,6 +497,15 @@ class SchemaMigrator {
     if (oldVersion < 4) {
       await createV33AuditTableAndIndex(db);
     }
+
+    if (oldVersion < 5) {
+      await addColumnIfNotExists(
+        db,
+        'santri',
+        'saldo_tabungan INTEGER NOT NULL DEFAULT 0',
+      );
+      await createV43TabunganTableAndIndex(db);
+    }
   }
 
   Future<void> createDB(Database db, int version) async {
@@ -480,6 +519,7 @@ class SchemaMigrator {
         kamar TEXT NOT NULL,
         no_wa_wali TEXT,
         saldo_total INTEGER NOT NULL DEFAULT 0,
+        saldo_tabungan INTEGER NOT NULL DEFAULT 0,
         jatah_harian INTEGER NOT NULL DEFAULT 10000,
         setoran_awal INTEGER NOT NULL DEFAULT 300000,
         tunggakan INTEGER NOT NULL DEFAULT 0,
@@ -602,6 +642,7 @@ class SchemaMigrator {
 
     await createV3InfakTablesAndIndexes(db);
     await createV33AuditTableAndIndex(db);
+    await createV43TabunganTableAndIndex(db);
 
     await db.execute(
       'CREATE INDEX idx_tx_santri_tgl ON transaksi_harian (santri_id, tanggal_lokal, is_void);',

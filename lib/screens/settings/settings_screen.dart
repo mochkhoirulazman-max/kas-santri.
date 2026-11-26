@@ -1,12 +1,7 @@
-import 'dart:convert';
-import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:share_plus/share_plus.dart';
-import '../../database/database_helper.dart';
 import '../../models/bendahara_account.dart';
 import '../../models/pengaturan.dart';
 import '../../providers/kas_santri_provider.dart';
@@ -14,6 +9,7 @@ import '../../providers/theme_wallpaper_provider.dart';
 import '../../services/account_auth_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/backup_service.dart';
+import '../../services/cloud_backup_service.dart';
 import '../../services/google_drive_backup_service.dart';
 import '../../services/subscription_service.dart';
 import '../../utils/app_feedback.dart';
@@ -438,22 +434,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _backupJson() async {
-    AppFeedback.tap();
-    try {
-      final dump = await DatabaseHelper.instance.dumpBackupJson();
-      final jsonStr = const JsonEncoder.withIndent('  ').convert(dump);
-      final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/backup_kas_santri_${DateTime.now().millisecondsSinceEpoch}.json');
-      await file.writeAsString(jsonStr);
-      AppFeedback.success();
-      await Share.shareXFiles([XFile(file.path)], text: 'Backup Kas Santri (.JSON)');
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal backup: $e'), backgroundColor: const Color(0xFFF43F5E)),
-        );
-      }
-    }
+    await EncryptedBackupHelper.backupPlainJson(context);
   }
 
   Future<void> _showConfirmRestoreDialog({
@@ -1150,40 +1131,258 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _sectionHeader('5. DATA & CADANGAN', 'Backup .KSBAK Terenkripsi, .JSON & Google Drive PRO', const Color(0xFF67E8F9)),
+                _sectionHeader(
+                  '5. DATA & CADANGAN',
+                  'Offline-First + Cloud Backup Online (.KSBAK, .JSON & Supabase Vault)',
+                  const Color(0xFF67E8F9),
+                ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
                     Expanded(
-                      child: OutlinedButton(
-                        onPressed: _backupJson,
-                        style: OutlinedButton.styleFrom(side: BorderSide(color: const Color(0xFF10B981).withOpacity(0.5))),
-                        child: const Text('⬇️ Backup .JSON', style: TextStyle(color: Color(0xFF6EE7B7), fontSize: 11, fontWeight: FontWeight.w800)),
+                      child: ElevatedButton.icon(
+                        onPressed: () =>
+                            EncryptedBackupHelper.saveLocalBackupToDevice(
+                          context,
+                          encrypted: false,
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF10B981),
+                          foregroundColor: const Color(0xFF030712),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                        ),
+                        icon: const Icon(Icons.save_alt_rounded, size: 15),
+                        label: const FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            '💾 Simpan ke Memori HP',
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: ElevatedButton(
-                        onPressed: () => EncryptedBackupHelper.backupEncryptedKsbak(context),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF0E7490),
-                          foregroundColor: Colors.white,
+                      child: OutlinedButton.icon(
+                        onPressed: () =>
+                            EncryptedBackupHelper.shareLocalBackupFile(
+                          context,
+                          encrypted: false,
                         ),
-                        child: Text(
-                          isPro ? '🔐 Backup .KSBAK' : '🔐 Backup .KSBAK 👑',
-                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(
+                            color: const Color(0xFF10B981).withOpacity(0.55),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                        ),
+                        icon: const Icon(
+                          Icons.share_outlined,
+                          size: 15,
+                          color: Color(0xFF6EE7B7),
+                        ),
+                        label: const FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            '📤 Bagikan .JSON',
+                            style: TextStyle(
+                              color: Color(0xFF6EE7B7),
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
-                SizedBox(
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () =>
+                            EncryptedBackupHelper.backupEncryptedKsbak(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF0E7490),
+                          foregroundColor: Colors.white,
+                        ),
+                        child: Text(
+                          isPro ? '🔐 Backup .KSBAK' : '🔐 Backup .KSBAK 👑',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () =>
+                            EncryptedBackupHelper.restoreBackupAnyFormat(
+                          context,
+                          provider,
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(
+                            color: const Color(0xFF38BDF8).withOpacity(0.5),
+                          ),
+                        ),
+                        child: const FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            '⬆️ Pulihkan File',
+                            style: TextStyle(
+                              color: Color(0xFF67E8F9),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Container(
                   width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () => EncryptedBackupHelper.restoreBackupAnyFormat(context, provider),
-                    style: OutlinedButton.styleFrom(side: BorderSide(color: const Color(0xFF38BDF8).withOpacity(0.5))),
-                    child: const Text('⬆️ Pulihkan Backup (.JSON / .KSBAK)', style: TextStyle(color: Color(0xFF67E8F9), fontSize: 11.5, fontWeight: FontWeight.w800)),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        const Color(0xFF062C2B).withValues(alpha: 0.78),
+                        const Color(0xFF0A1428).withValues(alpha: 0.84),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: const Color(0xFF2DD4BF).withValues(alpha: 0.45),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Text(
+                        '☁️ Cloud Backup Online (Terenkripsi AES-256)',
+                        style: TextStyle(
+                          color: Color(0xFF5EEAD4),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      FutureBuilder<CloudBackupMeta?>(
+                        future: CloudBackupService.instance.getLastMeta(),
+                        builder: (ctx, snap) {
+                          final meta = snap.data;
+                          if (meta == null) {
+                            return const Text(
+                              'Offline-First + Cloud Backup Online: Buat Kode Pondok & Password Enkripsi agar bisa pindah HP tanpa repot kirim file manual.',
+                              style: TextStyle(
+                                color: Colors.white60,
+                                fontSize: 10.5,
+                                height: 1.35,
+                              ),
+                            );
+                          }
+                          final dtText = meta.lastUploadedAt != null
+                              ? DateFormatter.formatFullDateTime(
+                                  meta.lastUploadedAt!,
+                                )
+                              : '-';
+                          final kb = (meta.sizeBytes / 1024).toStringAsFixed(1);
+                          return Text(
+                            'Kode Aktif: ${meta.backupKey} • Terakhir unggah: $dtText ($kb KB)',
+                            style: const TextStyle(
+                              color: Color(0xFFA7F3D0),
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () =>
+                                  EncryptedBackupHelper.showCloudBackupDialog(
+                                context,
+                                provider,
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF14B8A6),
+                                foregroundColor: const Color(0xFF030712),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 10,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              icon: const Icon(
+                                Icons.cloud_upload_rounded,
+                                size: 15,
+                              ),
+                              label: const FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  '☁️ Cadangkan Online',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () =>
+                                  EncryptedBackupHelper.showCloudRestoreDialog(
+                                context,
+                                provider,
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                side: BorderSide(
+                                  color: const Color(0xFF2DD4BF)
+                                      .withValues(alpha: 0.65),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 10,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              icon: const Icon(
+                                Icons.cloud_download_rounded,
+                                size: 15,
+                                color: Color(0xFF5EEAD4),
+                              ),
+                              label: const FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  '☁️ Pulihkan Online',
+                                  style: TextStyle(
+                                    color: Color(0xFF5EEAD4),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -1627,15 +1826,76 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     },
                   ),
                 ],
+                const SizedBox(height: 14),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF060B14).withValues(alpha: 0.72),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: const Color(0xFFD946EF).withValues(alpha: 0.32),
+                    ),
+                  ),
+                  child: const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '✨ TENTANG APLIKASI • Kas-Santri v4.3.0',
+                        style: TextStyle(
+                          color: Color(0xFFF0ABFC),
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                      SizedBox(height: 6),
+                      Text(
+                        'Pengembang: Moch Khoirul Azman',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Dibuat: Senin, 23 November 2026 • 09:00 WIB',
+                        style: TextStyle(
+                          color: Color(0xFF67E8F9),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Arsitektur: Offline-First + Cloud Backup Online (v4.3.0)',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 10.5,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'Aplikasi ini lahir dari niat tulus untuk mendampingi para bendahara, musyrif, dan pengurus pondok pesantren agar dapat menjaga amanah keuangan santri secara cepat, tertib, jujur, akurat, dan terbebas dari selisih perhitungan.',
+                        style: TextStyle(
+                          color: Colors.white60,
+                          fontSize: 11,
+                          height: 1.42,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
 
           const SizedBox(height: 22),
-          Text(
-            'Pengembang: Moch Khoirul Azman • Kas-Santri v4.2 • ${settings.namaPondok} • © 2026',
+          const Text(
+            'Dikembangkan oleh Moch Khoirul Azman • Kas-Santri v4.3 • Senin, 23 November 2026 (09:00 WIB) • © 2026',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.white38, fontSize: 10),
+            style: TextStyle(color: Colors.white38, fontSize: 10),
           ),
         ],
       ),

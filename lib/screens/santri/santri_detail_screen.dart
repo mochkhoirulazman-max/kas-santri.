@@ -16,6 +16,7 @@ import '../../widgets/quick_edit_santri_bottom_sheet.dart';
 import '../../widgets/tunggakan_bottom_sheet.dart';
 import '../paywall_screen.dart';
 import '../setoran/setoran_screen.dart';
+import '../tabungan/brankas_tabungan_screen.dart';
 
 class SantriDetailScreen extends StatefulWidget {
   final String santriId;
@@ -819,6 +820,73 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> {
                           ),
                         ),
                       ],
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 9,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF062C2B).withValues(alpha: 0.62),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: const Color(0xFF2DD4BF).withValues(alpha: 0.45),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Text('🏦', style: TextStyle(fontSize: 16)),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Brankas Tabungan Terpisah',
+                                    style: TextStyle(
+                                      color: Color(0xFF99F6E4),
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                  Text(
+                                    CurrencyFormatter.format(santri.saldoTabungan),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: santri.id.isEmpty
+                                  ? null
+                                  : () async {
+                                      AppFeedback.tap();
+                                      await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => BrankasTabunganScreen(
+                                            initialSantriId: santri.id,
+                                          ),
+                                        ),
+                                      );
+                                      await _loadMutasi();
+                                    },
+                              child: const Text(
+                                'Kelola →',
+                                style: TextStyle(
+                                  color: Color(0xFF5EEAD4),
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),

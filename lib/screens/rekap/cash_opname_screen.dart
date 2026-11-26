@@ -144,6 +144,7 @@ class _CashOpnameScreenState extends State<CashOpnameScreen> {
     final provider = Provider.of<KasSantriProvider>(context);
     final kasJajanTunai = provider.kasLaciTunai;
     final kasInfakTunai = provider.kasInfakTunai;
+    final tabunganTunai = provider.tabunganTunai;
     final kasSistem = provider.targetUangFisikDiLaci;
     final totalFisik = _totalFisik;
     final selisih = totalFisik - kasSistem;
@@ -284,6 +285,12 @@ class _CashOpnameScreenState extends State<CashOpnameScreen> {
                           'Kas Infak Tunai (Belum Disetor ke Yayasan)',
                           CurrencyFormatter.format(kasInfakTunai),
                           const Color(0xFFFDE68A),
+                        ),
+                        const SizedBox(height: 4),
+                        _opnameBreakdownRow(
+                          'Brankas Tabungan Tunai Santri (Kantong 4)',
+                          CurrencyFormatter.format(tabunganTunai),
+                          const Color(0xFFA7F3D0),
                         ),
                         const Divider(color: Colors.white12, height: 12),
                         _opnameBreakdownRow(

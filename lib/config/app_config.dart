@@ -37,7 +37,7 @@ class AppConfig {
 
   /// Versi aplikasi & konfigurasi Supabase opsional (disuntik via --dart-define saat build).
   /// APK tetap berjalan 100% offline-first bila SUPABASE_URL & SUPABASE_ANON_KEY kosong.
-  static const String appVersion = '4.2.0';
+  static const String appVersion = '4.3.0';
   static const String supabaseUrl = String.fromEnvironment(
     'SUPABASE_URL',
     defaultValue: '',

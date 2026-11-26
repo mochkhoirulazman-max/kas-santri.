@@ -16,6 +16,7 @@ import '../widgets/tarik_tunai_bottom_sheet.dart';
 import '../utils/app_feedback.dart';
 import 'paywall_screen.dart';
 import 'santri/qr_scanner_screen.dart';
+import 'tabungan/brankas_tabungan_screen.dart';
 
 class HomeFastWithdrawalScreen extends StatefulWidget {
   final VoidCallback? onOpenBukuInfak;
@@ -736,6 +737,38 @@ class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen>
                           ),
                         ),
                       ),
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: InkWell(
+                        onTap: () {
+                          AppFeedback.tap();
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const BrankasTabunganScreen(),
+                            ),
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(20),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0C4A6E).withOpacity(0.60),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: const Color(0xFF2DD4BF).withOpacity(0.80)),
+                          ),
+                          alignment: Alignment.center,
+                          child: const Text(
+                            '🏦 Tabungan',
+                            style: TextStyle(
+                              color: Color(0xFF5EEAD4),
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                     _buildFilterPill(
                       isPro ? '⚠️ Saldo Kritis (<3 Hr)' : '⚠️ Saldo Kritis (<3 Hr) 👑',
                       'KRITIS',

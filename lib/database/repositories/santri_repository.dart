@@ -2,6 +2,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 import '../../models/pengaturan.dart';
 import '../../models/santri.dart';
+import '../../models/transaksi_tabungan.dart';
 import '../../utils/date_formatter.dart';
 
 class SantriRepository {
@@ -69,6 +70,21 @@ class SantriRepository {
           'referensi_id': santri.id,
           'catatan': 'Saldo Awal ${santri.namaLengkap}',
           'tanggal_lokal': DateFormatter.toLocalDateString(now),
+          'created_at': now.toIso8601String(),
+        });
+      }
+      if (santri.saldoTabungan > 0) {
+        final now = DateTime.now();
+        await txn.insert('transaksi_tabungan', {
+          'id': const Uuid().v4(),
+          'santri_id': santri.id,
+          'tipe': TransaksiTabungan.tipeSetor,
+          'nominal': santri.saldoTabungan,
+          'sumber_dompet': dompet,
+          'saldo_tabungan_setelah': santri.saldoTabungan,
+          'tanggal_lokal': DateFormatter.toLocalDateString(now),
+          'catatan': 'Saldo Awal Tabungan ${santri.namaLengkap}',
+          'is_void': 0,
           'created_at': now.toIso8601String(),
         });
       }
@@ -160,6 +176,13 @@ class SantriRepository {
           });
         }
       }
+      try {
+        await txn.delete(
+          'transaksi_tabungan',
+          where: 'santri_id = ?',
+          whereArgs: [santriId],
+        );
+      } catch (_) {}
       await txn.delete(
         'infak_santri',
         where: 'santri_id = ?',

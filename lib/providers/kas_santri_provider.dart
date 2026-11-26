@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/bendahara_account.dart';
 import '../models/setoran.dart';
 import '../models/transaksi.dart';
+import '../models/transaksi_tabungan.dart';
 import '../models/pengaturan.dart';
 import '../models/santri_status.dart';
 import '../models/cash_opname_log.dart';
@@ -219,8 +220,25 @@ class KasSantriProvider extends ChangeNotifier {
   double _stokBerasFisikLiter = 0.0;
   double get stokBerasFisikLiter => _stokBerasFisikLiter;
 
-  /// Target total uang tunai fisik di laci bendahara (Kantong Jajan + Kantong Infak Tunai)
-  int get targetUangFisikDiLaci => _kasLaciTunai + _kasInfakTunai;
+  // Kantong 4 v4.3: Brankas Tabungan Terpisah Santri
+  int _totalBrankasTabungan = 0;
+  int get totalBrankasTabungan => _totalBrankasTabungan;
+
+  int _tabunganTunai = 0;
+  int get tabunganTunai => _tabunganTunai;
+
+  int _tabunganRekening = 0;
+  int get tabunganRekening => _tabunganRekening;
+
+  List<TransaksiTabungan> _transaksiTabunganList = [];
+  List<TransaksiTabungan> get transaksiTabunganList => _transaksiTabunganList;
+
+  int get countPenabungAktif =>
+      _allSantri.where((s) => s.statusAktif && s.saldoTabungan > 0).length;
+
+  /// Target total uang tunai fisik di laci bendahara (Kantong Jajan + Infak Tunai + Tabungan Tunai)
+  int get targetUangFisikDiLaci =>
+      _kasLaciTunai + _kasInfakTunai + _tabunganTunai;
 
   // Cash Opname PRO Logs
   List<CashOpnameLog> _opnameLogs = [];
@@ -635,6 +653,12 @@ class KasSantriProvider extends ChangeNotifier {
     _stokBerasFisikLiter = (kantongInfak['beras_stok'] as num?)?.toDouble() ?? 0.0;
     _infakPeriodeList = await _db.getInfakByPeriode(_selectedInfakPeriode);
     _serahTerimaList = await _db.getSerahTerimaInfak();
+
+    final tabunganDompet = await _db.getSaldoBrankasTabungan();
+    _tabunganTunai = tabunganDompet['tunai'] ?? 0;
+    _tabunganRekening = tabunganDompet['rekening'] ?? 0;
+    _totalBrankasTabungan = tabunganDompet['total'] ?? 0;
+    _transaksiTabunganList = await _db.getTransaksiTabungan(limit: 120);
 
     _opnameLogs = await _db.getCashOpnameLogs(limit: 15);
     _totalPengeluaranHariIni = await _db.getTotalPengeluaranHariIni(todayStr);
@@ -1166,8 +1190,8 @@ class KasSantriProvider extends ChangeNotifier {
     await _recordAudit(
       action: 'HAPUS_SANTRI',
       targetId: santriId,
-      summary: refundedSaldo > 0
-          ? 'Menghapus permanen santri $targetName (ID: $santriId) dengan pengembalian saldo Rp$refundedSaldo dari $sumberDompet.'
+      summary: (refundedSaldo > 0 || (targetSantri?.saldoTabungan ?? 0) > 0)
+          ? 'Menghapus permanen santri $targetName (ID: $santriId) dengan pengembalian saldo jajan Rp$refundedSaldo ($sumberDompet) & tabungan Rp${targetSantri?.saldoTabungan ?? 0}.'
           : 'Menghapus permanen data santri $targetName (ID: $santriId).',
     );
     await markLocalDataChanged();
@@ -1178,6 +1202,111 @@ class KasSantriProvider extends ChangeNotifier {
 
   Future<void> tambahSantriBaru(Santri santri, {String sumberDompet = 'TUNAI'}) async {
     await _db.insertSantri(santri, sumberDompet: sumberDompet);
+    await markLocalDataChanged();
+    await loadAllData();
+  }
+
+  // ==================== BRANKAS TABUNGAN TERPISAH (KANTONG 4) ====================
+
+  Future<TransaksiTabungan> setorTabungan({
+    required String santriId,
+    required int nominal,
+    String sumberDompet = 'TUNAI',
+    String? catatan,
+  }) async {
+    final tx = await _db.setorTabungan(
+      santriId: santriId,
+      nominal: nominal,
+      sumberDompet: sumberDompet,
+      catatan: catatan,
+    );
+    await _recordAudit(
+      action: 'SETOR_TABUNGAN',
+      targetId: santriId,
+      summary:
+          'Setor tabungan terpisah Rp$nominal ($sumberDompet) untuk ${tx.namaSantri ?? santriId}.',
+    );
+    await markLocalDataChanged();
+    await loadAllData();
+    return tx;
+  }
+
+  Future<TransaksiTabungan> tarikTabungan({
+    required String santriId,
+    required int nominal,
+    String sumberDompet = 'TUNAI',
+    String? catatan,
+  }) async {
+    final tx = await _db.tarikTabungan(
+      santriId: santriId,
+      nominal: nominal,
+      sumberDompet: sumberDompet,
+      catatan: catatan,
+    );
+    await _recordAudit(
+      action: 'TARIK_TABUNGAN',
+      targetId: santriId,
+      summary:
+          'Tarik tabungan terpisah Rp$nominal ($sumberDompet) untuk ${tx.namaSantri ?? santriId}.',
+    );
+    await markLocalDataChanged();
+    await loadAllData();
+    return tx;
+  }
+
+  Future<TransaksiTabungan> transferJajanKeTabungan({
+    required String santriId,
+    required int nominal,
+    String sumberDompet = 'TUNAI',
+    String? catatan,
+  }) async {
+    final tx = await _db.transferJajanKeTabungan(
+      santriId: santriId,
+      nominal: nominal,
+      sumberDompet: sumberDompet,
+      catatan: catatan,
+    );
+    await _recordAudit(
+      action: 'TRANSFER_JAJAN_KE_TABUNGAN',
+      targetId: santriId,
+      summary:
+          'Pindah saldo jajan Rp$nominal -> Brankas Tabungan ($sumberDompet) untuk ${tx.namaSantri ?? santriId}.',
+    );
+    await markLocalDataChanged();
+    await loadAllData();
+    return tx;
+  }
+
+  Future<TransaksiTabungan> transferTabunganKeJajan({
+    required String santriId,
+    required int nominal,
+    String sumberDompet = 'TUNAI',
+    String? catatan,
+  }) async {
+    final tx = await _db.transferTabunganKeJajan(
+      santriId: santriId,
+      nominal: nominal,
+      sumberDompet: sumberDompet,
+      catatan: catatan,
+    );
+    await _recordAudit(
+      action: 'TRANSFER_TABUNGAN_KE_JAJAN',
+      targetId: santriId,
+      summary:
+          'Pindah saldo Brankas Tabungan Rp$nominal -> Saldo Jajan ($sumberDompet) untuk ${tx.namaSantri ?? santriId}.',
+    );
+    await markLocalDataChanged();
+    await loadAllData();
+    return tx;
+  }
+
+  Future<void> voidTransaksiTabungan(String txId) async {
+    await _db.voidTransaksiTabungan(txId);
+    await _recordAudit(
+      action: 'VOID_TABUNGAN',
+      targetId: txId,
+      summary: 'Membatalkan (Void) mutasi tabungan $txId.',
+    );
     await markLocalDataChanged();
     await loadAllData();
   }

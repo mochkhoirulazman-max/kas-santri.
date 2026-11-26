@@ -288,6 +288,139 @@ revoke all on function public.sync_device_telemetry(text, text, text, text, text
 grant execute on function public.sync_device_telemetry(text, text, text, text, text, timestamptz, text, text) to anon, authenticated;
 
 -- ============================================================================
+-- 6. TABEL & RPC CLOUD BACKUP ONLINE TERENKRIPSI (SUPABASE CLOUD VAULT v4.3)
+-- ============================================================================
+-- Payload WAJIB dienkripsi AES-256-GCM (.KSBAK) di perangkat sebelum diunggah.
+-- Server cloud tidak pernah menyimpan atau mengetahui password maupun isi data pondok.
+create table if not exists public.app_cloud_backups (
+  backup_key text primary key,
+  device_id text not null default '',
+  nama_pondok text not null default '',
+  payload_encrypted text not null,
+  app_version text not null default '4.3.0',
+  size_bytes integer not null default 0,
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_cloud_backups_updated on public.app_cloud_backups (updated_at desc);
+
+alter table public.app_cloud_backups enable row level security;
+drop policy if exists "app_cloud_backups_admin_all" on public.app_cloud_backups;
+create policy "app_cloud_backups_admin_all"
+  on public.app_cloud_backups
+  for all
+  to authenticated
+  using (public.is_kas_santri_admin())
+  with check (public.is_kas_santri_admin());
+
+create or replace function public.upsert_cloud_backup(
+  p_backup_key text,
+  p_device_id text default '',
+  p_nama_pondok text default '',
+  p_payload_encrypted text default '',
+  p_app_version text default '4.3.0'
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_key text := upper(regexp_replace(trim(coalesce(p_backup_key, '')), '[^A-Za-z0-9_-]', '', 'g'));
+  v_payload text := trim(coalesce(p_payload_encrypted, ''));
+  v_size integer := octet_length(v_payload);
+  v_row public.app_cloud_backups%rowtype;
+begin
+  if length(v_key) < 4 or length(v_key) > 48 then
+    raise exception 'Kode Backup Pondok wajib 4-48 karakter (huruf, angka, -, _).';
+  end if;
+  if v_size = 0 or v_size > 8000000 then
+    raise exception 'Payload backup terenkripsi tidak valid atau melebihi batas 8 MB.';
+  end if;
+
+  insert into public.app_cloud_backups (
+    backup_key,
+    device_id,
+    nama_pondok,
+    payload_encrypted,
+    app_version,
+    size_bytes,
+    updated_at
+  )
+  values (
+    v_key,
+    left(upper(trim(coalesce(p_device_id, ''))), 48),
+    left(trim(coalesce(p_nama_pondok, '')), 120),
+    v_payload,
+    left(trim(coalesce(p_app_version, '4.3.0')), 32),
+    v_size,
+    now()
+  )
+  on conflict (backup_key) do update set
+    device_id = excluded.device_id,
+    nama_pondok = excluded.nama_pondok,
+    payload_encrypted = excluded.payload_encrypted,
+    app_version = excluded.app_version,
+    size_bytes = excluded.size_bytes,
+    updated_at = now()
+  returning * into v_row;
+
+  return jsonb_build_object(
+    'ok', true,
+    'backup_key', v_row.backup_key,
+    'size_bytes', v_row.size_bytes,
+    'updated_at', v_row.updated_at
+  );
+end;
+$$;
+
+create or replace function public.fetch_cloud_backup(
+  p_backup_key text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_key text := upper(regexp_replace(trim(coalesce(p_backup_key, '')), '[^A-Za-z0-9_-]', '', 'g'));
+  v_row public.app_cloud_backups%rowtype;
+begin
+  if length(v_key) < 4 or length(v_key) > 48 then
+    raise exception 'Kode Backup Pondok wajib 4-48 karakter.';
+  end if;
+
+  select * into v_row
+  from public.app_cloud_backups
+  where backup_key = v_key
+  limit 1;
+
+  if v_row.backup_key is null then
+    return jsonb_build_object(
+      'found', false,
+      'backup_key', v_key
+    );
+  end if;
+
+  return jsonb_build_object(
+    'found', true,
+    'backup_key', v_row.backup_key,
+    'nama_pondok', v_row.nama_pondok,
+    'payload_encrypted', v_row.payload_encrypted,
+    'app_version', v_row.app_version,
+    'size_bytes', v_row.size_bytes,
+    'updated_at', v_row.updated_at
+  );
+end;
+$$;
+
+revoke all on function public.upsert_cloud_backup(text, text, text, text, text) from public;
+grant execute on function public.upsert_cloud_backup(text, text, text, text, text) to anon, authenticated;
+
+revoke all on function public.fetch_cloud_backup(text) from public;
+grant execute on function public.fetch_cloud_backup(text) to anon, authenticated;
+
+-- ============================================================================
 -- LANGKAH TERAKHIR WAJIB (DAFTARKAN AKUN ADMIN ANDA):
 -- 1. Buat user Admin di Supabase -> Authentication -> Users -> Add user (email & password).
 -- 2. Jalankan query ini dengan mengganti email admin Anda:

@@ -1,7 +1,7 @@
 name: kas_santri
 description: "Aplikasi Manajemen Kas Santri - Sistem Uang Saku & Titipan Santri Harian Offline-First"
 publish_to: "none"
-version: 4.2.0+42
+version: 4.3.0+43
 
 environment:
   sdk: ">=3.0.0 <4.0.0"

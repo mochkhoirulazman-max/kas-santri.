@@ -25,6 +25,10 @@ class BackupAuditRepository {
     final cashOpnameList = await db.query('cash_opname_logs');
     final infakSantriList = await db.query('infak_santri');
     final serahTerimaInfakList = await db.query('serah_terima_infak');
+    List<Map<String, Object?>> tabunganList = const [];
+    try {
+      tabunganList = await db.query('transaksi_tabungan');
+    } catch (_) {}
     List<Map<String, Object?>> auditLogList = const [];
     try {
       auditLogList = await db.query(
@@ -45,6 +49,7 @@ class BackupAuditRepository {
       'cash_opname_logs': cashOpnameList,
       'infak_santri': infakSantriList,
       'serah_terima_infak': serahTerimaInfakList,
+      'transaksi_tabungan': tabunganList,
       'audit_log': auditLogList,
       'pengaturan_aplikasi': pengaturanList,
     };
@@ -107,6 +112,9 @@ class BackupAuditRepository {
       final int origHasUsedTrial =
           (origPeng?['has_used_trial'] as num?)?.toInt() ?? 0;
 
+      try {
+        await txn.delete('transaksi_tabungan');
+      } catch (_) {}
       await txn.delete('infak_santri');
       await txn.delete('serah_terima_infak');
       await txn.delete('tunggakan_log');
@@ -211,6 +219,20 @@ class BackupAuditRepository {
         }
       }
 
+      if (data['transaksi_tabungan'] is List) {
+        final tabCols = await _getTableColumns(txn, 'transaksi_tabungan');
+        if (tabCols.isNotEmpty) {
+          for (var row in (data['transaksi_tabungan'] as List)) {
+            final map = Map<String, dynamic>.from(row as Map);
+            await txn.insert(
+              'transaksi_tabungan',
+              _filterRowColumns(map, tabCols),
+              conflictAlgorithm: ConflictAlgorithm.replace,
+            );
+          }
+        }
+      }
+
       if (verifiedAuditEntries.isNotEmpty) {
         await txn.delete('audit_log');
         final auditCols = await _getTableColumns(txn, 'audit_log');
@@ -261,6 +283,9 @@ class BackupAuditRepository {
   ) async {
     final db = await _getDb();
     await db.transaction((txn) async {
+      try {
+        await txn.delete('transaksi_tabungan');
+      } catch (_) {}
       await txn.delete('infak_santri');
       await txn.delete('serah_terima_infak');
       await txn.delete('tunggakan_log');

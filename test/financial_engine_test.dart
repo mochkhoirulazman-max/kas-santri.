@@ -2362,8 +2362,8 @@ void main() {
     });
 
     test('AI. Batch 4 v4.2: Modular Repository & Exporter Facade Integrity + AppConfig v4.2.0', () async {
-      // 1. Verifikasi sinkronisasi versi v4.2.0 di AppConfig
-      expect(AppConfig.appVersion, '4.2.0');
+      // 1. Verifikasi sinkronisasi versi v4.3.0 di AppConfig
+      expect(AppConfig.appVersion, '4.3.0');
 
       // 2. Verifikasi arsitektur modular DatabaseHelper (Facade -> 5 sub-modul)
       sqfliteFfiInit();

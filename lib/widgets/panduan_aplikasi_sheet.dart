@@ -1,16 +1,9 @@
-import 'dart:convert';
-import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:share_plus/share_plus.dart';
-import '../database/database_helper.dart';
 import '../providers/kas_santri_provider.dart';
 import '../providers/theme_wallpaper_provider.dart';
 import '../screens/onboarding_screen.dart';
-import '../screens/paywall_screen.dart';
-import '../screens/settings/settings_screen.dart';
 import '../services/tutorial_service.dart';
 import '../utils/app_feedback.dart';
 import 'encrypted_backup_helper.dart';
@@ -666,20 +659,37 @@ class QuickBackupRestoreSheet {
               const SizedBox(height: 12),
 
               _actionTile(
-                emoji: '⬇️',
-                title: 'Backup Standar (.JSON)',
-                subtitle: 'Simpan & bagikan file cadangan lokal standar (Gratis)',
+                emoji: '💾',
+                title: 'Simpan Backup ke Memori HP (.JSON)',
+                subtitle: 'Simpan langsung ke folder Download / Dokumen HP (Gratis)',
                 accent: const Color(0xFF34D399),
                 isLockedPro: false,
                 onTap: () async {
                   Navigator.pop(sheetCtx);
-                  await _exportStandardJson(rootContext);
+                  await EncryptedBackupHelper.saveLocalBackupToDevice(
+                    rootContext,
+                    encrypted: false,
+                  );
+                },
+              ),
+              _actionTile(
+                emoji: '📤',
+                title: 'Bagikan File Backup (.JSON)',
+                subtitle: 'Kirim cepat ke WhatsApp, Google Drive, atau Telegram (Gratis)',
+                accent: const Color(0xFF2DD4BF),
+                isLockedPro: false,
+                onTap: () async {
+                  Navigator.pop(sheetCtx);
+                  await EncryptedBackupHelper.shareLocalBackupFile(
+                    rootContext,
+                    encrypted: false,
+                  );
                 },
               ),
               _actionTile(
                 emoji: '🔐',
                 title: 'Backup Terenkripsi AES-256 (.KSBAK)',
-                subtitle: 'Dilindungi password kriptografi anti-intip',
+                subtitle: 'Simpan ke HP atau bagikan dengan kunci password kriptografi',
                 accent: const Color(0xFF38BDF8),
                 isLockedPro: !isPro,
                 onTap: () {
@@ -690,7 +700,7 @@ class QuickBackupRestoreSheet {
               _actionTile(
                 emoji: '⬆️',
                 title: 'Pulihkan Data Backup (.JSON / .KSBAK)',
-                subtitle: 'Muat kembali data dari file cadangan perangkat',
+                subtitle: 'Pilih file cadangan dari memori HP (mendukung penuh .KSBAK)',
                 accent: const Color(0xFFA78BFA),
                 isLockedPro: false,
                 onTap: () {
@@ -703,22 +713,29 @@ class QuickBackupRestoreSheet {
               ),
               _actionTile(
                 emoji: '☁️',
-                title: 'Google Drive Auto-Backup',
-                subtitle: 'Sinkronisasi cadangan privat ke akun Google Anda',
-                accent: const Color(0xFFFBBF24),
-                isLockedPro: !isPro,
+                title: 'Cadangkan ke Cloud Online (AES-256)',
+                subtitle: 'Offline-First + Cloud Backup Online terenkripsi antar HP',
+                accent: const Color(0xFF38BDF8),
+                isLockedPro: false,
                 onTap: () {
                   Navigator.pop(sheetCtx);
-                  if (!isPro) {
-                    PaywallScreen.show(
-                      rootContext,
-                      triggerFeature: 'Auto-Backup & Restore Google Drive',
-                    );
-                    return;
-                  }
-                  Navigator.push(
+                  EncryptedBackupHelper.showCloudBackupDialog(
                     rootContext,
-                    MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                    provider,
+                  );
+                },
+              ),
+              _actionTile(
+                emoji: '🌐',
+                title: 'Pulihkan dari Cloud Online',
+                subtitle: 'Unduh cadangan terenkripsi memakai Kode Pondok & Password',
+                accent: const Color(0xFFFBBF24),
+                isLockedPro: false,
+                onTap: () {
+                  Navigator.pop(sheetCtx);
+                  EncryptedBackupHelper.showCloudRestoreDialog(
+                    rootContext,
+                    provider,
                   );
                 },
               ),
@@ -727,30 +744,6 @@ class QuickBackupRestoreSheet {
         );
       },
     );
-  }
-
-  static Future<void> _exportStandardJson(BuildContext context) async {
-    AppFeedback.tap();
-    try {
-      final dump = await DatabaseHelper.instance.dumpBackupJson();
-      final jsonStr = const JsonEncoder.withIndent('  ').convert(dump);
-      final dir = await getTemporaryDirectory();
-      final file = File(
-        '${dir.path}/backup_kas_santri_${DateTime.now().millisecondsSinceEpoch}.json',
-      );
-      await file.writeAsString(jsonStr);
-      AppFeedback.success();
-      await Share.shareXFiles([XFile(file.path)], text: 'Backup Kas Santri (.JSON)');
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Gagal membuat backup JSON: $e'),
-            backgroundColor: const Color(0xFFF43F5E),
-          ),
-        );
-      }
-    }
   }
 
   static Widget _actionTile({

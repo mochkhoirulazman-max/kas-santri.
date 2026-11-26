@@ -18,6 +18,7 @@ class Santri {
   final String kamar;
   final String? noWaWali;
   final int saldoTotal;
+  final int saldoTabungan;
   final int jatahHarian;
   final int setoranAwal;
   final int tunggakan;
@@ -71,6 +72,7 @@ class Santri {
     required this.kamar,
     this.noWaWali,
     this.saldoTotal = 0,
+    this.saldoTabungan = 0,
     this.jatahHarian = 10000,
     this.setoranAwal = 300000,
     this.tunggakan = 0,
@@ -134,6 +136,7 @@ class Santri {
     String? kamar,
     String? noWaWali,
     int? saldoTotal,
+    int? saldoTabungan,
     int? jatahHarian,
     int? setoranAwal,
     int? tunggakan,
@@ -152,6 +155,7 @@ class Santri {
       kamar: kamar ?? this.kamar,
       noWaWali: noWaWali ?? this.noWaWali,
       saldoTotal: saldoTotal ?? this.saldoTotal,
+      saldoTabungan: saldoTabungan ?? this.saldoTabungan,
       jatahHarian: jatahHarian ?? this.jatahHarian,
       setoranAwal: setoranAwal ?? this.setoranAwal,
       tunggakan: tunggakan ?? this.tunggakan,
@@ -173,6 +177,7 @@ class Santri {
       'kamar': kamar,
       'no_wa_wali': noWaWali,
       'saldo_total': saldoTotal,
+      'saldo_tabungan': saldoTabungan,
       'jatah_harian': jatahHarian,
       'setoran_awal': setoranAwal,
       'tunggakan': tunggakan,
@@ -195,6 +200,7 @@ class Santri {
       kamar: map['kamar'] as String? ?? '',
       noWaWali: map['no_wa_wali'] as String?,
       saldoTotal: (map['saldo_total'] as num?)?.toInt() ?? 0,
+      saldoTabungan: (map['saldo_tabungan'] as num?)?.toInt() ?? 0,
       jatahHarian: (map['jatah_harian'] as num?)?.toInt() ?? 10000,
       setoranAwal: (map['setoran_awal'] as num?)?.toInt() ?? 300000,
       tunggakan: (map['tunggakan'] as num?)?.toInt() ?? 0,

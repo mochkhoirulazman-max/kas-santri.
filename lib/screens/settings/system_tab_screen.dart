@@ -17,6 +17,7 @@ import '../rekap/executive_dashboard_screen.dart';
 import '../rekap/smart_wa_reminder_screen.dart';
 import '../santri/cetak_kartu_qr_screen.dart';
 import '../santri/import_santri_excel_screen.dart';
+import '../tabungan/brankas_tabungan_screen.dart';
 import 'audit_log_screen.dart';
 import 'pin_settings_screen.dart';
 import 'settings_screen.dart';
@@ -304,6 +305,20 @@ class _SystemTabScreenState extends State<SystemTabScreen>
     final bool hasFoto = fotoPath != null && fotoPath.trim().isNotEmpty;
 
     final quickItems = <_QuickAccessSpec>[
+      _QuickAccessSpec(
+        emoji: '🏦',
+        title: 'Brankas Tabungan',
+        subtitle: 'Tabungan terpisah santri',
+        accent: const Color(0xFF2DD4BF),
+        isProLocked: false,
+        onTap: () {
+          AppFeedback.tap();
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const BrankasTabunganScreen()),
+          );
+        },
+      ),
       _QuickAccessSpec(
         emoji: '🧮',
         title: 'Cash Opname',
@@ -918,18 +933,33 @@ class _SystemTabScreenState extends State<SystemTabScreen>
 
           const SizedBox(height: 24),
 
-          // Footer pengembang minimalis & halus di paling bawah
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Text(
-              'Pengembang: Moch Khoirul Azman • Kas-Santri v4.2 • ${peng.namaPondok} • © 2026',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white38,
-                fontSize: 10,
-                fontWeight: FontWeight.w500,
-                height: 1.4,
-              ),
+          // Footer pengembang minimalis & hangat (bebas nama pondok)
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 14),
+            child: Column(
+              children: [
+                Text(
+                  'Dikembangkan oleh Moch Khoirul Azman • Senin, 23 Nov 2026 (09:00 WIB) • Kas-Santri v4.3',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white54,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    height: 1.4,
+                  ),
+                ),
+                SizedBox(height: 3),
+                Text(
+                  'Didedikasikan untuk meringankan amanah bendahara pondok pesantren — tertib, transparan, dan menenangkan hati.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white38,
+                    fontSize: 9.8,
+                    fontStyle: FontStyle.italic,
+                    height: 1.4,
+                  ),
+                ),
+              ],
             ),
           ),
         ],

@@ -15,6 +15,7 @@ class BackupValidationResult {
   final int cashOpnameCount;
   final int infakCount;
   final int serahTerimaInfakCount;
+  final int transaksiTabunganCount;
   final String? exportedAt;
   final Map<String, dynamic>? parsedData;
 
@@ -29,6 +30,7 @@ class BackupValidationResult {
     this.cashOpnameCount = 0,
     this.infakCount = 0,
     this.serahTerimaInfakCount = 0,
+    this.transaksiTabunganCount = 0,
     this.exportedAt,
     this.parsedData,
   });
@@ -55,6 +57,7 @@ class BackupService {
   static const List<String> optionalV3Tables = [
     'infak_santri',
     'serah_terima_infak',
+    'transaksi_tabungan',
     'audit_log',
   ];
 
@@ -123,6 +126,7 @@ class BackupService {
     final opnameList = data['cash_opname_logs'] as List;
     final infakList = (data['infak_santri'] as List?) ?? const [];
     final serahTerimaList = (data['serah_terima_infak'] as List?) ?? const [];
+    final tabunganList = (data['transaksi_tabungan'] as List?) ?? const [];
 
     return BackupValidationResult(
       isValid: true,
@@ -134,6 +138,7 @@ class BackupService {
       cashOpnameCount: opnameList.length,
       infakCount: infakList.length,
       serahTerimaInfakCount: serahTerimaList.length,
+      transaksiTabunganCount: tabunganList.length,
       exportedAt: data['exported_at']?.toString(),
       parsedData: data,
     );

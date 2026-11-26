@@ -8,11 +8,13 @@ import '../models/santri.dart';
 import '../models/serah_terima_infak.dart';
 import '../models/setoran.dart';
 import '../models/transaksi.dart';
+import '../models/transaksi_tabungan.dart';
 import '../utils/time_category_helper.dart';
 import 'repositories/backup_audit_repository.dart';
 import 'repositories/infak_repository.dart';
 import 'repositories/ledger_repository.dart';
 import 'repositories/santri_repository.dart';
+import 'repositories/tabungan_repository.dart';
 import 'schema_migrator.dart';
 
 /// Facade utama basis data SQLite Kas-Santri v4.2 yang mendelegasikan operasi ke
@@ -27,6 +29,7 @@ class DatabaseHelper {
   late final SantriRepository santriRepo = SantriRepository(() => database);
   late final LedgerRepository ledgerRepo = LedgerRepository(() => database);
   late final InfakRepository infakRepo = InfakRepository(() => database);
+  late final TabunganRepository tabunganRepo = TabunganRepository(() => database);
   late final BackupAuditRepository backupAuditRepo = BackupAuditRepository(
     () => database,
     migrator,
@@ -44,7 +47,7 @@ class DatabaseHelper {
     _database = db;
   }
 
-  Future<void> createSchemaForTesting(Database db) => migrator.createDB(db, 4);
+  Future<void> createSchemaForTesting(Database db) => migrator.createDB(db, 5);
 
   Future<void> createSchemaForTest(Database db) => createSchemaForTesting(db);
 
@@ -61,7 +64,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 4,
+      version: 5,
       onConfigure: migrator.configureDatabase,
       onCreate: migrator.createDB,
       onUpgrade: migrator.upgradeDB,
@@ -411,6 +414,80 @@ class DatabaseHelper {
 
   Future<Map<String, dynamic>> getSaldoKantongInfak() =>
       infakRepo.getSaldoKantongInfak();
+
+  // ==================== BRANKAS TABUNGAN TERPISAH (KANTONG 4) ====================
+
+  Future<Map<String, int>> getSaldoBrankasTabungan() =>
+      tabunganRepo.getSaldoBrankasTabungan();
+
+  Future<TransaksiTabungan> setorTabungan({
+    required String santriId,
+    required int nominal,
+    String sumberDompet = 'TUNAI',
+    String? catatan,
+    DateTime? customTimestamp,
+  }) =>
+      tabunganRepo.setorTabungan(
+        santriId: santriId,
+        nominal: nominal,
+        sumberDompet: sumberDompet,
+        catatan: catatan,
+        customTimestamp: customTimestamp,
+      );
+
+  Future<TransaksiTabungan> tarikTabungan({
+    required String santriId,
+    required int nominal,
+    String sumberDompet = 'TUNAI',
+    String? catatan,
+    DateTime? customTimestamp,
+  }) =>
+      tabunganRepo.tarikTabungan(
+        santriId: santriId,
+        nominal: nominal,
+        sumberDompet: sumberDompet,
+        catatan: catatan,
+        customTimestamp: customTimestamp,
+      );
+
+  Future<TransaksiTabungan> transferJajanKeTabungan({
+    required String santriId,
+    required int nominal,
+    String sumberDompet = 'TUNAI',
+    String? catatan,
+    DateTime? customTimestamp,
+  }) =>
+      tabunganRepo.transferJajanKeTabungan(
+        santriId: santriId,
+        nominal: nominal,
+        sumberDompet: sumberDompet,
+        catatan: catatan,
+        customTimestamp: customTimestamp,
+      );
+
+  Future<TransaksiTabungan> transferTabunganKeJajan({
+    required String santriId,
+    required int nominal,
+    String sumberDompet = 'TUNAI',
+    String? catatan,
+    DateTime? customTimestamp,
+  }) =>
+      tabunganRepo.transferTabunganKeJajan(
+        santriId: santriId,
+        nominal: nominal,
+        sumberDompet: sumberDompet,
+        catatan: catatan,
+        customTimestamp: customTimestamp,
+      );
+
+  Future<void> voidTransaksiTabungan(String txId) =>
+      tabunganRepo.voidTransaksiTabungan(txId);
+
+  Future<List<TransaksiTabungan>> getTransaksiTabungan({
+    String? santriId,
+    int limit = 120,
+  }) =>
+      tabunganRepo.getTransaksiTabungan(santriId: santriId, limit: limit);
 
   // ==================== BACKUP, SEED & AUDIT LOG ====================
 
