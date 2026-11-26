@@ -17,8 +17,8 @@ class FastWithdrawalBottomSheet extends StatefulWidget {
     required this.statusSantri,
   }) : super(key: key);
 
-  static void show(BuildContext context, SantriStatusHariIni status) {
-    showModalBottomSheet(
+  static Future<void> show(BuildContext context, SantriStatusHariIni status) async {
+    await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,

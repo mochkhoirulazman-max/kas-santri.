@@ -1,5 +1,5 @@
 # ============================================================================
-# Kas-Santri v4.0 — ProGuard / R8 Release Rules (AGP 9.3.1 Full Mode Safe)
+# Kas-Santri v4.2 — ProGuard / R8 Release Rules (AGP 9.3.1 Full Mode Safe)
 # ============================================================================
 
 # Preserve essential metadata for Kotlin, generics, reflection, and stacktraces
@@ -7,13 +7,7 @@
 -keep class kotlin.Metadata { *; }
 
 # 1. Flutter Engine, Embedding & Plugins
--keep class io.flutter.app.** { *; }
--keep class io.flutter.plugin.** { *; }
--keep class io.flutter.util.** { *; }
--keep class io.flutter.view.** { *; }
--keep class io.flutter.embedding.** { *; }
 -keep class io.flutter.** { *; }
--keep class io.flutter.plugins.** { *; }
 -dontwarn io.flutter.embedding.**
 
 # 2. Flutter Play Core / Deferred Components (R8 missing class fix)

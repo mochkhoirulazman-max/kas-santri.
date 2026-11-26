@@ -922,7 +922,7 @@ class _SystemTabScreenState extends State<SystemTabScreen>
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Text(
-              'Pengembang: Moch Khoirul Azman • Kas-Santri v4.1 • ${peng.namaPondok} • © 2026',
+              'Pengembang: Moch Khoirul Azman • Kas-Santri v4.2 • ${peng.namaPondok} • © 2026',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: Colors.white38,

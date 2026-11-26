@@ -415,7 +415,6 @@ class _PinLockScreenState extends State<PinLockScreen> {
                   ),
                 ),
               ),
-            ),
           ],
         ),
       ),

@@ -14,8 +14,8 @@ class TunggakanBottomSheet extends StatefulWidget {
     required this.santri,
   }) : super(key: key);
 
-  static void show(BuildContext context, Santri santri) {
-    showModalBottomSheet(
+  static Future<void> show(BuildContext context, Santri santri) async {
+    await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,

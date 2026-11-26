@@ -7,6 +7,7 @@ import '../providers/kas_santri_provider.dart';
 import '../utils/app_feedback.dart';
 import '../utils/currency_formatter.dart';
 import '../screens/paywall_screen.dart';
+import '../screens/santri/santri_detail_screen.dart';
 import 'kartu_qr_santri_dialog.dart';
 
 class QuickEditSantriBottomSheet extends StatefulWidget {
@@ -450,6 +451,44 @@ class _QuickEditSantriBottomSheetState extends State<QuickEditSantriBottomSheet>
                           context,
                           santri: widget.santri,
                           pengaturan: prov.pengaturan,
+                        );
+                      },
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            // Tombol Lihat Buku Mutasi Lengkap (SantriDetailScreen)
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: OutlinedButton.icon(
+                icon: const Text('📄', style: TextStyle(fontSize: 15)),
+                label: const Text(
+                  'LIHAT BUKU MUTASI LENGKAP',
+                  style: TextStyle(
+                    color: Color(0xFF67E8F9),
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: const Color(0xFF0A1D36).withOpacity(0.55),
+                  side: const BorderSide(color: Color(0xFF38BDF8), width: 1.2),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                onPressed: _isLoading
+                    ? null
+                    : () {
+                        AppFeedback.tap();
+                        final nav = Navigator.of(context);
+                        nav.pop();
+                        nav.push(
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                SantriDetailScreen(santriId: widget.santri.id),
+                          ),
                         );
                       },
               ),

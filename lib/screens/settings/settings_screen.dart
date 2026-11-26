@@ -1633,7 +1633,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           const SizedBox(height: 22),
           Text(
-            'Pengembang: Moch Khoirul Azman • Kas-Santri v4.1 • ${settings.namaPondok} • © 2026',
+            'Pengembang: Moch Khoirul Azman • Kas-Santri v4.2 • ${settings.namaPondok} • © 2026',
             textAlign: TextAlign.center,
             style: const TextStyle(color: Colors.white38, fontSize: 10),
           ),

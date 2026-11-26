@@ -2161,7 +2161,7 @@ void main() {
           version: 3,
           onConfigure: (db) async => await db.execute('PRAGMA foreign_keys = ON'),
           onCreate: (db, version) async =>
-              await DatabaseHelper.instance.createSchemaForTest(db),
+              await DatabaseHelper.instance.createSchemaForTesting(db),
         ),
       );
       DatabaseHelper.instance.setDatabaseForTesting(db);
@@ -2353,6 +2353,74 @@ void main() {
         base64Decode(LicenseService.defaultPublicKeyBase64).length,
         32,
       );
+    });
+
+    test('AI. Batch 4 v4.2: Modular Repository & Exporter Facade Integrity + AppConfig v4.2.0', () async {
+      // 1. Verifikasi sinkronisasi versi v4.2.0 di AppConfig
+      expect(AppConfig.appVersion, '4.2.0');
+
+      // 2. Verifikasi arsitektur modular DatabaseHelper (Facade -> 5 sub-modul)
+      sqfliteFfiInit();
+      final db = await databaseFactoryFfi.openDatabase(
+        inMemoryDatabasePath,
+        options: OpenDatabaseOptions(
+          version: 4,
+          onConfigure: (db) async => await db.execute('PRAGMA foreign_keys = ON'),
+          onCreate: (db, version) async =>
+              await DatabaseHelper.instance.createSchemaForTesting(db),
+        ),
+      );
+      DatabaseHelper.instance.setDatabaseForTesting(db);
+      final helper = DatabaseHelper.instance;
+
+      expect(helper.migrator, isNotNull);
+      expect(helper.santriRepo, isNotNull);
+      expect(helper.ledgerRepo, isNotNull);
+      expect(helper.infakRepo, isNotNull);
+      expect(helper.backupAuditRepo, isNotNull);
+
+      // Pastikan operasi lintas repository bekerja selaras melalui Facade
+      final santri = Santri(
+        id: 'ai-santri-1',
+        namaLengkap: 'Ahmad Modular v42',
+        namaPanggilan: 'Modular',
+        kamar: 'Al-Fatih 1',
+        saldoTotal: 0,
+        jatahHarian: 10000,
+      );
+      await helper.insertSantri(santri, sumberDompet: 'TUNAI');
+      await helper.catatSetoranBaru(
+        santriId: santri.id,
+        nominalSetoran: 150000,
+        durasiHari: 15,
+        jatahHarianHitung: 10000,
+        tipeSetoran: TipeSetoran.awalBulan,
+        tanggalSetor: DateTime(2026, 11, 26, 8, 0),
+        potongTunggakan: false,
+        metodeBayar: 'TUNAI',
+      );
+      await helper.catatPengambilan(
+        santriId: santri.id,
+        nominal: 5000,
+        customTimestamp: DateTime(2026, 11, 26, 9, 0),
+      );
+
+      final updatedSantri = await helper.getSantriById(santri.id);
+      expect(updatedSantri?.saldoTotal, 145000);
+
+      // Rekonsiliasi lintas repository: Brankas Santri == Kas Laci Tunai + Rekening
+      final totalBrankas = await helper.getTotalSaldoBrankasFisik();
+      final dompet = await helper.getSaldoDompet();
+      expect(totalBrankas, 145000);
+      expect((dompet['tunai'] ?? 0) + (dompet['rekening'] ?? 0), totalBrankas);
+
+      // 3. Verifikasi arsitektur modular YayasanExportService (Facade -> Excel & PDF Exporters)
+      final exporter = YayasanExportService.instance;
+      expect(exporter.excelExporter, isNotNull);
+      expect(exporter.pdfExporter, isNotNull);
+
+      await db.close();
+      DatabaseHelper.instance.setDatabaseForTesting(null);
     });
   });
 }

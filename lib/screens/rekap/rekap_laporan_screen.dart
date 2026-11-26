@@ -13,6 +13,7 @@ import '../../services/yayasan_export_service.dart';
 import '../../widgets/searchable_santri_picker.dart';
 import '../../widgets/struk_gambar_dialog.dart';
 import '../paywall_screen.dart';
+import '../santri/santri_detail_screen.dart';
 import 'cash_opname_screen.dart';
 import 'executive_dashboard_screen.dart';
 import 'smart_wa_reminder_screen.dart';
@@ -975,6 +976,44 @@ Salam hormat & ta'dzim,
                     ),
                   ),
                 ],
+              ),
+
+              const SizedBox(height: 8),
+
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: selectedStatus == null
+                      ? null
+                      : () {
+                          AppFeedback.tap();
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => SantriDetailScreen(
+                                santriId: selectedStatus.santri.id,
+                              ),
+                            ),
+                          );
+                        },
+                  icon: const Text('📄', style: TextStyle(fontSize: 14)),
+                  label: const Text(
+                    'Lihat Buku Mutasi Lengkap Santri Ini',
+                    style: TextStyle(
+                      color: Color(0xFF6EE7B7),
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: const Color(0xFF064E3B).withValues(alpha: 0.35),
+                    side: const BorderSide(color: Color(0xFF34D399)),
+                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
               ),
 
               if (_showWaPreview && waPreviewText.isNotEmpty) ...[

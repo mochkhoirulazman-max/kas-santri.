@@ -685,7 +685,6 @@ class _SearchableSantriPickerState extends State<SearchableSantriPicker> {
             ),
           ),
         ),
-      ),
     );
   }
 
