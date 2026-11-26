@@ -658,8 +658,7 @@ class LedgerRepository {
             'created_at': now.toIso8601String(),
           });
 
-          final int koreksiPiutangDompet =
-              nominalPotongTunggakan + selisihTerpakai;
+          final int koreksiPiutangDompet = selisihTerpakai;
           if (koreksiPiutangDompet > 0) {
             await txn.insert('mutasi_dompet', {
               'id': const Uuid().v4(),

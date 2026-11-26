@@ -52,7 +52,7 @@ kas-santri/
 ├── lib/database/database_helper.dart (14.2 KB)
 ├── lib/database/repositories/backup_audit_repository.dart (18.8 KB)
 ├── lib/database/repositories/infak_repository.dart (13.1 KB)
-├── lib/database/repositories/ledger_repository.dart (45.5 KB)
+├── lib/database/repositories/ledger_repository.dart (45.4 KB)
 ├── lib/database/repositories/santri_repository.dart (7.9 KB)
 ├── lib/database/schema_migrator.dart (19.8 KB)
 ├── lib/main.dart (1.3 KB)
@@ -138,7 +138,7 @@ kas-santri/
 ├── prd.md (24.4 KB)
 ├── pubspec.yaml (1.3 KB)
 ├── push_to_github.bat (0.6 KB)
-├── test/financial_engine_test.dart (92 KB)
+├── test/financial_engine_test.dart (92.3 KB)
 ├── test/refrensi antarmuka.md (101.2 KB)
 ├── test/widget_test.dart (0.7 KB)
 ├── tool/generate_keypair.dart (5.7 KB)
@@ -180,7 +180,7 @@ kas-santri/
 | 29 | `lib/database/database_helper.dart` | 14568 | 454 |
 | 30 | `lib/database/repositories/backup_audit_repository.dart` | 19229 | 576 |
 | 31 | `lib/database/repositories/infak_repository.dart` | 13461 | 396 |
-| 32 | `lib/database/repositories/ledger_repository.dart` | 46541 | 1403 |
+| 32 | `lib/database/repositories/ledger_repository.dart` | 46502 | 1402 |
 | 33 | `lib/database/repositories/santri_repository.dart` | 8094 | 287 |
 | 34 | `lib/database/schema_migrator.dart` | 20262 | 665 |
 | 35 | `lib/main.dart` | 1281 | 44 |
@@ -266,7 +266,7 @@ kas-santri/
 | 115 | `prd.md` | 24947 | 238 |
 | 116 | `pubspec.yaml` | 1295 | 67 |
 | 117 | `push_to_github.bat` | 597 | 15 |
-| 118 | `test/financial_engine_test.dart` | 94179 | 2426 |
+| 118 | `test/financial_engine_test.dart` | 94473 | 2434 |
 | 119 | `test/refrensi antarmuka.md` | 103639 | 1942 |
 | 120 | `test/widget_test.dart` | 730 | 27 |
 | 121 | `tool/generate_keypair.dart` | 5827 | 163 |
@@ -7113,8 +7113,7 @@ class LedgerRepository {
             'created_at': now.toIso8601String(),
           });
 
-          final int koreksiPiutangDompet =
-              nominalPotongTunggakan + selisihTerpakai;
+          final int koreksiPiutangDompet = selisihTerpakai;
           if (koreksiPiutangDompet > 0) {
             await txn.insert('mutasi_dompet', {
               'id': const Uuid().v4(),
@@ -51493,11 +51492,16 @@ void main() {
         inMemoryDatabasePath,
         options: OpenDatabaseOptions(
           version: 4,
+          singleInstance: false,
           onConfigure: (d) async => await d.execute('PRAGMA foreign_keys = ON;'),
         ),
       );
       await DatabaseHelper.instance.createSchemaForTesting(db);
       DatabaseHelper.instance.setDatabaseForTesting(db);
+      addTearDown(() async {
+        DatabaseHelper.instance.setDatabaseForTesting(null);
+        await db.close();
+      });
 
       final helper = DatabaseHelper.instance;
 
@@ -51679,23 +51683,26 @@ void main() {
       final pengAfterRestore = await helper.getPengaturan();
       expect(pengAfterRestore.isPro, false);
       expect(pengAfterRestore.proPlan, isNull);
-
-      await db.close();
-      DatabaseHelper.instance.setDatabaseForTesting(null);
     });
 
     test('AG. Batch 2 v4.2: Optimasi 120 FPS (UndoStateNotifier Tanpa Rebuild Global & Isolate compute() untuk .KSBAK dan Excel)', () async {
+      SharedPreferences.setMockInitialValues({});
       sqfliteFfiInit();
       final db = await databaseFactoryFfi.openDatabase(
         inMemoryDatabasePath,
         options: OpenDatabaseOptions(
-          version: 3,
+          version: 4,
+          singleInstance: false,
           onConfigure: (db) async => await db.execute('PRAGMA foreign_keys = ON'),
           onCreate: (db, version) async =>
               await DatabaseHelper.instance.createSchemaForTesting(db),
         ),
       );
       DatabaseHelper.instance.setDatabaseForTesting(db);
+      addTearDown(() async {
+        DatabaseHelper.instance.setDatabaseForTesting(null);
+        await db.close();
+      });
       final helper = DatabaseHelper.instance;
 
       final santri = Santri(
@@ -51731,8 +51738,8 @@ void main() {
       expect(provider.undoStateNotifier.value!.countdown, 5);
       final notifiesAfterCatat = globalProviderNotifies;
 
-      // Tunggu > 1.1 detik agar Timer.periodic berdetak minimal 1 kali
-      await Future<void>.delayed(const Duration(milliseconds: 1200));
+      // Tunggu > 1.5 detik agar Timer.periodic berdetak minimal 1 kali (kebal jitter CI)
+      await Future<void>.delayed(const Duration(milliseconds: 1500));
       expect(provider.undoCountdown, lessThan(5));
       expect(provider.undoStateNotifier.value?.countdown, provider.undoCountdown);
       // Detak timer 1 detik TIDAK BOLEH memanggil notifyListeners() pada KasSantriProvider!
@@ -51819,8 +51826,6 @@ void main() {
       expect(infakExcelBytes[1], 0x4B);
 
       provider.dispose();
-      await db.close();
-      DatabaseHelper.instance.setDatabaseForTesting(null);
     });
 
     test('AH. Batch 3 v4.2: Kepatuhan Data Safety Play Store, LegalDocumentSheet Dual-Mode & Ed25519 --dart-define', () async {
@@ -51896,12 +51901,17 @@ void main() {
         inMemoryDatabasePath,
         options: OpenDatabaseOptions(
           version: 4,
+          singleInstance: false,
           onConfigure: (db) async => await db.execute('PRAGMA foreign_keys = ON'),
           onCreate: (db, version) async =>
               await DatabaseHelper.instance.createSchemaForTesting(db),
         ),
       );
       DatabaseHelper.instance.setDatabaseForTesting(db);
+      addTearDown(() async {
+        DatabaseHelper.instance.setDatabaseForTesting(null);
+        await db.close();
+      });
       final helper = DatabaseHelper.instance;
 
       expect(helper.migrator, isNotNull);
@@ -51949,9 +51959,6 @@ void main() {
       final exporter = YayasanExportService.instance;
       expect(exporter.excelExporter, isNotNull);
       expect(exporter.pdfExporter, isNotNull);
-
-      await db.close();
-      DatabaseHelper.instance.setDatabaseForTesting(null);
     });
   });
 }

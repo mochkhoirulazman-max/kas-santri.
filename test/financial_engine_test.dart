@@ -1962,11 +1962,16 @@ void main() {
         inMemoryDatabasePath,
         options: OpenDatabaseOptions(
           version: 4,
+          singleInstance: false,
           onConfigure: (d) async => await d.execute('PRAGMA foreign_keys = ON;'),
         ),
       );
       await DatabaseHelper.instance.createSchemaForTesting(db);
       DatabaseHelper.instance.setDatabaseForTesting(db);
+      addTearDown(() async {
+        DatabaseHelper.instance.setDatabaseForTesting(null);
+        await db.close();
+      });
 
       final helper = DatabaseHelper.instance;
 
@@ -2148,23 +2153,26 @@ void main() {
       final pengAfterRestore = await helper.getPengaturan();
       expect(pengAfterRestore.isPro, false);
       expect(pengAfterRestore.proPlan, isNull);
-
-      await db.close();
-      DatabaseHelper.instance.setDatabaseForTesting(null);
     });
 
     test('AG. Batch 2 v4.2: Optimasi 120 FPS (UndoStateNotifier Tanpa Rebuild Global & Isolate compute() untuk .KSBAK dan Excel)', () async {
+      SharedPreferences.setMockInitialValues({});
       sqfliteFfiInit();
       final db = await databaseFactoryFfi.openDatabase(
         inMemoryDatabasePath,
         options: OpenDatabaseOptions(
-          version: 3,
+          version: 4,
+          singleInstance: false,
           onConfigure: (db) async => await db.execute('PRAGMA foreign_keys = ON'),
           onCreate: (db, version) async =>
               await DatabaseHelper.instance.createSchemaForTesting(db),
         ),
       );
       DatabaseHelper.instance.setDatabaseForTesting(db);
+      addTearDown(() async {
+        DatabaseHelper.instance.setDatabaseForTesting(null);
+        await db.close();
+      });
       final helper = DatabaseHelper.instance;
 
       final santri = Santri(
@@ -2200,8 +2208,8 @@ void main() {
       expect(provider.undoStateNotifier.value!.countdown, 5);
       final notifiesAfterCatat = globalProviderNotifies;
 
-      // Tunggu > 1.1 detik agar Timer.periodic berdetak minimal 1 kali
-      await Future<void>.delayed(const Duration(milliseconds: 1200));
+      // Tunggu > 1.5 detik agar Timer.periodic berdetak minimal 1 kali (kebal jitter CI)
+      await Future<void>.delayed(const Duration(milliseconds: 1500));
       expect(provider.undoCountdown, lessThan(5));
       expect(provider.undoStateNotifier.value?.countdown, provider.undoCountdown);
       // Detak timer 1 detik TIDAK BOLEH memanggil notifyListeners() pada KasSantriProvider!
@@ -2288,8 +2296,6 @@ void main() {
       expect(infakExcelBytes[1], 0x4B);
 
       provider.dispose();
-      await db.close();
-      DatabaseHelper.instance.setDatabaseForTesting(null);
     });
 
     test('AH. Batch 3 v4.2: Kepatuhan Data Safety Play Store, LegalDocumentSheet Dual-Mode & Ed25519 --dart-define', () async {
@@ -2365,12 +2371,17 @@ void main() {
         inMemoryDatabasePath,
         options: OpenDatabaseOptions(
           version: 4,
+          singleInstance: false,
           onConfigure: (db) async => await db.execute('PRAGMA foreign_keys = ON'),
           onCreate: (db, version) async =>
               await DatabaseHelper.instance.createSchemaForTesting(db),
         ),
       );
       DatabaseHelper.instance.setDatabaseForTesting(db);
+      addTearDown(() async {
+        DatabaseHelper.instance.setDatabaseForTesting(null);
+        await db.close();
+      });
       final helper = DatabaseHelper.instance;
 
       expect(helper.migrator, isNotNull);
@@ -2418,9 +2429,6 @@ void main() {
       final exporter = YayasanExportService.instance;
       expect(exporter.excelExporter, isNotNull);
       expect(exporter.pdfExporter, isNotNull);
-
-      await db.close();
-      DatabaseHelper.instance.setDatabaseForTesting(null);
     });
   });
 }
