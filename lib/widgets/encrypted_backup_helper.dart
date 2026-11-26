@@ -4,9 +4,11 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../database/database_helper.dart';
 import '../providers/kas_santri_provider.dart';
+import '../screens/paywall_screen.dart';
 import '../services/backup_service.dart';
 import '../utils/app_feedback.dart';
 import '../utils/date_formatter.dart';
@@ -120,6 +122,15 @@ class EncryptedBackupHelper {
 
   static Future<void> backupEncryptedKsbak(BuildContext context) async {
     AppFeedback.tap();
+    final provider = Provider.of<KasSantriProvider>(context, listen: false);
+    if (!provider.hasProAccess) {
+      AppFeedback.alert();
+      await PaywallScreen.show(
+        context,
+        triggerFeature: 'Backup Terenkripsi Militer AES-256 (.KSBAK)',
+      );
+      return;
+    }
     final password = await _promptBackupPassword(
       context,
       title: 'Buat Backup Terenkripsi (.KSBAK)',
@@ -181,6 +192,14 @@ class EncryptedBackupHelper {
       final BackupValidationResult validation;
       if (isKsbak) {
         if (!context.mounted) return;
+        if (!provider.hasProAccess) {
+          AppFeedback.alert();
+          await PaywallScreen.show(
+            context,
+            triggerFeature: 'Buka & Pulihkan Backup Terenkripsi AES-256 (.KSBAK)',
+          );
+          return;
+        }
         final password = await _promptBackupPassword(
           context,
           title: 'Buka Backup Terenkripsi (.KSBAK)',

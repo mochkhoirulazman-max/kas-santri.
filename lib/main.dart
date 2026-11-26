@@ -28,7 +28,7 @@ class KasSantriApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'PPS MIFTAHUSSUNAN — Kas & Keuangan Santri',
+      title: 'Kas-Santri — Manajemen Uang Saku & Infak Pondok',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
       darkTheme: AppTheme.darkTheme,

@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import '../models/infak_santri.dart';
 import '../models/santri.dart';
 import '../providers/kas_santri_provider.dart';
+import '../screens/paywall_screen.dart';
 import '../utils/app_feedback.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/date_formatter.dart';
@@ -74,7 +75,7 @@ class _InfakEditBottomSheetState extends State<InfakEditBottomSheet> {
     _isMasakBebas = ex?.isMasakBebas ?? false;
     _isListrikBebas = ex?.isListrikBebas ?? false;
     _jenisBeras = ex?.jenisBeras ?? InfakSantriModel.berasUangVal;
-    _sumberDompet = ex?.sumberDompet ?? 'TUNAI';
+    _sumberDompet = provider.hasProAccess ? (ex?.sumberDompet ?? 'TUNAI') : 'TUNAI';
 
     final masakVal = ex != null ? ex.nominalMasak : peng.defaultInfakMasak;
     final listrikVal = ex != null ? ex.nominalListrik : peng.defaultInfakListrik;
@@ -195,10 +196,21 @@ class _InfakEditBottomSheetState extends State<InfakEditBottomSheet> {
       top: true,
       bottom: false,
       child: Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFF0E1422),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-          border: Border(top: BorderSide(color: Color(0xFF34D399), width: 1.5)),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xF5062D24), Color(0xF70B182C), Color(0xF718132B)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          border: const Border(top: BorderSide(color: Color(0xFF34D399), width: 1.5)),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF10B981).withValues(alpha: 0.18),
+              blurRadius: 22,
+              offset: const Offset(0, -6),
+            ),
+          ],
         ),
         padding: EdgeInsets.fromLTRB(20, 12, 20, bottomInset + bottomSafe + 22),
         child: SingleChildScrollView(
@@ -496,11 +508,22 @@ class _InfakEditBottomSheetState extends State<InfakEditBottomSheet> {
   }
 
   Widget _dompetChip(String label, String value, Color accent) {
-    final selected = _sumberDompet == value;
+    final isPro = Provider.of<KasSantriProvider>(context).hasProAccess;
+    final isLockedRekening = value == 'REKENING' && !isPro;
+    final selected = _sumberDompet == value && !isLockedRekening;
+    final displayLabel = isLockedRekening ? '$label 👑' : label;
     return Expanded(
       child: InkWell(
         onTap: () {
           AppFeedback.tap();
+          if (isLockedRekening) {
+            PaywallScreen.show(
+              context,
+              triggerFeature: 'Multi-Dompet: Pisah Kas Laci Tunai vs Rekening Bank',
+            );
+            setState(() => _sumberDompet = 'TUNAI');
+            return;
+          }
           setState(() => _sumberDompet = value);
         },
         borderRadius: BorderRadius.circular(12),
@@ -509,12 +532,24 @@ class _InfakEditBottomSheetState extends State<InfakEditBottomSheet> {
           decoration: BoxDecoration(
             color: selected ? accent.withOpacity(0.18) : const Color(0xFF060B14),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: selected ? accent : Colors.white12),
+            border: Border.all(
+              color: selected
+                  ? accent
+                  : (isLockedRekening
+                      ? const Color(0xFFFBBF24).withValues(alpha: 0.45)
+                      : Colors.white12),
+            ),
           ),
           alignment: Alignment.center,
           child: Text(
-            label,
-            style: TextStyle(color: selected ? accent : Colors.white60, fontSize: 11, fontWeight: FontWeight.w800),
+            displayLabel,
+            style: TextStyle(
+              color: selected
+                  ? accent
+                  : (isLockedRekening ? const Color(0xFFFDE68A) : Colors.white60),
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ),
       ),

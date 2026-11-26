@@ -112,6 +112,26 @@ class SubscriptionService {
   bool _isConfigured = false;
   bool get isConfigured => _isConfigured;
 
+  bool _isProActive = false;
+  bool _isTrialActive = false;
+
+  /// Status paket PRO berbayar/lisensi aktif (selain trial).
+  bool get isProActive => _isProActive;
+
+  /// Status Uji Coba Gratis 14 Hari aktif.
+  bool get isTrialActive => _isTrialActive;
+
+  /// Gerbang pengecekan terpusat akses fitur PRO di seluruh aplikasi.
+  bool get hasProAccess => isProActive || isTrialActive;
+
+  void updateAccessState({
+    required bool isProActive,
+    required bool isTrialActive,
+  }) {
+    _isProActive = isProActive;
+    _isTrialActive = isTrialActive;
+  }
+
   static String qrisAssetForPlan(String planKey) {
     switch (planKey.toUpperCase()) {
       case 'MONTHLY':
@@ -203,12 +223,14 @@ class SubscriptionService {
       );
     }
 
-    return evaluateTrial(
+    final evaluated = evaluateTrial(
       hasUsedTrial: hasUsed,
       startedAt: startedAt,
       expiresAt: expiresAt,
       now: now,
     );
+    _isTrialActive = evaluated.isActive;
+    return evaluated;
   }
 
   Future<void> _persistTrialData({
@@ -278,6 +300,7 @@ class SubscriptionService {
       expiresAt: expiresAt,
       now: effectiveNow,
     );
+    _isTrialActive = activeStatus.isActive;
 
     return (
       success: true,

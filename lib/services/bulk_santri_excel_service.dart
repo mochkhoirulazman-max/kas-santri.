@@ -52,7 +52,7 @@ class BulkSantriExcelService {
 
   /// Menghasilkan file `.xlsx` template rapi siap isi untuk pondok besar.
   Uint8List buildTemplateExcelBytes({
-    String namaPondok = 'PPS MIFTAHUSSUNAN',
+    String namaPondok = 'Nama Pondok',
   }) {
     final excel = Excel.createExcel();
     const sheetName = 'Template Santri';

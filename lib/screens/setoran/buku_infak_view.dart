@@ -140,419 +140,509 @@ class _BukuInfakViewState extends State<BukuInfakView> {
         ? totalBerasLiter.toInt().toString()
         : totalBerasLiter.toStringAsFixed(1);
 
-    return ListView(
-      padding: EdgeInsets.fromLTRB(16, 4, 16, 120 + bottomSafe),
-      children: [
-        // 1. Kartu Kas Infak Pondok & Gudang Beras + Serah Terima
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                const Color(0xFF0A1D20).withOpacity((0.95 * cardOpacity).clamp(0.4, 0.94)),
-                const Color(0xFF101827).withOpacity((0.95 * cardOpacity).clamp(0.4, 0.94)),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: const Color(0xFF34D399).withOpacity(0.5)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Text('🏛️', style: TextStyle(fontSize: 20)),
-                  const SizedBox(width: 8),
-                  const Expanded(
-                    child: Text(
-                      'Kas Infak Pondok & Gudang Beras',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w900,
+    return CustomScrollView(
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+          sliver: SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // 1. Kartu Kas Infak Pondok & Gudang Beras + Serah Terima (Vibrant Emerald-Gold Glass)
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        const Color(0xFF064E3B).withValues(alpha: (0.88 * cardOpacity).clamp(0.45, 0.92)),
+                        const Color(0xFF0B253A).withValues(alpha: (0.90 * cardOpacity).clamp(0.48, 0.94)),
+                        const Color(0xFF281C08).withValues(alpha: (0.86 * cardOpacity).clamp(0.45, 0.92)),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: const Color(0xFF34D399).withValues(alpha: 0.45),
+                      width: 1.2,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF10B981).withValues(alpha: 0.16),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
                       ),
-                    ),
+                    ],
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFBBF24).withOpacity(0.18),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFFFBBF24).withOpacity(0.5)),
-                    ),
-                    child: const Text(
-                      'BELUM DISETOR',
-                      style: TextStyle(color: Color(0xFFFDE68A), fontSize: 9, fontWeight: FontWeight.w900),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF060B14),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: Colors.white12),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
                         children: [
-                          const Text('💰 Kas Infak Uang', style: TextStyle(color: Colors.white60, fontSize: 10)),
-                          const SizedBox(height: 2),
-                          FittedBox(
-                            fit: BoxFit.scaleDown,
-                            alignment: Alignment.centerLeft,
+                          const Text('🏛️', style: TextStyle(fontSize: 20)),
+                          const SizedBox(width: 8),
+                          const Expanded(
                             child: Text(
-                              CurrencyFormatter.format(provider.totalKasInfakBelumDisetor),
-                              style: const TextStyle(
-                                color: Color(0xFF34D399),
-                                fontSize: 15,
+                              'Kas Infak Pondok & Gudang Beras',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
                                 fontWeight: FontWeight.w900,
-                                fontFamily: 'monospace',
                               ),
                             ),
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Tunai: ${CurrencyFormatter.format(provider.kasInfakTunai)} • Bank: ${CurrencyFormatter.format(provider.kasInfakRekening)}',
-                            style: const TextStyle(color: Colors.white54, fontSize: 9),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFBBF24).withValues(alpha: 0.18),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: const Color(0xFFFBBF24).withValues(alpha: 0.5)),
+                            ),
+                            child: const Text(
+                              'BELUM DISETOR',
+                              style: TextStyle(color: Color(0xFFFDE68A), fontSize: 9, fontWeight: FontWeight.w900),
+                            ),
                           ),
                         ],
                       ),
-                    ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    const Color(0xFF042F26).withValues(alpha: 0.72),
+                                    const Color(0xFF071626).withValues(alpha: 0.78),
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: const Color(0xFF34D399).withValues(alpha: 0.32)),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('💰 Kas Infak Uang', style: TextStyle(color: Colors.white70, fontSize: 10)),
+                                  const SizedBox(height: 2),
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      CurrencyFormatter.format(provider.totalKasInfakBelumDisetor),
+                                      style: const TextStyle(
+                                        color: Color(0xFF34D399),
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w900,
+                                        fontFamily: 'monospace',
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    isPro
+                                        ? 'Tunai: ${CurrencyFormatter.format(provider.kasInfakTunai)} • Bank: ${CurrencyFormatter.format(provider.kasInfakRekening)}'
+                                        : 'Rincian Tunai vs Bank 🔒 PRO',
+                                    style: TextStyle(
+                                      color: isPro ? Colors.white60 : const Color(0xFFFDE68A),
+                                      fontSize: 9,
+                                      fontWeight: isPro ? FontWeight.normal : FontWeight.w700,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            width: 118,
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  const Color(0xFF332006).withValues(alpha: 0.72),
+                                  const Color(0xFF0B1324).withValues(alpha: 0.78),
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: const Color(0xFFFBBF24).withValues(alpha: 0.35)),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('🌾 Beras Gudang', style: TextStyle(color: Colors.white70, fontSize: 10)),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '$berasStokStr Liter',
+                                  style: const TextStyle(
+                                    color: Color(0xFFFDE68A),
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w900,
+                                    fontFamily: 'monospace',
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                const Text(
+                                  'Siap serah dapur',
+                                  style: TextStyle(color: Colors.white60, fontSize: 9),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                AppFeedback.tap();
+                                if (!isPro) {
+                                  PaywallScreen.show(
+                                    context,
+                                    triggerFeature: 'Serah Terima Kas Infak & Beras ke Dapur / Yayasan',
+                                  );
+                                  return;
+                                }
+                                SerahTerimaFormSheet.show(context);
+                              },
+                              icon: const Text('🤝', style: TextStyle(fontSize: 14)),
+                              label: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  isPro
+                                      ? 'Serah Terima ke Dapur / Yayasan'
+                                      : 'Serah Terima Infak 👑',
+                                  style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900),
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFFBBF24),
+                                foregroundColor: const Color(0xFF030712),
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            flex: 2,
+                            child: OutlinedButton(
+                              onPressed: () {
+                                AppFeedback.tap();
+                                if (!isPro) {
+                                  PaywallScreen.show(
+                                    context,
+                                    triggerFeature: 'Riwayat & Berita Acara Serah Terima Infak',
+                                  );
+                                  return;
+                                }
+                                SerahTerimaHistorySheet.show(context);
+                              },
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: isPro ? const Color(0xFF67E8F9) : const Color(0xFFFDE68A),
+                                side: BorderSide(
+                                  color: isPro ? const Color(0xFF38BDF8) : const Color(0xFFFBBF24),
+                                ),
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              ),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  isPro ? '📜 Riwayat' : '📜 Riwayat 👑',
+                                  style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  Container(
-                    width: 118,
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF060B14),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: Colors.white12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('🌾 Beras Gudang', style: TextStyle(color: Colors.white60, fontSize: 10)),
-                        const SizedBox(height: 2),
-                        Text(
-                          '$berasStokStr Liter',
-                          style: const TextStyle(
-                            color: Color(0xFFFDE68A),
-                            fontSize: 15,
-                            fontWeight: FontWeight.w900,
-                            fontFamily: 'monospace',
+                ),
+
+                const SizedBox(height: 10),
+
+                // 1b. Tombol Ekspor Resmi PRO: PDF Buku Infak & Excel 4-Sheet
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: _isExporting
+                            ? null
+                            : () {
+                                AppFeedback.tap();
+                                if (!isPro) {
+                                  PaywallScreen.show(
+                                    context,
+                                    triggerFeature: 'Cetak PDF Resmi Buku Infak',
+                                  );
+                                  return;
+                                }
+                                _showPdfScopeSheet(context, provider, allSantri);
+                              },
+                        icon: const Text('📄', style: TextStyle(fontSize: 14)),
+                        label: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            _isExporting
+                                ? 'Menyiapkan...'
+                                : (isPro ? 'PDF Buku Infak' : 'PDF Buku Infak 👑'),
+                            style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900),
                           ),
                         ),
-                        const SizedBox(height: 2),
-                        const Text(
-                          'Siap serah dapur',
-                          style: TextStyle(color: Colors.white54, fontSize: 9),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF0F766E),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 11),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                         ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: _isExporting
+                            ? null
+                            : () {
+                                AppFeedback.tap();
+                                if (!isPro) {
+                                  PaywallScreen.show(
+                                    context,
+                                    triggerFeature: 'Ekspor Excel 4-Sheet Buku Infak',
+                                  );
+                                  return;
+                                }
+                                _exportExcel4Sheet(provider, allSantri);
+                              },
+                        icon: const Text('📊', style: TextStyle(fontSize: 14)),
+                        label: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            _isExporting
+                                ? 'Menyiapkan...'
+                                : (isPro ? 'Excel 4-Sheet' : 'Excel 4-Sheet 👑'),
+                            style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900),
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1E3A8A),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 11),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 12),
+
+                // 2. Pemilih Bulan & Tahun Ajaran (Cyan -> Indigo Glass)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        const Color(0xFF09253A).withValues(alpha: (0.85 * cardOpacity).clamp(0.45, 0.90)),
+                        const Color(0xFF141838).withValues(alpha: (0.85 * cardOpacity).clamp(0.45, 0.90)),
                       ],
                     ),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: const Color(0xFF38BDF8).withValues(alpha: 0.35)),
                   ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        AppFeedback.tap();
-                        SerahTerimaFormSheet.show(context);
-                      },
-                      icon: const Text('🤝', style: TextStyle(fontSize: 14)),
-                      label: const FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          'Serah Terima ke Dapur / Yayasan',
-                          style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        onPressed: () {
+                          AppFeedback.tap();
+                          provider.shiftInfakPeriode(-1);
+                        },
+                        icon: const Icon(Icons.chevron_left_rounded, color: Colors.white),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      Expanded(
+                        child: Column(
+                          children: [
+                            Text(
+                              _formatPeriodeLabel(periode),
+                              style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w900),
+                            ),
+                            Text(
+                              'TA ${DateFormatter.formatAcademicYearForPeriode(periode, configuredTa: peng.tahunAjaran)}',
+                              style: const TextStyle(color: Color(0xFF34D399), fontSize: 10, fontWeight: FontWeight.w700),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
                         ),
                       ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFBBF24),
-                        foregroundColor: const Color(0xFF030712),
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      IconButton(
+                        onPressed: () {
+                          AppFeedback.tap();
+                          provider.shiftInfakPeriode(1);
+                        },
+                        icon: const Icon(Icons.chevron_right_rounded, color: Colors.white),
+                        visualDensity: VisualDensity.compact,
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    flex: 2,
-                    child: OutlinedButton(
-                      onPressed: () {
-                        AppFeedback.tap();
-                        SerahTerimaHistorySheet.show(context);
-                      },
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF67E8F9),
-                        side: const BorderSide(color: Color(0xFF38BDF8)),
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                      ),
-                      child: const FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          '📜 Riwayat',
-                          style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: 10),
-
-        // 1b. Tombol Ekspor Resmi PRO: PDF Buku Infak & Excel 4-Sheet
-        Row(
-          children: [
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: _isExporting
-                    ? null
-                    : () {
-                        AppFeedback.tap();
-                        if (!isPro) {
-                          PaywallScreen.show(
-                            context,
-                            triggerFeature: 'Cetak PDF Resmi Buku Infak',
-                          );
-                          return;
-                        }
-                        _showPdfScopeSheet(context, provider, allSantri);
-                      },
-                icon: const Text('📄', style: TextStyle(fontSize: 14)),
-                label: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    _isExporting
-                        ? 'Menyiapkan...'
-                        : (isPro ? 'PDF Buku Infak' : 'PDF Buku Infak 👑'),
-                    style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900),
+                    ],
                   ),
                 ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0F766E),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 11),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: _isExporting
-                    ? null
-                    : () {
-                        AppFeedback.tap();
-                        if (!isPro) {
-                          PaywallScreen.show(
-                            context,
-                            triggerFeature: 'Ekspor Excel 4-Sheet Buku Infak',
-                          );
-                          return;
-                        }
-                        _exportExcel4Sheet(provider, allSantri);
-                      },
-                icon: const Text('📊', style: TextStyle(fontSize: 14)),
-                label: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    _isExporting
-                        ? 'Menyiapkan...'
-                        : (isPro ? 'Excel 4-Sheet' : 'Excel 4-Sheet 👑'),
-                    style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900),
+
+                const SizedBox(height: 10),
+
+                // 2b. Pencarian Santri Instan di Buku Infak
+                TextField(
+                  controller: _searchCtrl,
+                  onChanged: (v) => setState(() => _searchQuery = v),
+                  style: const TextStyle(color: Colors.white, fontSize: 12.5),
+                  decoration: InputDecoration(
+                    hintText: 'Cari nama santri / panggilan / kamar/kelas...',
+                    prefixIcon: const Icon(Icons.search_rounded, size: 18, color: Color(0xFF34D399)),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.close_rounded, size: 17, color: Colors.white54),
+                            onPressed: () {
+                              _searchCtrl.clear();
+                              setState(() => _searchQuery = '');
+                            },
+                          )
+                        : null,
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   ),
                 ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1E3A8A),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 11),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                ),
-              ),
-            ),
-          ],
-        ),
 
-        const SizedBox(height: 12),
+                const SizedBox(height: 10),
 
-        // 2. Pemilih Bulan & Tahun Ajaran
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          decoration: BoxDecoration(
-            color: const Color(0xFF0F172A).withOpacity(cardOpacity),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.white12),
-          ),
-          child: Row(
-            children: [
-              IconButton(
-                onPressed: () {
-                  AppFeedback.tap();
-                  provider.shiftInfakPeriode(-1);
-                },
-                icon: const Icon(Icons.chevron_left_rounded, color: Colors.white),
-                visualDensity: VisualDensity.compact,
-              ),
-              Expanded(
-                child: Column(
+                // 3. Filter Kelompok Santri (Semua | Santriyin | Santriyat | Santri Baru)
+                Row(
                   children: [
-                    Text(
-                      _formatPeriodeLabel(periode),
-                      style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w900),
+                    _kelompokTab('Semua', 'ALL'),
+                    const SizedBox(width: 6),
+                    _kelompokTab('Santriyin', Santri.kategoriSantriyin),
+                    const SizedBox(width: 6),
+                    _kelompokTab('Santriyat', Santri.kategoriSantriyat),
+                    const SizedBox(width: 6),
+                    _kelompokTab('Santri Baru', Santri.kategoriSantriBaru),
+                  ],
+                ),
+
+                const SizedBox(height: 10),
+
+                // 4. 4 Kartu Ringkasan Instan (Vibrant Glass)
+                GridView.count(
+                  crossAxisCount: 2,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  mainAxisSpacing: 8,
+                  crossAxisSpacing: 8,
+                  childAspectRatio: 2.55,
+                  children: [
+                    _summaryBox('🍛 Total Masak', CurrencyFormatter.format(totalMasak), const Color(0xFF34D399), cardOpacity),
+                    _summaryBox('⚡ Total Listrik', CurrencyFormatter.format(totalListrik), const Color(0xFF38BDF8), cardOpacity),
+                    _summaryBox(
+                      '🌾 Beras (L + Rp)',
+                      '$totalLiterStr L • ${CurrencyFormatter.format(totalBerasUang)}',
+                      const Color(0xFFFDE68A),
+                      cardOpacity,
                     ),
+                    _summaryBox(
+                      '✅ Progres Lunas',
+                      '$countLunas / $countAktifTarget Santri',
+                      const Color(0xFFA78BFA),
+                      cardOpacity,
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 10),
+
+                // 5. Filter Status Pil
+                SizedBox(
+                  height: 36,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    children: [
+                      _statusFilterPill('Semua', 'ALL', isPro: isPro),
+                      _statusFilterPill('Belum Bayar', 'BELUM', isPro: isPro),
+                      _statusFilterPill('Cicil / Kurang', 'CICIL', isPro: isPro),
+                      _statusFilterPill(
+                        isPro ? '⏰ Jatuh Tempo <=3 Hr' : '⏰ Jatuh Tempo <=3 Hr 👑',
+                        'JATUH_TEMPO',
+                        isProGated: true,
+                        isPro: isPro,
+                      ),
+                      _statusFilterPill('Pulang / Pindah', 'PULANG_PINDAH', isPro: isPro),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+              ],
+            ),
+          ),
+        ),
+
+        // 6. Daftar Santri Buku Infak (Virtualized SliverList + RepaintBoundary)
+        if (filteredSantri.isEmpty)
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(16, 0, 16, 120 + bottomSafe),
+            sliver: SliverToBoxAdapter(
+              child: Container(
+                padding: const EdgeInsets.all(28),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      const Color(0xFF06382E).withValues(alpha: 0.65),
+                      const Color(0xFF0A1628).withValues(alpha: 0.72),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFF34D399).withValues(alpha: 0.30)),
+                ),
+                child: const Column(
+                  children: [
+                    Text('🌾', style: TextStyle(fontSize: 30)),
+                    SizedBox(height: 8),
                     Text(
-                      'TA ${DateFormatter.formatAcademicYearForPeriode(periode, configuredTa: peng.tahunAjaran)}',
-                      style: const TextStyle(color: Color(0xFF34D399), fontSize: 10, fontWeight: FontWeight.w700),
-                      overflow: TextOverflow.ellipsis,
+                      'Belum ada santri pada filter ini',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
                     ),
                   ],
                 ),
               ),
-              IconButton(
-                onPressed: () {
-                  AppFeedback.tap();
-                  provider.shiftInfakPeriode(1);
-                },
-                icon: const Icon(Icons.chevron_right_rounded, color: Colors.white),
-                visualDensity: VisualDensity.compact,
-              ),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: 10),
-
-        // 2b. Pencarian Santri Instan di Buku Infak
-        TextField(
-          controller: _searchCtrl,
-          onChanged: (v) => setState(() => _searchQuery = v),
-          style: const TextStyle(color: Colors.white, fontSize: 12.5),
-          decoration: InputDecoration(
-            hintText: 'Cari nama santri / panggilan / kamar di Buku Infak...',
-            prefixIcon: const Icon(Icons.search_rounded, size: 18, color: Color(0xFF34D399)),
-            suffixIcon: _searchQuery.isNotEmpty
-                ? IconButton(
-                    icon: const Icon(Icons.close_rounded, size: 17, color: Colors.white54),
-                    onPressed: () {
-                      _searchCtrl.clear();
-                      setState(() => _searchQuery = '');
-                    },
-                  )
-                : null,
-            isDense: true,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          ),
-        ),
-
-        const SizedBox(height: 10),
-
-        // 3. Filter Kelompok Santri (Semua | Santriyin | Santriyat | Santri Baru)
-        Row(
-          children: [
-            _kelompokTab('Semua', 'ALL'),
-            const SizedBox(width: 6),
-            _kelompokTab('Santriyin', Santri.kategoriSantriyin),
-            const SizedBox(width: 6),
-            _kelompokTab('Santriyat', Santri.kategoriSantriyat),
-            const SizedBox(width: 6),
-            _kelompokTab('Santri Baru', Santri.kategoriSantriBaru),
-          ],
-        ),
-
-        const SizedBox(height: 10),
-
-        // 4. 4 Kartu Ringkasan Instan (ringkas & lega)
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 8,
-          crossAxisSpacing: 8,
-          childAspectRatio: 2.55,
-          children: [
-            _summaryBox('🍛 Total Masak', CurrencyFormatter.format(totalMasak), const Color(0xFF34D399)),
-            _summaryBox('⚡ Total Listrik', CurrencyFormatter.format(totalListrik), const Color(0xFF38BDF8)),
-            _summaryBox(
-              '🌾 Beras (L + Rp)',
-              '$totalLiterStr L • ${CurrencyFormatter.format(totalBerasUang)}',
-              const Color(0xFFFDE68A),
-            ),
-            _summaryBox(
-              '✅ Progres Lunas',
-              '$countLunas / $countAktifTarget Santri',
-              const Color(0xFFA78BFA),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 10),
-
-        // 5. Filter Status Pil
-        SizedBox(
-          height: 36,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            children: [
-              _statusFilterPill('Semua', 'ALL', isPro: isPro),
-              _statusFilterPill('Belum Bayar', 'BELUM', isPro: isPro),
-              _statusFilterPill('Cicil / Kurang', 'CICIL', isPro: isPro),
-              _statusFilterPill(
-                isPro ? '⏰ Jatuh Tempo <=3 Hr' : '⏰ Jatuh Tempo <=3 Hr 👑',
-                'JATUH_TEMPO',
-                isProGated: true,
-                isPro: isPro,
-              ),
-              _statusFilterPill('Pulang / Pindah', 'PULANG_PINDAH', isPro: isPro),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: 10),
-
-        // 6. Daftar Santri Buku Infak
-        if (filteredSantri.isEmpty)
-          Container(
-            padding: const EdgeInsets.all(28),
-            decoration: BoxDecoration(
-              color: const Color(0xFF0F172A).withOpacity(0.6),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white12),
-            ),
-            child: const Column(
-              children: [
-                Text('🌾', style: TextStyle(fontSize: 30)),
-                SizedBox(height: 8),
-                Text(
-                  'Belum ada santri pada filter ini',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
-                ),
-              ],
             ),
           )
         else
-          ...filteredSantri.map((s) {
-            final inf = provider.getInfakForSantri(s.id);
-            return _buildInfakSantriCard(context, s, inf, periode, peng, isPro, cardOpacity);
-          }),
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(16, 0, 16, 120 + bottomSafe),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (ctx, idx) {
+                  final s = filteredSantri[idx];
+                  final inf = provider.getInfakForSantri(s.id);
+                  return RepaintBoundary(
+                    child: _buildInfakSantriCard(
+                      context,
+                      s,
+                      inf,
+                      periode,
+                      peng,
+                      isPro,
+                      cardOpacity,
+                    ),
+                  );
+                },
+                childCount: filteredSantri.length,
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -753,19 +843,35 @@ class _BukuInfakViewState extends State<BukuInfakView> {
     );
   }
 
-  Widget _summaryBox(String label, String value, Color accent) {
+  Widget _summaryBox(String label, String value, Color accent, double cardOpacity) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F172A).withOpacity(0.85),
+        gradient: LinearGradient(
+          colors: [
+            Color.lerp(const Color(0xFF081426), accent, 0.22)!
+                .withValues(alpha: (0.86 * cardOpacity).clamp(0.45, 0.90)),
+            const Color(0xFF0A1222)
+                .withValues(alpha: (0.88 * cardOpacity).clamp(0.48, 0.92)),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: accent.withOpacity(0.35)),
+        border: Border.all(color: accent.withValues(alpha: 0.42)),
+        boxShadow: [
+          BoxShadow(
+            color: accent.withValues(alpha: 0.12),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(label, style: const TextStyle(color: Colors.white60, fontSize: 10, fontWeight: FontWeight.w700)),
+          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w700)),
           const SizedBox(height: 3),
           FittedBox(
             fit: BoxFit.scaleDown,
@@ -876,16 +982,28 @@ class _BukuInfakViewState extends State<BukuInfakView> {
       berasStr = CurrencyFormatter.format(inf.berasUang);
     }
 
+    final topTint = Color.lerp(const Color(0xFF081426), badgeColor, 0.20)!
+        .withValues(alpha: (0.86 * cardOpacity).clamp(0.45, 0.90));
+    final bottomTint = const Color(0xFF0A1222)
+        .withValues(alpha: (0.90 * cardOpacity).clamp(0.48, 0.92));
+
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: s.isPulang
-            ? const Color(0xFF071E18).withOpacity(cardOpacity)
-            : (s.isPindah
-                ? const Color(0xFF111827).withOpacity(cardOpacity)
-                : const Color(0xFF0F172A).withOpacity(cardOpacity)),
+        gradient: LinearGradient(
+          colors: [topTint, bottomTint],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: badgeColor.withOpacity(0.45)),
+        border: Border.all(color: badgeColor.withValues(alpha: 0.45)),
+        boxShadow: [
+          BoxShadow(
+            color: badgeColor.withValues(alpha: 0.10),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: Material(
         color: Colors.transparent,

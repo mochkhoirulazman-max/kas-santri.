@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
 import '../models/serah_terima_infak.dart';
 import '../providers/kas_santri_provider.dart';
+import '../screens/paywall_screen.dart';
 import '../services/report_service.dart';
 import '../utils/app_feedback.dart';
 import '../utils/currency_formatter.dart';
@@ -14,6 +15,15 @@ class SerahTerimaFormSheet extends StatefulWidget {
   const SerahTerimaFormSheet({Key? key}) : super(key: key);
 
   static Future<void> show(BuildContext context) async {
+    final provider = Provider.of<KasSantriProvider>(context, listen: false);
+    if (!provider.hasProAccess) {
+      AppFeedback.alert();
+      await PaywallScreen.show(
+        context,
+        triggerFeature: 'Serah Terima Kas Infak & Beras ke Dapur / Yayasan',
+      );
+      return;
+    }
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -139,10 +149,21 @@ class _SerahTerimaFormSheetState extends State<SerahTerimaFormSheet> {
       top: true,
       bottom: false,
       child: Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFF0E1422),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-          border: Border(top: BorderSide(color: Color(0xFFFBBF24), width: 1.5)),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xF52A1D08), Color(0xF7091D2C), Color(0xF7071324)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          border: const Border(top: BorderSide(color: Color(0xFFFBBF24), width: 1.5)),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFF59E0B).withValues(alpha: 0.18),
+              blurRadius: 22,
+              offset: const Offset(0, -6),
+            ),
+          ],
         ),
         padding: EdgeInsets.fromLTRB(20, 12, 20, bottomInset + bottomSafe + 22),
         child: SingleChildScrollView(
@@ -344,6 +365,15 @@ class SerahTerimaHistorySheet extends StatelessWidget {
   const SerahTerimaHistorySheet({Key? key}) : super(key: key);
 
   static Future<void> show(BuildContext context) async {
+    final provider = Provider.of<KasSantriProvider>(context, listen: false);
+    if (!provider.hasProAccess) {
+      AppFeedback.alert();
+      await PaywallScreen.show(
+        context,
+        triggerFeature: 'Riwayat & Berita Acara Serah Terima Infak',
+      );
+      return;
+    }
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,

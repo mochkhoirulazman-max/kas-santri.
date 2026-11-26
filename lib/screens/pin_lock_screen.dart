@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/kas_santri_provider.dart';
@@ -172,28 +171,32 @@ class _PinLockScreenState extends State<PinLockScreen> {
               child: Center(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(32),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF0B1220).withOpacity(0.76),
-                          borderRadius: BorderRadius.circular(32),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.14),
-                            width: 1.2,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.55),
-                              blurRadius: 30,
-                              offset: const Offset(0, 12),
-                            ),
+                  child: RepaintBoundary(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            const Color(0xFF072536).withValues(alpha: 0.86),
+                            const Color(0xFF0A1428).withValues(alpha: 0.90),
                           ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
                         ),
-                        child: Column(
+                        borderRadius: BorderRadius.circular(32),
+                        border: Border.all(
+                          color: const Color(0xFF34D399).withValues(alpha: 0.38),
+                          width: 1.2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.50),
+                            blurRadius: 26,
+                            offset: const Offset(0, 12),
+                          ),
+                        ],
+                      ),
+                      child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Container(
@@ -401,7 +404,7 @@ class _PinLockScreenState extends State<PinLockScreen> {
                                   : 'Keamanan Terpasang • Tekan tahan hapus untuk reset',
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                color: Colors.white.withOpacity(0.45),
+                                color: Colors.white.withValues(alpha: 0.48),
                                 fontSize: 10.5,
                               ),
                             ),

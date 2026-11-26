@@ -1,9 +1,29 @@
+import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:http/http.dart' as http;
 import '../models/pengaturan.dart';
 import 'backup_service.dart';
+import 'subscription_service.dart';
+
+class GoogleAuthFriendlyException implements Exception {
+  final String title;
+  final String message;
+  final bool isSha1ConfigError;
+  final bool isCanceled;
+
+  const GoogleAuthFriendlyException({
+    required this.title,
+    required this.message,
+    this.isSha1ConfigError = false,
+    this.isCanceled = false,
+  });
+
+  @override
+  String toString() => message;
+}
 
 class _GoogleAuthClient extends http.BaseClient {
   final Map<String, String> _headers;
@@ -24,14 +44,82 @@ class _GoogleAuthClient extends http.BaseClient {
 }
 
 class GoogleDriveBackupService {
-  static final GoogleDriveBackupService instance = GoogleDriveBackupService._init();
+  static final GoogleDriveBackupService instance =
+      GoogleDriveBackupService._init();
   GoogleDriveBackupService._init();
 
   static const String backupFileName = 'kas_santri_cloud_backup.json';
 
   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    scopes: <String>[drive.DriveApi.driveAppdataScope],
+    scopes: <String>[
+      'email',
+      'https://www.googleapis.com/auth/drive.appdata',
+    ],
   );
+
+  static GoogleAuthFriendlyException mapAuthError(Object error) {
+    if (error is GoogleAuthFriendlyException) return error;
+
+    if (error is PlatformException) {
+      final raw =
+          '${error.code} ${error.message ?? ''} ${error.details ?? ''}'
+              .toLowerCase();
+      if (error.code == 'sign_in_canceled' || raw.contains('canceled')) {
+        return const GoogleAuthFriendlyException(
+          title: 'Login Google Dibatalkan',
+          message:
+              'Pemilihan akun Google dibatalkan. Anda tetap dapat memakai Mode Bendahara Lokal atau Backup Lokal (.JSON / .KSBAK) kapan saja.',
+          isCanceled: true,
+        );
+      }
+      if (raw.contains('apiexception: 10') ||
+          raw.contains(' 10:') ||
+          raw.contains(', 10,') ||
+          raw.contains('developer_error') ||
+          error.code == 'sign_in_failed') {
+        return const GoogleAuthFriendlyException(
+          title: 'OAuth Google Belum Aktif di Build Rilis Ini',
+          message:
+              'Google Sign-In memerlukan pendaftaran sertifikat SHA-1 Android (paket com.pondok.kassantri) pada Google Cloud Console untuk APK rilis.\n\nData kas pondok Anda tetap 100% aman di perangkat. Silakan gunakan tombol alternatif instan di bawah ini:',
+          isSha1ConfigError: true,
+        );
+      }
+      if (error.code == 'network_error' || raw.contains('network')) {
+        return const GoogleAuthFriendlyException(
+          title: 'Koneksi Internet Belum Stabil',
+          message:
+              'Tidak dapat menghubungi layanan Google saat ini. Pastikan internet aktif atau gunakan Backup Lokal (.JSON / .KSBAK) / Mode Bendahara Lokal.',
+        );
+      }
+    }
+
+    if (error is TimeoutException) {
+      return const GoogleAuthFriendlyException(
+        title: 'Waktu Sambungan Habis',
+        message:
+            'Koneksi ke Google memerlukan waktu terlalu lama. Anda dapat langsung menggunakan Backup Lokal (.JSON / .KSBAK) atau Mode Bendahara Lokal.',
+      );
+    }
+
+    final text = error.toString();
+    final lower = text.toLowerCase();
+    if (lower.contains('apiexception: 10') ||
+        lower.contains('developer_error') ||
+        lower.contains('sign_in_failed')) {
+      return const GoogleAuthFriendlyException(
+        title: 'OAuth Google Belum Aktif di Build Rilis Ini',
+        message:
+            'Google Sign-In memerlukan pendaftaran sertifikat SHA-1 Android (paket com.pondok.kassantri) pada Google Cloud Console untuk APK rilis.\n\nSilakan gunakan Backup Lokal (.JSON / .KSBAK) atau Mode Bendahara Lokal.',
+        isSha1ConfigError: true,
+      );
+    }
+
+    return const GoogleAuthFriendlyException(
+      title: 'Belum Dapat Terhubung ke Google',
+      message:
+          'Layanan Google belum dapat diakses pada perangkat ini. Pastikan koneksi internet aktif, atau gunakan fitur Backup Lokal (.JSON / .KSBAK) & Mode Bendahara Lokal.',
+    );
+  }
 
   Future<GoogleSignInAccount?> getCurrentOrSilentAccount() async {
     try {
@@ -52,11 +140,17 @@ class GoogleDriveBackupService {
       final account = await _googleSignIn.signIn().timeout(
             const Duration(seconds: 30),
           );
+      if (account == null) {
+        throw const GoogleAuthFriendlyException(
+          title: 'Login Google Dibatalkan',
+          message:
+              'Pemilihan akun Google dibatalkan. Anda dapat langsung melanjutkan dengan Mode Bendahara Lokal atau Backup Lokal (.JSON / .KSBAK).',
+          isCanceled: true,
+        );
+      }
       return account;
     } catch (e) {
-      throw Exception(
-        'Gagal menautkan akun Google. Pastikan perangkat terhubung internet & Google Play Services aktif ($e).',
-      );
+      throw mapAuthError(e);
     }
   }
 
@@ -73,7 +167,12 @@ class GoogleDriveBackupService {
     var account = await getCurrentOrSilentAccount();
     account ??= await signInInteractive();
     if (account == null) {
-      throw Exception('Login akun Google dibatalkan atau belum terhubung.');
+      throw const GoogleAuthFriendlyException(
+        title: 'Akun Google Belum Terhubung',
+        message:
+            'Silakan tautkan akun Google terlebih dahulu atau gunakan Backup Lokal (.JSON / .KSBAK).',
+        isCanceled: true,
+      );
     }
 
     final authHeaders = await account.authHeaders;
@@ -111,8 +210,10 @@ class GoogleDriveBackupService {
       }
 
       return DateTime.now();
-    } on Exception {
+    } on GoogleAuthFriendlyException {
       rethrow;
+    } catch (e) {
+      throw mapAuthError(e);
     } finally {
       client.close();
     }
@@ -123,7 +224,12 @@ class GoogleDriveBackupService {
     var account = await getCurrentOrSilentAccount();
     account ??= await signInInteractive();
     if (account == null) {
-      throw Exception('Login akun Google dibatalkan atau belum terhubung.');
+      throw const GoogleAuthFriendlyException(
+        title: 'Akun Google Belum Terhubung',
+        message:
+            'Silakan tautkan akun Google terlebih dahulu atau pulihkan dari file Backup Lokal (.JSON / .KSBAK).',
+        isCanceled: true,
+      );
     }
 
     final authHeaders = await account.authHeaders;
@@ -139,8 +245,10 @@ class GoogleDriveBackupService {
           .timeout(const Duration(seconds: 20));
 
       if (existingList.files == null || existingList.files!.isEmpty) {
-        throw Exception(
-          'Belum ada file cadangan Kas-Santri di Google Drive akun ${account.email}.',
+        throw GoogleAuthFriendlyException(
+          title: 'Belum Ada Cadangan di Drive',
+          message:
+              'Belum ditemukan file cadangan Kas-Santri pada Google Drive akun ${account.email}. Anda juga dapat memulihkan dari file lokal (.JSON / .KSBAK).',
         );
       }
 
@@ -153,7 +261,10 @@ class GoogleDriveBackupService {
           .timeout(const Duration(seconds: 30));
 
       if (downloaded is! drive.Media) {
-        throw Exception('Gagal mengunduh isi file backup dari Google Drive.');
+        throw const GoogleAuthFriendlyException(
+          title: 'Unduhan Cadangan Gagal',
+          message: 'Gagal mengunduh isi file backup dari Google Drive.',
+        );
       }
 
       final chunks = <int>[];
@@ -172,6 +283,12 @@ class GoogleDriveBackupService {
         validation: validation,
         modifiedTime: targetFile.modifiedTime?.toLocal(),
       );
+    } on GoogleAuthFriendlyException {
+      rethrow;
+    } on FormatException {
+      rethrow;
+    } catch (e) {
+      throw mapAuthError(e);
     } finally {
       client.close();
     }
@@ -182,14 +299,18 @@ class GoogleDriveBackupService {
     required PengaturanAplikasi settings,
     required Future<Map<String, dynamic>> Function() dumpPayload,
   }) async {
-    if (!settings.isPro || !settings.autoDriveBackup) return null;
-    if (settings.driveAccountEmail == null || settings.driveAccountEmail!.isEmpty) {
+    if (!SubscriptionService.instance.hasProAccess || !settings.autoDriveBackup) {
+      return null;
+    }
+    if (settings.driveAccountEmail == null ||
+        settings.driveAccountEmail!.isEmpty) {
       return null;
     }
 
     if (settings.lastDriveBackupAt != null) {
       final last = DateTime.tryParse(settings.lastDriveBackupAt!);
-      if (last != null && DateTime.now().difference(last) < const Duration(hours: 24)) {
+      if (last != null &&
+          DateTime.now().difference(last) < const Duration(hours: 24)) {
         return null;
       }
     }

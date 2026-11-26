@@ -1,4 +1,4 @@
-enum TipeSetoran { awalBulan, susulanTopUp, susulanTopup, sambanganSplit }
+enum TipeSetoran { awalBulan, susulanTopUp, sambanganSplit }
 
 enum OpsiSetoranSusulan { tambahJatahHarian, perpanjangHari }
 
@@ -37,7 +37,6 @@ class SetoranBulanan {
         tipeStr = 'SAMBANGAN_SPLIT';
         break;
       case TipeSetoran.susulanTopUp:
-      case TipeSetoran.susulanTopup:
         tipeStr = 'SUSULAN_TOPUP';
         break;
     }
@@ -60,7 +59,7 @@ class SetoranBulanan {
     final tipeRaw = map['tipe_setoran']?.toString();
     final TipeSetoran tipe;
     if (tipeRaw == 'SUSULAN_TOPUP') {
-      tipe = TipeSetoran.susulanTopup;
+      tipe = TipeSetoran.susulanTopUp;
     } else if (tipeRaw == 'SAMBANGAN_SPLIT') {
       tipe = TipeSetoran.sambanganSplit;
     } else {

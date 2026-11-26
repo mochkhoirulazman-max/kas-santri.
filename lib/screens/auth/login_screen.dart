@@ -1,10 +1,10 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/bendahara_account.dart';
 import '../../providers/kas_santri_provider.dart';
 import '../../services/account_auth_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/google_drive_backup_service.dart';
 import '../../utils/app_feedback.dart';
 import '../../widgets/app_background_wrapper.dart';
 import '../main_navigation_screen.dart';
@@ -28,6 +28,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePass = true;
   bool _isBusy = false;
   String? _errorMsg;
+  bool _isGoogleFriendlyNotice = false;
   List<BendaharaAccount> _savedLocalAccounts = [];
 
   final _namaController = TextEditingController();
@@ -104,6 +105,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() {
       _isBusy = true;
       _errorMsg = null;
+      _isGoogleFriendlyNotice = false;
     });
     try {
       final BendaharaAccount account;
@@ -145,6 +147,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() {
       _isBusy = true;
       _errorMsg = null;
+      _isGoogleFriendlyNotice = false;
     });
     try {
       final account = await AccountAuthService.instance.loginWithGoogle(
@@ -154,10 +157,11 @@ class _LoginScreenState extends State<LoginScreen> {
       await _onAuthenticated(account);
     } catch (e) {
       AppFeedback.alert();
+      final friendly = GoogleDriveBackupService.mapAuthError(e);
       if (mounted) {
         setState(() {
-          _errorMsg =
-              'Tidak dapat masuk via Google (pastikan internet aktif atau gunakan Mode Offline Cepat): ${e.toString().replaceFirst('Exception: ', '')}';
+          _isGoogleFriendlyNotice = true;
+          _errorMsg = friendly.message;
         });
       }
     } finally {
@@ -249,7 +253,6 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final peng = Provider.of<KasSantriProvider>(context).pengaturan;
     final logoPath = peng.logoPath;
-    final hasLogoFile = logoPath != null && logoPath.isNotEmpty && File(logoPath).existsSync();
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -282,23 +285,15 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF10B981).withOpacity(0.38),
+                            color: const Color(0xFF10B981).withValues(alpha: 0.38),
                             blurRadius: 20,
                           ),
                         ],
                       ),
-                      child: ClipOval(
-                        child: hasLogoFile
-                            ? Image.file(File(logoPath), fit: BoxFit.cover)
-                            : Image.asset(
-                                'logo.jpg',
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => const Icon(
-                                  Icons.account_balance_wallet_rounded,
-                                  color: Color(0xFF34D399),
-                                  size: 32,
-                                ),
-                              ),
+                      child: KasSantriLogoMark(
+                        customLogoPath: logoPath,
+                        size: 62,
+                        circular: true,
                       ),
                     ),
                   ),
@@ -328,6 +323,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   GlassCard(
                     borderRadius: 26,
                     padding: const EdgeInsets.all(18),
+                    borderColor: const Color(0xFF38BDF8).withValues(alpha: 0.42),
+                    gradientColors: const [
+                      Color(0xD8072638),
+                      Color(0xDE0E1833),
+                      Color(0xDA171230),
+                    ],
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -495,15 +496,91 @@ class _LoginScreenState extends State<LoginScreen> {
                         if (_errorMsg != null) ...[
                           const SizedBox(height: 6),
                           Container(
-                            padding: const EdgeInsets.all(10),
+                            padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF43F5E).withOpacity(0.18),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: const Color(0xFFF43F5E).withOpacity(0.5)),
+                              gradient: LinearGradient(
+                                colors: _isGoogleFriendlyNotice
+                                    ? [
+                                        const Color(0xFF332007).withValues(alpha: 0.78),
+                                        const Color(0xFF0A1D33).withValues(alpha: 0.82),
+                                      ]
+                                    : [
+                                        const Color(0xFFF43F5E).withValues(alpha: 0.18),
+                                        const Color(0xFF2A0A16).withValues(alpha: 0.45),
+                                      ],
+                              ),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: _isGoogleFriendlyNotice
+                                    ? const Color(0xFFFBBF24).withValues(alpha: 0.50)
+                                    : const Color(0xFFF43F5E).withValues(alpha: 0.50),
+                              ),
                             ),
-                            child: Text(
-                              _errorMsg!,
-                              style: const TextStyle(color: Color(0xFFFECDD3), fontSize: 11.5),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      _isGoogleFriendlyNotice
+                                          ? Icons.info_outline_rounded
+                                          : Icons.warning_amber_rounded,
+                                      size: 16,
+                                      color: _isGoogleFriendlyNotice
+                                          ? const Color(0xFFFDE68A)
+                                          : const Color(0xFFFECDD3),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        _isGoogleFriendlyNotice
+                                            ? 'Info Masuk Google OAuth'
+                                            : 'Perhatian Login',
+                                        style: TextStyle(
+                                          color: _isGoogleFriendlyNotice
+                                              ? const Color(0xFFFDE68A)
+                                              : const Color(0xFFFECDD3),
+                                          fontSize: 11.5,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  _errorMsg!,
+                                  style: TextStyle(
+                                    color: _isGoogleFriendlyNotice
+                                        ? Colors.white
+                                        : const Color(0xFFFECDD3),
+                                    fontSize: 11.5,
+                                    height: 1.38,
+                                  ),
+                                ),
+                                if (_isGoogleFriendlyNotice) ...[
+                                  const SizedBox(height: 10),
+                                  ElevatedButton.icon(
+                                    onPressed: _isBusy ? null : _submitOfflineQuickMode,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF10B981),
+                                      foregroundColor: const Color(0xFF030712),
+                                      padding: const EdgeInsets.symmetric(vertical: 10),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    icon: const Text('⚡', style: TextStyle(fontSize: 13)),
+                                    label: const Text(
+                                      'Masuk Mode Bendahara Lokal',
+                                      style: TextStyle(
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                           ),
                         ],

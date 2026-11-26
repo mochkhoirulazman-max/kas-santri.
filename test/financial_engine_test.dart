@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:cryptography/cryptography.dart';
 import 'package:excel/excel.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -14,6 +15,7 @@ import 'package:kas_santri/models/infak_santri.dart';
 import 'package:kas_santri/models/pengaturan.dart';
 import 'package:kas_santri/models/santri_status.dart';
 import 'package:kas_santri/models/serah_terima_infak.dart';
+import 'package:kas_santri/models/setoran.dart';
 import 'package:kas_santri/models/transaksi.dart';
 import 'package:kas_santri/providers/kas_santri_provider.dart';
 import 'package:kas_santri/services/account_auth_service.dart';
@@ -22,12 +24,14 @@ import 'package:kas_santri/services/backup_service.dart';
 import 'package:kas_santri/services/bulk_santri_excel_service.dart';
 import 'package:kas_santri/services/customer_sync_service.dart';
 import 'package:kas_santri/services/executive_analytics_service.dart';
+import 'package:kas_santri/services/google_drive_backup_service.dart';
 import 'package:kas_santri/services/license_service.dart';
 import 'package:kas_santri/services/qr_card_pdf_service.dart';
 import 'package:kas_santri/services/report_service.dart';
 import 'package:kas_santri/services/security_guard_service.dart';
 import 'package:kas_santri/services/smart_wa_reminder_service.dart';
 import 'package:kas_santri/services/subscription_service.dart';
+import 'package:kas_santri/services/tutorial_service.dart';
 import 'package:kas_santri/services/yayasan_export_service.dart';
 import 'package:kas_santri/utils/currency_formatter.dart';
 import 'package:kas_santri/utils/date_formatter.dart';
@@ -407,7 +411,7 @@ void main() {
         saldoTotal: 20000,
         jatahHarian: 10000,
       );
-      final pengaturan = PengaturanAplikasi(namaPondok: 'PPS MIFTAHUSSUNAN');
+      final pengaturan = PengaturanAplikasi(namaPondok: 'Nama Pondok');
 
       final freeText = ReportService.instance.generateWhatsAppText(
         santri: santri,
@@ -445,7 +449,7 @@ void main() {
         "tunggakan_log": [],
         "mutasi_dompet": [],
         "cash_opname_logs": [],
-        "pengaturan_aplikasi": [{"id": 1, "nama_pondok": "PPS MIFTAHUSSUNAN"}]
+        "pengaturan_aplikasi": [{"id": 1, "nama_pondok": "Nama Pondok"}]
       }
       ''';
 
@@ -486,7 +490,7 @@ void main() {
 
       // PengaturanAplikasi roundtrip untuk metadata Google Drive
       final settings = PengaturanAplikasi(
-        namaPondok: 'PPS MIFTAHUSSUNAN',
+        namaPondok: 'Nama Pondok',
         lastDriveBackupAt: '2026-11-25T02:45:00.000',
         autoDriveBackup: true,
         driveAccountEmail: 'bendahara@pondok.id',
@@ -909,7 +913,7 @@ void main() {
       });
       await db.insert('pengaturan_aplikasi', {
         'id': 1,
-        'nama_pondok': 'PPS MIFTAHUSSUNAN',
+        'nama_pondok': 'Nama Pondok',
         'nama_pengurus': 'Pengurus Lama',
       });
 
@@ -1267,7 +1271,7 @@ void main() {
         infak: infakPeriode.where((i) => i.santriId == sBaru.id).firstOrNull,
       );
       expect(reminderMsg, contains('Umar Santri Baru'));
-      expect(reminderMsg, contains('PPS MIFTAHUSSUNAN'));
+      expect(reminderMsg, contains('Nama Pondok'));
       expect(reminderMsg, contains('2026-12-25'));
     });
 
@@ -1636,7 +1640,7 @@ void main() {
       // 1. Verifikasi payload hanya berisi metadata lisensi non-sensitif (0 data santri/saldo)
       final payload = CustomerSyncService.buildTelemetryPayload(
         deviceId: 'ks-abcd1234',
-        namaPondok: 'PPS Miftahussunan',
+        namaPondok: 'PP Al-Hikmah',
         namaBendahara: 'Ustadz Ahmad',
         noWaPengurus: '081234567890',
         tier: 'yearly',
@@ -1666,7 +1670,7 @@ void main() {
       // 3. Mode offline / belum dikonfigurasi selalu gagal sunyi tanpa melempar error
       final unconfigured = await CustomerSyncService.instance.syncDeviceInBackground(
         deviceId: 'KS-ABCD1234',
-        namaPondok: 'PPS Miftahussunan',
+        namaPondok: 'PP Al-Hikmah',
         namaBendahara: 'Ustadz Ahmad',
         noWaPengurus: '081234567890',
         tier: 'FREE',
@@ -1701,7 +1705,7 @@ void main() {
 
       final syncRes = await CustomerSyncService.instance.syncDeviceInBackground(
         deviceId: 'KS-ABCD1234',
-        namaPondok: 'PPS Miftahussunan',
+        namaPondok: 'PP Al-Hikmah',
         namaBendahara: 'Ustadz Ahmad',
         noWaPengurus: '081234567890',
         tier: 'YEARLY',
@@ -1749,7 +1753,7 @@ void main() {
       expect(parseDupAndQuota.exceedsFreeQuota, false);
 
       // 2. Cetak Massal Kartu Santri QR PDF (8 kartu / halaman A4)
-      final samplePeng = PengaturanAplikasi(namaPondok: 'PPS MIFTAHUSSUNAN');
+      final samplePeng = PengaturanAplikasi(namaPondok: 'Nama Pondok');
       final qrSantri = List.generate(
         9,
         (i) => Santri(
@@ -1837,9 +1841,312 @@ void main() {
       expect(queues[ReminderCategory.tunggakan]?.length, 1);
       final waMsg = SmartWaReminderService.composePoliteMessage(
         item: queues[ReminderCategory.saldoKritis]!.first,
-        namaPondok: 'PPS MIFTAHUSSUNAN',
+        namaPondok: 'Nama Pondok',
       );
       expect(waMsg, contains('Santri Kritis'));
+
+      await db.close();
+      DatabaseHelper.instance.setDatabaseForTesting(null);
+    });
+
+    test('AD. Pembaruan v4.1: Default Nama Pondok, Top-Up Jajan Update Jatah & Friendly OAuth Error 10', () async {
+      // 1. Default identitas pondok netral
+      final defaultPeng = PengaturanAplikasi();
+      expect(defaultPeng.namaPondok, 'Nama Pondok');
+
+      // 2. Penanganan ramah PlatformException kode 10 (SHA-1 OAuth)
+      final sha1Err = GoogleDriveBackupService.mapAuthError(
+        PlatformException(
+          code: 'sign_in_failed',
+          message: 'com.google.android.gms.common.api.ApiException: 10:',
+        ),
+      );
+      expect(sha1Err.isSha1ConfigError, true);
+      expect(sha1Err.message, contains('SHA-1'));
+      expect(sha1Err.message, contains('com.pondok.kassantri'));
+
+      // 3. Top-Up Jajan (susulanTopUp tanpa opsiSusulan) memperbarui saldo + jatah harian + potong tunggakan
+      sqfliteFfiInit();
+      final db = await databaseFactoryFfi.openDatabase(
+        inMemoryDatabasePath,
+        options: OpenDatabaseOptions(version: 4),
+      );
+      await DatabaseHelper.instance.createSchemaForTesting(db);
+      DatabaseHelper.instance.setDatabaseForTesting(db);
+
+      final dbPeng = await DatabaseHelper.instance.getPengaturan();
+      expect(dbPeng.namaPondok, 'Nama Pondok');
+
+      final newSantri = Santri(
+        id: 'v41-s1',
+        namaLengkap: 'Santri Baru v4.1',
+        namaPanggilan: 'Baru',
+        kamar: 'Kelas 7A',
+        saldoTotal: 0,
+        setoranAwal: 0,
+        jatahHarian: 10000,
+        tunggakan: 50000,
+      );
+      await DatabaseHelper.instance.insertSantri(newSantri);
+
+      await DatabaseHelper.instance.catatSetoranBaru(
+        santriId: newSantri.id,
+        nominalSetoran: 350000,
+        durasiHari: 30,
+        jatahHarianHitung: 10000,
+        tipeSetoran: TipeSetoran.susulanTopUp,
+        tanggalSetor: DateTime(2026, 11, 26),
+        potongTunggakan: true,
+        metodeBayar: 'TUNAI',
+      );
+
+      final afterTopUp = await DatabaseHelper.instance.getSantriById(newSantri.id);
+      expect(afterTopUp?.tunggakan, 0);
+      expect(afterTopUp?.saldoTotal, 300000);
+      expect(afterTopUp?.jatahHarian, 10000);
+
+      await db.close();
+      DatabaseHelper.instance.setDatabaseForTesting(null);
+    });
+
+    test('AE. Tahap B v4.1 Final Polish: Gerbang Terpusat hasProAccess & Persistensi Onboarding/Walkthrough', () async {
+      // 1. Verifikasi gerbang terpusat SubscriptionService.hasProAccess
+      final sub = SubscriptionService.instance;
+      sub.updateAccessState(proActive: false, trialActive: false);
+      expect(sub.isProActive, false);
+      expect(sub.isTrialActive, false);
+      expect(sub.hasProAccess, false);
+
+      // Saat Trial 14 Hari aktif, seluruh fitur PRO terbuka
+      sub.updateAccessState(proActive: false, trialActive: true);
+      expect(sub.isProActive, false);
+      expect(sub.isTrialActive, true);
+      expect(sub.hasProAccess, true);
+
+      // Saat Langganan PRO aktif, seluruh fitur PRO terbuka
+      sub.updateAccessState(proActive: true, trialActive: false);
+      expect(sub.isProActive, true);
+      expect(sub.isTrialActive, false);
+      expect(sub.hasProAccess, true);
+
+      // Reset ke Free
+      sub.updateAccessState(proActive: false, trialActive: false);
+      expect(sub.hasProAccess, false);
+
+      // 2. Verifikasi penyimpanan status Onboarding & Spotlight Tour di SharedPreferences
+      SharedPreferences.setMockInitialValues({});
+      final tut = TutorialService.instance;
+      expect(await tut.hasSeenOnboarding(), false);
+      expect(await tut.hasSeenWalkthrough(), false);
+
+      await tut.markOnboardingSeen();
+      expect(await tut.hasSeenOnboarding(), true);
+      expect(await tut.hasSeenWalkthrough(), false);
+
+      await tut.markWalkthroughSeen();
+      expect(await tut.hasSeenWalkthrough(), true);
+
+      // Putar ulang tutorial dari menu Panduan Aplikasi me-reset flag terkait
+      await tut.resetWalkthrough();
+      expect(await tut.hasSeenWalkthrough(), false);
+      expect(await tut.hasSeenOnboarding(), true);
+
+      await tut.resetOnboarding();
+      expect(await tut.hasSeenOnboarding(), false);
+    });
+
+    test('AF. Batch 1 v4.2: Rekonsiliasi Akuntansi Ketat (Edit, Void Setoran, Delete Santri, Akumulasi/PotongBesok & Anti-Tamper Restore)', () async {
+      sqfliteFfiInit();
+      final db = await databaseFactoryFfi.openDatabase(
+        inMemoryDatabasePath,
+        options: OpenDatabaseOptions(
+          version: 4,
+          onConfigure: (d) async => await d.execute('PRAGMA foreign_keys = ON;'),
+        ),
+      );
+      await DatabaseHelper.instance.createSchemaForTesting(db);
+      DatabaseHelper.instance.setDatabaseForTesting(db);
+
+      final helper = DatabaseHelper.instance;
+
+      Future<void> expectBrankasMatchesDompet(String stage) async {
+        final brankas = await helper.getTotalSaldoBrankasFisik();
+        final dompet = await helper.getSaldoDompet();
+        final sumDompet = (dompet['tunai'] ?? 0) + (dompet['rekening'] ?? 0);
+        expect(
+          sumDompet,
+          brankas,
+          reason: 'Selisih Brankas vs Multi-Dompet pada tahap: $stage',
+        );
+      }
+
+      // 1. Insert 2 santri awal & verifikasi invariant Brankas == Dompet
+      final s1 = Santri(
+        id: 'af-s1',
+        namaLengkap: 'Santri Rekonsiliasi 1',
+        namaPanggilan: 'S1',
+        kamar: 'K1',
+        saldoTotal: 200000,
+        jatahHarian: 10000,
+      );
+      final s2 = Santri(
+        id: 'af-s2',
+        namaLengkap: 'Santri Rekonsiliasi 2',
+        namaPanggilan: 'S2',
+        kamar: 'K1',
+        saldoTotal: 0,
+        jatahHarian: 10000,
+        tunggakan: 30000,
+      );
+      await helper.insertSantri(s1, sumberDompet: 'TUNAI');
+      await helper.insertSantri(s2, sumberDompet: 'REKENING');
+      await expectBrankasMatchesDompet('Insert Santri Awal');
+
+      // 2. Uji editTransaksi():
+      // S1 ambil Rp 10.000 -> edit jadi Rp 25.000 -> edit jadi Rp 210.000 (melebihi saldo -> konversi ke tunggakan tanpa saldo minus!)
+      final txAmbil1 = await helper.catatPengambilan(
+        santriId: s1.id,
+        nominal: 10000,
+        catatan: 'Jajan Pagi',
+        customTimestamp: DateTime(2026, 11, 25, 8, 0),
+      );
+      await expectBrankasMatchesDompet('Setelah Ambil 10.000');
+
+      await helper.editTransaksi(txAmbil1.id, 25000, 'Koreksi Jajan 25rb');
+      var s1Check = await helper.getSantriById(s1.id);
+      expect(s1Check?.saldoTotal, 175000);
+      await expectBrankasMatchesDompet('Setelah Edit Ambil -> 25.000');
+
+      // Edit melebihi sisa saldo (25.000 -> 215.000, selisih +190.000 padahal saldo 175.000 -> saldo 0, tunggakan +15.000)
+      await helper.editTransaksi(txAmbil1.id, 215000, 'Koreksi Overdraft');
+      s1Check = await helper.getSantriById(s1.id);
+      expect(s1Check?.saldoTotal, 0);
+      expect(s1Check?.tunggakan, 15000);
+      await expectBrankasMatchesDompet('Setelah Edit Ambil Overdraft -> 215.000');
+
+      // Edit turun kembali dari 215.000 -> 15.000 (refund 200.000 -> lunasi tunggakan 15.000 dulu, sisa 185.000 masuk saldo)
+      await helper.editTransaksi(txAmbil1.id, 15000, 'Koreksi Kembali 15rb');
+      s1Check = await helper.getSantriById(s1.id);
+      expect(s1Check?.tunggakan, 0);
+      expect(s1Check?.saldoTotal, 185000);
+      await expectBrankasMatchesDompet('Setelah Edit Ambil Turun -> 15.000');
+
+      // 3. Uji voidTransaksi(setoran) yang memotong tunggakan & sebagian saldonya sudah terpakai jajan (Keputusan #2 - Opsi A)
+      // S2 punya tunggakan 30.000 -> setor 130.000 via REKENING (potong tunggakan 30.000 -> saldo masuk 100.000)
+      await helper.catatSetoranBaru(
+        santriId: s2.id,
+        nominalSetoran: 130000,
+        durasiHari: 30,
+        jatahHarianHitung: 10000,
+        tipeSetoran: TipeSetoran.awalBulan,
+        tanggalSetor: DateTime(2026, 11, 25),
+        potongTunggakan: true,
+        metodeBayar: 'REKENING',
+      );
+      var s2Check = await helper.getSantriById(s2.id);
+      expect(s2Check?.tunggakan, 0);
+      expect(s2Check?.saldoTotal, 100000);
+
+      // S2 jajan Rp 20.000 (sisa saldo S2 tinggal Rp 80.000)
+      await helper.catatPengambilan(
+        santriId: s2.id,
+        nominal: 20000,
+        catatan: 'Jajan S2',
+        customTimestamp: DateTime(2026, 11, 25, 13, 0),
+      );
+      s2Check = await helper.getSantriById(s2.id);
+      expect(s2Check?.saldoTotal, 80000);
+
+      // Ambil ID transaksi setoran S2 lalu VOID setoran 130.000 tersebut
+      final s2Mutasi = await helper.getBukuMutasiSantri(s2.id);
+      final txSetoranS2 = s2Mutasi.firstWhere((t) => t.tipe == TipeTransaksi.setoran);
+      await helper.voidTransaksi(txSetoranS2.id);
+
+      // Setelah void setoran: saldo S2 menjadi 0, tunggakan lama (30.000) kembali + selisih terpakai (20.000) = 50.000!
+      s2Check = await helper.getSantriById(s2.id);
+      expect(s2Check?.saldoTotal, 0);
+      expect(s2Check?.tunggakan, 50000);
+      await expectBrankasMatchesDompet('Setelah Void Setoran S2 yang Sudah Terpakai Sebagian');
+
+      // Pastikan editTransaksi pada transaksi yang sudah void diabaikan (tidak merusak saldo)
+      await helper.editTransaksi(txSetoranS2.id, 999000, 'Coba Edit Void');
+      s2Check = await helper.getSantriById(s2.id);
+      expect(s2Check?.saldoTotal, 0);
+
+      // 4. Uji deleteSantri() bersaldo (Keputusan #1 - Opsi A):
+      // Tambah S3 dengan saldo Rp 150.000 lalu hapus permanen -> mutasi_dompet otomatis mencatat KELUAR Rp 150.000
+      final s3 = Santri(
+        id: 'af-s3',
+        namaLengkap: 'Santri Hapus Bersaldo',
+        namaPanggilan: 'S3',
+        kamar: 'K2',
+        saldoTotal: 150000,
+        jatahHarian: 10000,
+      );
+      await helper.insertSantri(s3, sumberDompet: 'TUNAI');
+      await expectBrankasMatchesDompet('Setelah Insert S3 Bersaldo 150.000');
+
+      final refunded = await helper.deleteSantri(s3.id, sumberDompet: 'TUNAI');
+      expect(refunded, 150000);
+      await expectBrankasMatchesDompet('Setelah Delete Permanen S3 Bersaldo 150.000');
+
+      // 5. Uji Batch Query Hari Ini (F1-01) + OverlimitHandling.potongBesok & ModeSisaHarian.akumulasi (F1-08)
+      // S1 kemarin (2026-11-25) sudah ambil Rp 15.000. Tambah 1 transaksi Rp 2.000 dengan POTONG_BESOK (total kemarin = 17.000, jatah = 10.000 -> overlimit 7.000)
+      await helper.catatPengambilan(
+        santriId: s1.id,
+        nominal: 2000,
+        isOverlimit: true,
+        overlimitHandling: OverlimitHandling.potongBesok,
+        customTimestamp: DateTime(2026, 11, 25, 19, 0),
+      );
+
+      final activeList = await helper.getAllSantri(onlyActive: true);
+      final quotaKetat = await helper.computeEffectiveDailyQuotaMap(
+        todayLokal: '2026-11-26',
+        activeSantri: activeList,
+        modeSisaHarian: ModeSisaHarian.ketat,
+      );
+      // Jatah standar S1 = 10.000, dipotong kelebihan kemarin 7.000 -> jatah efektif hari ini = 3.000
+      expect(quotaKetat[s1.id], 3000);
+
+      // Pada ModeSisaHarian.akumulasi: S2 kemarin (2026-11-25) baru ambil 0 jika kita buat S4 yang kemarin cuma ambil 4.000 dari jatah 10.000
+      final s4 = Santri(
+        id: 'af-s4',
+        namaLengkap: 'Santri Akumulasi',
+        namaPanggilan: 'S4',
+        kamar: 'K2',
+        saldoTotal: 200000,
+        jatahHarian: 10000,
+      );
+      await helper.insertSantri(s4, sumberDompet: 'TUNAI');
+      await helper.catatPengambilan(
+        santriId: s4.id,
+        nominal: 4000,
+        customTimestamp: DateTime(2026, 11, 25, 9, 0),
+      );
+      final activeWithS4 = await helper.getAllSantri(onlyActive: true);
+      final quotaAkumulasi = await helper.computeEffectiveDailyQuotaMap(
+        todayLokal: '2026-11-26',
+        activeSantri: activeWithS4,
+        modeSisaHarian: ModeSisaHarian.akumulasi,
+      );
+      // Kemarin sisa 6.000 + jatah hari ini 10.000 = 16.000
+      expect(quotaAkumulasi[s4.id], 16000);
+
+      // 6. Uji Anti-Tamper restoreFromJson() (F3-02):
+      // Perangkat saat ini mode Gratis (is_pro = 0). File JSON palsu mencoba menyuntik is_pro = 1 & pro_plan = 'LIFETIME'
+      final dump = await helper.dumpBackupJson();
+      final tamperedPengList = (dump['pengaturan_aplikasi'] as List)
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+      tamperedPengList.first['is_pro'] = 1;
+      tamperedPengList.first['pro_plan'] = 'LIFETIME';
+      dump['pengaturan_aplikasi'] = tamperedPengList;
+
+      await helper.restoreFromJson(dump);
+      final pengAfterRestore = await helper.getPengaturan();
+      expect(pengAfterRestore.isPro, false);
+      expect(pengAfterRestore.proPlan, isNull);
 
       await db.close();
       DatabaseHelper.instance.setDatabaseForTesting(null);

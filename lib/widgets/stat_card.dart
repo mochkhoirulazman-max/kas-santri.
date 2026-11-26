@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/theme_wallpaper_provider.dart';
@@ -47,48 +46,41 @@ class SafeVaultCard extends StatelessWidget {
         ? ((totalKeluarHariIni / totalKuotaHariIni) * 100).clamp(0, 100).toInt()
         : 0;
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF10B981).withOpacity(0.28),
-            blurRadius: 28,
-            offset: const Offset(0, 10),
+    return RepaintBoundary(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(28),
+          gradient: RadialGradient(
+            center: const Alignment(-0.8, -0.8),
+            radius: 1.4,
+            colors: [
+              const Color(0xFF10B981).withValues(alpha: (0.55 * cardOpacity).clamp(0.22, 0.68)),
+              const Color(0xFF06B6D4).withValues(alpha: (0.42 * cardOpacity).clamp(0.18, 0.55)),
+              const Color(0xFFD946EF).withValues(alpha: (0.28 * cardOpacity).clamp(0.12, 0.38)),
+              const Color(0xFF081224).withValues(alpha: (0.94 * cardOpacity).clamp(0.48, 0.94)),
+            ],
+            stops: const [0.0, 0.45, 0.75, 1.0],
           ),
-          BoxShadow(
-            color: const Color(0xFFD946EF).withOpacity(0.16),
-            blurRadius: 22,
-            offset: const Offset(0, 8),
+          border: Border.all(
+            color: const Color(0xFF38BDF8).withValues(alpha: 0.48),
+            width: 1.4,
           ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-          child: Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(28),
-              gradient: RadialGradient(
-                center: const Alignment(-0.8, -0.8),
-                radius: 1.4,
-                colors: [
-                  const Color(0xFF10B981).withOpacity((0.55 * cardOpacity).clamp(0.2, 0.65)),
-                  const Color(0xFF06B6D4).withOpacity((0.42 * cardOpacity).clamp(0.16, 0.52)),
-                  const Color(0xFFD946EF).withOpacity((0.28 * cardOpacity).clamp(0.1, 0.36)),
-                  const Color(0xFF081224).withOpacity((0.96 * cardOpacity).clamp(0.45, 0.94)),
-                ],
-                stops: const [0.0, 0.45, 0.75, 1.0],
-              ),
-              border: Border.all(
-                color: const Color(0xFF38BDF8).withOpacity(0.48),
-                width: 1.4,
-              ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF10B981).withValues(alpha: 0.24),
+              blurRadius: 24,
+              offset: const Offset(0, 8),
             ),
-            child: Column(
+            BoxShadow(
+              color: const Color(0xFFD946EF).withValues(alpha: 0.14),
+              blurRadius: 18,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Baris Atas: Title + Eye icon & Santri Count Badge
@@ -414,8 +406,6 @@ class SafeVaultCard extends StatelessWidget {
           _buildMultiDompetStrip(),
         ],
       ),
-          ),
-        ),
       ),
     );
   }
@@ -538,13 +528,7 @@ class SafeVaultCard extends StatelessWidget {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 3.5, sigmaY: 3.5),
-              child: Opacity(opacity: 0.55, child: innerRow),
-            ),
-          ),
+          Opacity(opacity: 0.26, child: innerRow),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
             decoration: BoxDecoration(

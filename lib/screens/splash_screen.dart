@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../providers/kas_santri_provider.dart';
 import '../services/account_auth_service.dart';
 import '../services/auth_service.dart';
+import '../services/tutorial_service.dart';
+import '../widgets/app_background_wrapper.dart';
 import 'auth/login_screen.dart';
 import 'onboarding_screen.dart';
 import 'pin_lock_screen.dart';
@@ -38,6 +40,11 @@ class _SplashScreenState extends State<SplashScreen> {
         MaterialPageRoute(builder: (_) => const OnboardingScreen()),
       );
       return;
+    }
+
+    final seenOnboarding = await TutorialService.instance.hasSeenOnboarding();
+    if (!seenOnboarding) {
+      await TutorialService.instance.markOnboardingSeen();
     }
 
     final remember = await AccountAuthService.instance.getRememberSession();
@@ -119,40 +126,29 @@ class _SplashScreenState extends State<SplashScreen> {
                       ),
                     ],
                   ),
-                  child: ClipOval(
-                    child: Container(
-                      color: const Color(0xFF0A1120),
-                      padding: const EdgeInsets.all(6),
-                      child: Image.asset(
-                        'logo.jpg',
-                        fit: BoxFit.contain,
-                        errorBuilder: (ctx, err, stack) => const Icon(
-                          Icons.account_balance_wallet_rounded,
-                          size: 44,
-                          color: Color(0xFF10B981),
-                        ),
-                      ),
-                    ),
+                  child: const KasSantriLogoMark(
+                    size: 82,
+                    circular: true,
                   ),
                 ),
                 const SizedBox(height: 20),
                 const Text(
-                  'PPS MIFTAHUSSUNAN',
+                  'KAS-SANTRI',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 20,
+                    fontSize: 22,
                     fontWeight: FontWeight.w900,
-                    letterSpacing: 1.5,
+                    letterSpacing: 1.8,
                   ),
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  'KAS & KEUANGAN SANTRI',
+                  'MANAJEMEN UANG SAKU & INFAK PONDOK',
                   style: TextStyle(
                     color: Color(0xFF34D399),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.8,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.5,
                   ),
                 ),
                 const SizedBox(height: 36),

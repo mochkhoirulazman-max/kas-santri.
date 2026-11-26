@@ -5,6 +5,7 @@ import '../../providers/kas_santri_provider.dart';
 import '../../utils/app_feedback.dart';
 import '../../utils/currency_formatter.dart';
 import '../../widgets/app_background_wrapper.dart';
+import '../paywall_screen.dart';
 
 class TahunAjaranScreen extends StatefulWidget {
   const TahunAjaranScreen({Key? key}) : super(key: key);
@@ -172,6 +173,51 @@ class _TahunAjaranScreenState extends State<TahunAjaranScreen> {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<KasSantriProvider>(context);
+    if (!provider.hasProAccess) {
+      return AppBackgroundWrapper(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(title: const Text('Tahun Ajaran & Mutasi Kamar / Kelas 🔒')),
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: GlassCard(
+                borderRadius: 24,
+                padding: const EdgeInsets.all(22),
+                borderColor: const Color(0xFFFBBF24).withValues(alpha: 0.5),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('🎓 👑', style: TextStyle(fontSize: 32)),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Manajemen Tahun Ajaran & Mutasi (PRO)',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Pindah kamar/kelas massal, kelulusan alumni, dan pergantian tahun ajaran tersedia pada Kas-Santri PRO atau Uji Coba Gratis 14 Hari.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: () => PaywallScreen.show(
+                        context,
+                        triggerFeature: 'Manajemen Tahun Ajaran & Mutasi Kamar/Kelas',
+                      ),
+                      icon: const Text('👑'),
+                      label: const Text('Buka Kas-Santri PRO / Trial 14 Hari'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     final activeSantri = provider.santriStatusList.map((e) => e.santri).toList();
     final archivedSantri = provider.allSantri.where((s) => !s.statusAktif).toList();
     final kamars = provider.kamars;
@@ -184,7 +230,7 @@ class _TahunAjaranScreenState extends State<TahunAjaranScreen> {
     return AppBackgroundWrapper(
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        appBar: AppBar(title: const Text('Tahun Ajaran & Mutasi Kamar')),
+        appBar: AppBar(title: const Text('Tahun Ajaran & Mutasi Kamar / Kelas')),
         body: SafeArea(
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
@@ -196,7 +242,7 @@ class _TahunAjaranScreenState extends State<TahunAjaranScreen> {
                 child: Row(
                   children: [
                     _segBtn(0, '📅 Tahun Ajaran'),
-                    _segBtn(1, '🏠 Pindah Kamar'),
+                    _segBtn(1, '🏠 Kamar / Kelas'),
                     _segBtn(2, '🎓 Tutup Buku'),
                   ],
                 ),
@@ -347,13 +393,13 @@ class _TahunAjaranScreenState extends State<TahunAjaranScreen> {
                         dropdownColor: const Color(0xFF090E1A),
                         style: const TextStyle(color: Colors.white, fontSize: 12.5),
                         decoration: const InputDecoration(
-                          labelText: 'Filter Kamar Asal',
+                          labelText: 'Filter Kamar / Kelas Asal',
                           isDense: true,
                         ),
                         items: [
                           const DropdownMenuItem<String?>(
                             value: null,
-                            child: Text('Semua Kamar Aktif'),
+                            child: Text('Semua Kamar / Kelas Aktif'),
                           ),
                           ...kamars.map(
                             (k) => DropdownMenuItem<String?>(

@@ -34,7 +34,7 @@ class PengaturanAplikasi {
 
   PengaturanAplikasi({
     this.id = 1,
-    this.namaPondok = 'PPS MIFTAHUSSUNAN',
+    this.namaPondok = 'Nama Pondok',
     this.namaPengurus = 'Pengurus Kas & Keuangan',
     this.kontakPengurus = '081234567890',
     this.defaultJatahHarian = 10000,
@@ -175,7 +175,7 @@ class PengaturanAplikasi {
     final taRaw = map['tahun_ajaran'] as String?;
     return PengaturanAplikasi(
       id: (map['id'] as num?)?.toInt() ?? 1,
-      namaPondok: map['nama_pondok'] as String? ?? 'PPS MIFTAHUSSUNAN',
+      namaPondok: map['nama_pondok'] as String? ?? 'Nama Pondok',
       namaPengurus: map['nama_pengurus'] as String? ?? 'Pengurus Kas & Keuangan',
       kontakPengurus: map['kontak_pengurus'] as String? ?? '',
       defaultJatahHarian: (map['default_jatah_harian'] as num?)?.toInt() ?? 10000,

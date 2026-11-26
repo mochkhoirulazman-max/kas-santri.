@@ -4,11 +4,21 @@ import 'package:provider/provider.dart';
 import '../../providers/kas_santri_provider.dart';
 import '../../utils/app_feedback.dart';
 import '../../utils/currency_formatter.dart';
+import '../paywall_screen.dart';
 
 class CashOpnameScreen extends StatefulWidget {
   const CashOpnameScreen({Key? key}) : super(key: key);
 
   static Future<void> show(BuildContext context) async {
+    final provider = Provider.of<KasSantriProvider>(context, listen: false);
+    if (!provider.hasProAccess) {
+      AppFeedback.alert();
+      await PaywallScreen.show(
+        context,
+        triggerFeature: 'Kalkulator Cash Opname Pecahan Uang Fisik',
+      );
+      return;
+    }
     await Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const CashOpnameScreen()),
@@ -157,9 +167,9 @@ class _CashOpnameScreenState extends State<CashOpnameScreen> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF060A12),
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF060A12),
+        backgroundColor: const Color(0xCC060F1E),
         title: const Row(
           children: [
             Flexible(

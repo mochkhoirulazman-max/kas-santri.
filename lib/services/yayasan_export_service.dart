@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:excel/excel.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
@@ -108,11 +107,42 @@ class YayasanExportService {
           return await file.readAsBytes();
         }
       }
-      final data = await rootBundle.load('logo.jpg');
-      return data.buffer.asUint8List();
+      return null;
     } catch (_) {
       return null;
     }
+  }
+
+  pw.Widget _buildPdfLogoOrEmblem(Uint8List? logoBytes, {double size = 44}) {
+    if (logoBytes != null) {
+      return pw.Container(
+        width: size,
+        height: size,
+        margin: const pw.EdgeInsets.only(right: 12),
+        child: pw.ClipOval(
+          child: pw.Image(pw.MemoryImage(logoBytes), fit: pw.BoxFit.cover),
+        ),
+      );
+    }
+    return pw.Container(
+      width: size,
+      height: size,
+      margin: const pw.EdgeInsets.only(right: 12),
+      decoration: pw.BoxDecoration(
+        color: PdfColors.teal800,
+        shape: pw.BoxShape.circle,
+        border: pw.Border.all(color: PdfColors.amber400, width: 1.5),
+      ),
+      alignment: pw.Alignment.center,
+      child: pw.Text(
+        'KS',
+        style: pw.TextStyle(
+          color: PdfColors.white,
+          fontSize: size * 0.34,
+          fontWeight: pw.FontWeight.bold,
+        ),
+      ),
+    );
   }
 
   static final Border _thinCellBorder = Border(
@@ -388,7 +418,7 @@ class YayasanExportService {
         TextCellValue('No'),
         TextCellValue('Nama Lengkap'),
         TextCellValue('Panggilan'),
-        TextCellValue('Kamar'),
+        TextCellValue('Kamar / Kelas'),
         TextCellValue('No WA Wali'),
         TextCellValue('Kode QR'),
         TextCellValue('Saldo Titipan'),
@@ -517,7 +547,7 @@ class YayasanExportService {
         TextCellValue('Tanggal'),
         TextCellValue('Jam'),
         TextCellValue('Nama Santri'),
-        TextCellValue('Kamar'),
+        TextCellValue('Kamar / Kelas'),
         TextCellValue('Tipe'),
         TextCellValue('Sesi'),
         TextCellValue('Dompet'),
@@ -906,19 +936,11 @@ class YayasanExportService {
         margin: const pw.EdgeInsets.all(28),
         build: (pw.Context context) {
           return [
-            // Kop Resmi Yayasan + Logo
+            // Kop Resmi Yayasan + Logo / Emblem Kas-Santri
             pw.Row(
               crossAxisAlignment: pw.CrossAxisAlignment.center,
               children: [
-                if (logoBytes != null)
-                  pw.Container(
-                    width: 48,
-                    height: 48,
-                    margin: const pw.EdgeInsets.only(right: 12),
-                    child: pw.ClipOval(
-                      child: pw.Image(pw.MemoryImage(logoBytes), fit: pw.BoxFit.cover),
-                    ),
-                  ),
+                _buildPdfLogoOrEmblem(logoBytes, size: 48),
                 pw.Expanded(
                   child: pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -981,7 +1003,7 @@ class YayasanExportService {
             pw.SizedBox(height: 6),
             pw.TableHelper.fromTextArray(
               context: context,
-              headers: ['No', 'Nama Santri', 'Kamar', 'Saldo', 'Jatah/Hr', 'Est.', 'Tunggakan'],
+              headers: ['No', 'Nama Santri', 'Kamar / Kelas', 'Saldo', 'Jatah/Hr', 'Est.', 'Tunggakan'],
               headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white, fontSize: 8.5),
               headerDecoration: const pw.BoxDecoration(color: PdfColors.teal800),
               cellStyle: const pw.TextStyle(fontSize: 8.5),
@@ -1302,15 +1324,7 @@ class YayasanExportService {
               pw.Row(
                 crossAxisAlignment: pw.CrossAxisAlignment.center,
                 children: [
-                  if (logoBytes != null)
-                    pw.Container(
-                      width: 44,
-                      height: 44,
-                      margin: const pw.EdgeInsets.only(right: 12),
-                      child: pw.ClipOval(
-                        child: pw.Image(pw.MemoryImage(logoBytes), fit: pw.BoxFit.cover),
-                      ),
-                    ),
+                  _buildPdfLogoOrEmblem(logoBytes, size: 44),
                   pw.Expanded(
                     child: pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -2037,7 +2051,7 @@ class YayasanExportService {
         values: [
           TextCellValue('No'),
           TextCellValue('Nama Santri'),
-          TextCellValue('Kamar'),
+          TextCellValue('Kamar / Kelas'),
           TextCellValue('Status Santri'),
           TextCellValue('Infak Masak'),
           TextCellValue('Infak Listrik'),

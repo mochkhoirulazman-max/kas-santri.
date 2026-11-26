@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/santri.dart';
@@ -269,19 +268,30 @@ class _SearchableSantriPickerState extends State<SearchableSantriPicker> {
       heightFactor: 0.86,
       child: Padding(
         padding: EdgeInsets.only(bottom: viewInsetsBottom),
-        child: ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-            child: Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF0A1120).withOpacity((cardOpacity + 0.16).clamp(0.76, 0.96)),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-                border: Border(
-                  top: BorderSide(color: const Color(0xFF38BDF8).withOpacity(0.45), width: 1.4),
-                ),
+        child: RepaintBoundary(
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  const Color(0xFF072233).withValues(alpha: (cardOpacity + 0.22).clamp(0.82, 0.96)),
+                  const Color(0xFF091326).withValues(alpha: (cardOpacity + 0.24).clamp(0.84, 0.97)),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              child: Column(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              border: Border(
+                top: BorderSide(color: const Color(0xFF38BDF8).withValues(alpha: 0.50), width: 1.5),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF06B6D4).withValues(alpha: 0.18),
+                  blurRadius: 24,
+                  offset: const Offset(0, -6),
+                ),
+              ],
+            ),
+            child: Column(
                 children: [
                   const SizedBox(height: 10),
                   Container(
@@ -334,7 +344,7 @@ class _SearchableSantriPickerState extends State<SearchableSantriPicker> {
                       onChanged: (v) => setState(() => _query = v),
                       style: const TextStyle(color: Colors.white, fontSize: 13),
                       decoration: InputDecoration(
-                        hintText: 'Ketik nama lengkap, panggilan, atau kamar...',
+                        hintText: 'Ketik nama lengkap, panggilan, atau kamar/kelas...',
                         prefixIcon: const Icon(Icons.search_rounded, size: 19, color: Color(0xFF67E8F9)),
                         suffixIcon: _query.isNotEmpty
                             ? IconButton(
@@ -399,169 +409,243 @@ class _SearchableSantriPickerState extends State<SearchableSantriPicker> {
                   const Divider(color: Colors.white12, height: 1),
 
                   Expanded(
-                    child: ListView(
-                      padding: EdgeInsets.fromLTRB(16, 10, 16, 18 + bottomSafe),
-                      children: [
-                        if (widget.allowAllOption)
-                          Container(
-                            margin: const EdgeInsets.only(bottom: 8),
-                            decoration: BoxDecoration(
-                              color: widget.selectedSantriId == 'ALL'
-                                  ? const Color(0xFF10B981).withOpacity(0.18)
-                                  : Colors.black.withOpacity(0.28),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: widget.selectedSantriId == 'ALL'
-                                    ? const Color(0xFF34D399)
-                                    : Colors.white12,
-                              ),
-                            ),
-                            child: ListTile(
-                              leading: const CircleAvatar(
-                                backgroundColor: Color(0xFF0A203A),
-                                child: Text('👥', style: TextStyle(fontSize: 16)),
-                              ),
-                              title: Text(
-                                widget.allOptionLabel,
-                                style: const TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.w800),
-                              ),
-                              subtitle: const Text(
-                                'Tampilkan mutasi seluruh santri',
-                                style: TextStyle(color: Colors.white54, fontSize: 10.5),
-                              ),
-                              trailing: widget.selectedSantriId == 'ALL'
-                                  ? const Icon(Icons.check_circle_rounded, color: Color(0xFF34D399))
-                                  : null,
-                              onTap: () {
-                                AppFeedback.tap();
-                                Navigator.pop(context, 'ALL');
-                              },
-                            ),
-                          ),
-
-                        if (filtered.isEmpty)
-                          const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 36),
-                            child: Center(
+                    child: Builder(
+                      builder: (context) {
+                        final hasAll = widget.allowAllOption;
+                        if (filtered.isEmpty && !hasAll) {
+                          return const Center(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(vertical: 36),
                               child: Text(
                                 'Santri tidak ditemukan pada pencarian ini.',
                                 style: TextStyle(color: Colors.white54, fontSize: 12.5),
                               ),
                             ),
-                          )
-                        else
-                          ...filtered.map((s) {
+                          );
+                        }
+                        final extraHeaderCount = hasAll ? 1 : 0;
+                        final emptyNoticeCount = filtered.isEmpty ? 1 : 0;
+                        final totalCount =
+                            extraHeaderCount + filtered.length + emptyNoticeCount;
+
+                        return ListView.builder(
+                          padding: EdgeInsets.fromLTRB(16, 10, 16, 18 + bottomSafe),
+                          itemCount: totalCount,
+                          itemBuilder: (ctx, index) {
+                            if (hasAll && index == 0) {
+                              final allSelected = widget.selectedSantriId == 'ALL';
+                              return RepaintBoundary(
+                                child: Container(
+                                  margin: const EdgeInsets.only(bottom: 8),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: allSelected
+                                          ? [
+                                              const Color(0xFF065F46).withValues(alpha: 0.65),
+                                              const Color(0xFF0E7490).withValues(alpha: 0.45),
+                                            ]
+                                          : [
+                                              const Color(0xFF0C1E33).withValues(alpha: 0.65),
+                                              const Color(0xFF071122).withValues(alpha: 0.65),
+                                            ],
+                                    ),
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: allSelected
+                                          ? const Color(0xFF34D399)
+                                          : const Color(0xFF38BDF8).withValues(alpha: 0.25),
+                                    ),
+                                  ),
+                                  child: ListTile(
+                                    leading: const CircleAvatar(
+                                      backgroundColor: Color(0xFF0A203A),
+                                      child: Text('👥', style: TextStyle(fontSize: 16)),
+                                    ),
+                                    title: Text(
+                                      widget.allOptionLabel,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    subtitle: const Text(
+                                      'Tampilkan mutasi seluruh santri',
+                                      style: TextStyle(color: Colors.white54, fontSize: 10.5),
+                                    ),
+                                    trailing: allSelected
+                                        ? const Icon(
+                                            Icons.check_circle_rounded,
+                                            color: Color(0xFF34D399),
+                                          )
+                                        : null,
+                                    onTap: () {
+                                      AppFeedback.tap();
+                                      Navigator.pop(context, 'ALL');
+                                    },
+                                  ),
+                                ),
+                              );
+                            }
+
+                            if (filtered.isEmpty) {
+                              return const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 36),
+                                child: Center(
+                                  child: Text(
+                                    'Santri tidak ditemukan pada pencarian ini.',
+                                    style: TextStyle(color: Colors.white54, fontSize: 12.5),
+                                  ),
+                                ),
+                              );
+                            }
+
+                            final s = filtered[index - extraHeaderCount];
                             final isSelected = widget.selectedSantriId == s.id;
                             final hasFoto = s.fotoPath != null &&
                                 s.fotoPath!.isNotEmpty &&
                                 File(s.fotoPath!).existsSync();
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 8),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? const Color(0xFF10B981).withOpacity(0.18)
-                                    : Colors.black.withOpacity(0.28),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: isSelected ? const Color(0xFF34D399) : Colors.white12,
+                            return RepaintBoundary(
+                              child: Container(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: isSelected
+                                        ? [
+                                            const Color(0xFF065F46).withValues(alpha: 0.70),
+                                            const Color(0xFF0E7490).withValues(alpha: 0.50),
+                                          ]
+                                        : [
+                                            const Color(0xFF0B2133).withValues(alpha: 0.62),
+                                            const Color(0xFF081324).withValues(alpha: 0.68),
+                                          ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? const Color(0xFF34D399)
+                                        : const Color(0xFF38BDF8).withValues(alpha: 0.22),
+                                  ),
                                 ),
-                              ),
-                              child: ListTile(
-                                dense: true,
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                leading: CircleAvatar(
-                                  backgroundColor: const Color(0xFF0F272E),
-                                  backgroundImage: hasFoto ? FileImage(File(s.fotoPath!)) : null,
-                                  child: hasFoto
-                                      ? null
-                                      : Text(
-                                          _initials(s.namaLengkap),
-                                          style: const TextStyle(
-                                            color: Color(0xFF34D399),
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w900,
+                                child: ListTile(
+                                  dense: true,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 4,
+                                  ),
+                                  leading: CircleAvatar(
+                                    backgroundColor: const Color(0xFF0F272E),
+                                    backgroundImage: hasFoto
+                                        ? ResizeImage(
+                                            FileImage(File(s.fotoPath!)),
+                                            width: 120,
+                                          )
+                                        : null,
+                                    child: hasFoto
+                                        ? null
+                                        : Text(
+                                            _initials(s.namaLengkap),
+                                            style: const TextStyle(
+                                              color: Color(0xFF34D399),
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w900,
+                                            ),
                                           ),
-                                        ),
-                                ),
-                                title: Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        s.namaLengkap,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w800,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    if (s.isPulang || s.isPindah)
-                                      Container(
-                                        margin: const EdgeInsets.only(left: 6),
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: s.isPulang
-                                              ? const Color(0xFF34D399).withOpacity(0.2)
-                                              : const Color(0xFF94A3B8).withOpacity(0.2),
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
-                                        child: Text(
-                                          s.isPulang ? 'PULANG' : 'PINDAH',
-                                          style: TextStyle(
-                                            color: s.isPulang
-                                                ? const Color(0xFF6EE7B7)
-                                                : const Color(0xFFE2E8F0),
-                                            fontSize: 8.5,
-                                            fontWeight: FontWeight.w900,
-                                          ),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                                subtitle: Padding(
-                                  padding: const EdgeInsets.only(top: 2),
-                                  child: Wrap(
-                                    spacing: 8,
-                                    runSpacing: 2,
+                                  ),
+                                  title: Row(
                                     children: [
-                                      Text(
-                                        '${s.kategoriLabel}${s.kamar.trim().isNotEmpty ? ' • ${s.kamar}' : ''}',
-                                        style: const TextStyle(color: Colors.white60, fontSize: 10.5),
-                                      ),
-                                      Text(
-                                        'Saldo: ${CurrencyFormatter.format(s.saldoTotal)}',
-                                        style: const TextStyle(
-                                          color: Color(0xFF34D399),
-                                          fontSize: 10.5,
-                                          fontWeight: FontWeight.w800,
-                                          fontFamily: 'monospace',
+                                      Expanded(
+                                        child: Text(
+                                          s.namaLengkap,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
-                                      if (s.tunggakan > 0)
-                                        Text(
-                                          'Tunggakan: ${CurrencyFormatter.format(s.tunggakan)}',
-                                          style: const TextStyle(
-                                            color: Color(0xFFFDA4AF),
-                                            fontSize: 10.5,
-                                            fontWeight: FontWeight.w800,
+                                      if (s.isPulang || s.isPindah)
+                                        Container(
+                                          margin: const EdgeInsets.only(left: 6),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 6,
+                                            vertical: 2,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: s.isPulang
+                                                ? const Color(0xFF34D399).withValues(alpha: 0.2)
+                                                : const Color(0xFF94A3B8).withValues(alpha: 0.2),
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Text(
+                                            s.isPulang ? 'PULANG' : 'PINDAH',
+                                            style: TextStyle(
+                                              color: s.isPulang
+                                                  ? const Color(0xFF6EE7B7)
+                                                  : const Color(0xFFE2E8F0),
+                                              fontSize: 8.5,
+                                              fontWeight: FontWeight.w900,
+                                            ),
                                           ),
                                         ),
                                     ],
                                   ),
+                                  subtitle: Padding(
+                                    padding: const EdgeInsets.only(top: 2),
+                                    child: Wrap(
+                                      spacing: 8,
+                                      runSpacing: 2,
+                                      children: [
+                                        Text(
+                                          '${s.kategoriLabel}${s.kamar.trim().isNotEmpty ? ' • ${s.kamar}' : ''}',
+                                          style: const TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 10.5,
+                                          ),
+                                        ),
+                                        Text(
+                                          'Saldo: ${CurrencyFormatter.format(s.saldoTotal)}',
+                                          style: const TextStyle(
+                                            color: Color(0xFF34D399),
+                                            fontSize: 10.5,
+                                            fontWeight: FontWeight.w800,
+                                            fontFamily: 'monospace',
+                                          ),
+                                        ),
+                                        if (s.tunggakan > 0)
+                                          Text(
+                                            'Tunggakan: ${CurrencyFormatter.format(s.tunggakan)}',
+                                            style: const TextStyle(
+                                              color: Color(0xFFFDA4AF),
+                                              fontSize: 10.5,
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                  trailing: isSelected
+                                      ? const Icon(
+                                          Icons.check_circle_rounded,
+                                          color: Color(0xFF34D399),
+                                          size: 20,
+                                        )
+                                      : const Icon(
+                                          Icons.chevron_right_rounded,
+                                          color: Colors.white38,
+                                        ),
+                                  onTap: () {
+                                    AppFeedback.tap();
+                                    Navigator.pop(context, s.id);
+                                  },
                                 ),
-                                trailing: isSelected
-                                    ? const Icon(Icons.check_circle_rounded, color: Color(0xFF34D399), size: 20)
-                                    : const Icon(Icons.chevron_right_rounded, color: Colors.white38),
-                                onTap: () {
-                                  AppFeedback.tap();
-                                  Navigator.pop(context, s.id);
-                                },
                               ),
                             );
-                          }),
-                      ],
+                          },
+                        );
+                      },
                     ),
                   ),
                 ],

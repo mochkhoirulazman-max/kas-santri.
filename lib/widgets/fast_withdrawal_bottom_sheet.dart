@@ -174,12 +174,23 @@ class _FastWithdrawalBottomSheetState extends State<FastWithdrawalBottomSheet> {
       top: true,
       bottom: false,
       child: Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFF0E1422),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-          border: Border(
-            top: BorderSide(color: Color(0x33FFFFFF), width: 1.5),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xF5062B24), Color(0xF7091426), Color(0xF70B182E)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          border: Border(
+            top: BorderSide(color: const Color(0xFF34D399).withValues(alpha: 0.50), width: 1.5),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF10B981).withValues(alpha: 0.18),
+              blurRadius: 24,
+              offset: const Offset(0, -6),
+            ),
+          ],
         ),
         padding: EdgeInsets.only(
           top: 12,

@@ -91,7 +91,7 @@ class _SetoranFormScreenState extends State<SetoranFormScreen> {
       tanggalSetor: _tanggalSetor,
       catatan: _catatanController.text.trim().isNotEmpty ? _catatanController.text.trim() : null,
       perlakuanSisa: _perlakuanSisa,
-      opsiSusulan: _tipeSetoran == TipeSetoran.susulanTopup ? _opsiSusulan : null,
+      opsiSusulan: _tipeSetoran == TipeSetoran.susulanTopUp ? _opsiSusulan : null,
       metodeBayar: _sumberDompet,
     );
 
@@ -211,7 +211,7 @@ class _SetoranFormScreenState extends State<SetoranFormScreen> {
                           icon: Icon(Icons.calendar_month),
                         ),
                         ButtonSegment(
-                          value: TipeSetoran.susulanTopup,
+                          value: TipeSetoran.susulanTopUp,
                           label: Text('Top-Up Susulan'),
                           icon: Icon(Icons.add_card),
                         ),
@@ -307,7 +307,7 @@ class _SetoranFormScreenState extends State<SetoranFormScreen> {
                     const SizedBox(height: 12),
 
                     // Pilihan Khusus Setoran Susulan (Top-Up)
-                    if (_tipeSetoran == TipeSetoran.susulanTopup) ...[
+                    if (_tipeSetoran == TipeSetoran.susulanTopUp) ...[
                       const Text(
                         'Tujuan Setoran Susulan:',
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),

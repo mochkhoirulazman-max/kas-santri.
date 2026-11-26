@@ -4,13 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/bendahara_account.dart';
 import '../../providers/kas_santri_provider.dart';
+import '../../providers/theme_wallpaper_provider.dart';
 import '../../services/auth_service.dart';
 import '../../utils/app_feedback.dart';
 import '../../widgets/app_background_wrapper.dart';
-import '../../widgets/encrypted_backup_helper.dart';
+import '../../widgets/panduan_aplikasi_sheet.dart';
 import '../auth/login_screen.dart';
 import '../paywall_screen.dart';
 import '../pin_lock_screen.dart';
+import '../rekap/cash_opname_screen.dart';
 import '../rekap/executive_dashboard_screen.dart';
 import '../rekap/smart_wa_reminder_screen.dart';
 import '../santri/cetak_kartu_qr_screen.dart';
@@ -21,7 +23,12 @@ import 'settings_screen.dart';
 import 'tahun_ajaran_screen.dart';
 
 class SystemTabScreen extends StatefulWidget {
-  const SystemTabScreen({Key? key}) : super(key: key);
+  final GlobalKey? headerSpotlightKey;
+
+  const SystemTabScreen({
+    Key? key,
+    this.headerSpotlightKey,
+  }) : super(key: key);
 
   @override
   State<SystemTabScreen> createState() => _SystemTabScreenState();
@@ -252,12 +259,28 @@ class _SystemTabScreenState extends State<SystemTabScreen>
     );
   }
 
+  Future<void> _openProScreen({
+    required bool isPro,
+    required String triggerFeature,
+    required WidgetBuilder screenBuilder,
+  }) async {
+    AppFeedback.tap();
+    if (!isPro) {
+      await PaywallScreen.show(context, triggerFeature: triggerFeature);
+      return;
+    }
+    if (!mounted) return;
+    Navigator.push(context, MaterialPageRoute(builder: screenBuilder));
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
     final provider = Provider.of<KasSantriProvider>(context);
+    final cardOpacity = Provider.of<ThemeWallpaperProvider>(context).cardOpacity;
     final peng = provider.pengaturan;
     final acc = provider.activeAccount;
+    final isPro = provider.hasProAccess;
     final hasPin = peng.pinKeamanan != null && peng.pinKeamanan!.isNotEmpty;
     final bottomSafe = MediaQuery.of(context).padding.bottom;
 
@@ -265,83 +288,194 @@ class _SystemTabScreenState extends State<SystemTabScreen>
     final bool hasFoto =
         fotoPath != null && fotoPath.isNotEmpty && File(fotoPath).existsSync();
 
+    final quickItems = <_QuickAccessSpec>[
+      _QuickAccessSpec(
+        emoji: '🧮',
+        title: 'Cash Opname',
+        subtitle: 'Kalkulator uang fisik',
+        accent: const Color(0xFF34D399),
+        isProLocked: !isPro,
+        onTap: () => CashOpnameScreen.show(context),
+      ),
+      _QuickAccessSpec(
+        emoji: '📈',
+        title: 'Laporan Yayasan',
+        subtitle: 'Laporan Eksekutif Pengasuh',
+        accent: const Color(0xFFFBBF24),
+        isProLocked: !isPro,
+        onTap: () => _openProScreen(
+          isPro: isPro,
+          triggerFeature: 'Laporan Eksekutif Pengasuh & Yayasan 1 Halaman (PDF)',
+          screenBuilder: (_) => const ExecutiveDashboardScreen(),
+        ),
+      ),
+      _QuickAccessSpec(
+        emoji: '🔔',
+        title: 'Pengingat WA',
+        subtitle: 'Pusat Antrean Pengingat WA',
+        accent: const Color(0xFF2DD4BF),
+        isProLocked: !isPro,
+        onTap: () => _openProScreen(
+          isPro: isPro,
+          triggerFeature: 'Pusat Antrean Pengingat WA Cerdas (1-Klik Anti-Spam)',
+          screenBuilder: (_) => const SmartWaReminderScreen(),
+        ),
+      ),
+      _QuickAccessSpec(
+        emoji: '🪪',
+        title: 'Kartu QR PDF',
+        subtitle: 'Cetak massal Kartu QR Santri',
+        accent: const Color(0xFF38BDF8),
+        isProLocked: !isPro,
+        onTap: () => _openProScreen(
+          isPro: isPro,
+          triggerFeature: 'Cetak Massal Kartu Santri QR Siap Laminating (PDF A4)',
+          screenBuilder: (_) => const CetakKartuQrScreen(),
+        ),
+      ),
+      _QuickAccessSpec(
+        emoji: '📥',
+        title: 'Import Excel',
+        subtitle: 'Import massal data santri',
+        accent: const Color(0xFF6EE7B7),
+        isProLocked: !isPro,
+        onTap: () => _openProScreen(
+          isPro: isPro,
+          triggerFeature: 'Import Massal Santri dari Excel (.xlsx)',
+          screenBuilder: (_) => const ImportSantriExcelScreen(),
+        ),
+      ),
+      _QuickAccessSpec(
+        emoji: '🎓',
+        title: 'Tahun Ajaran',
+        subtitle: 'Mutasi Kamar/Kelas & Lulus',
+        accent: const Color(0xFF818CF8),
+        isProLocked: !isPro,
+        onTap: () => _openProScreen(
+          isPro: isPro,
+          triggerFeature:
+              'Manajemen Tahun Ajaran, Mutasi Kamar/Kelas & Tutup Buku Alumni',
+          screenBuilder: (_) => const TahunAjaranScreen(),
+        ),
+      ),
+      _QuickAccessSpec(
+        emoji: '🛡️',
+        title: 'Jejak Audit',
+        subtitle: 'Log keamanan anti-curang',
+        accent: const Color(0xFF67E8F9),
+        isProLocked: !isPro,
+        onTap: () => _openProScreen(
+          isPro: isPro,
+          triggerFeature: 'Jejak Audit Keamanan Anti-Curang (Read-Only)',
+          screenBuilder: (_) => const AuditLogScreen(),
+        ),
+      ),
+      _QuickAccessSpec(
+        emoji: '🎨',
+        title: 'Wallpaper & Tema',
+        subtitle: 'Ganti wallpaper & kaca',
+        accent: const Color(0xFFE879F9),
+        isProLocked: false,
+        onTap: () => QuickWallpaperThemeSheet.show(context),
+      ),
+      _QuickAccessSpec(
+        emoji: '💾',
+        title: 'Backup & Restore',
+        subtitle: 'Cadangkan / pulihkan data',
+        accent: const Color(0xFF22D3EE),
+        isProLocked: false,
+        onTap: () => QuickBackupRestoreSheet.show(context),
+      ),
+      _QuickAccessSpec(
+        emoji: '📖',
+        title: 'Panduan Aplikasi',
+        subtitle: 'Putar ulang tutorial aplikasi',
+        accent: const Color(0xFFFDE047),
+        isProLocked: false,
+        onTap: () => PanduanAplikasiSheet.show(context),
+      ),
+    ];
+
     return SafeArea(
       bottom: false,
       child: ListView(
         padding: EdgeInsets.fromLTRB(16, 12, 16, 120 + bottomSafe),
         children: [
-          // Header Tab Sistem + Tombol Gerigi (Settings)
-          Row(
-            children: [
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'SISTEM & AKUN',
-                      style: TextStyle(
-                        color: Color(0xFF38BDF8),
-                        fontSize: 10,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.4,
-                      ),
-                    ),
-                    SizedBox(height: 2),
-                    Text(
-                      'Profil Pengurus Bendahara',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              InkWell(
-                onTap: () {
-                  AppFeedback.tap();
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const SettingsScreen()),
-                  );
-                },
-                borderRadius: BorderRadius.circular(16),
-                child: GlassCard(
-                  borderRadius: 16,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  borderColor: const Color(0xFF38BDF8).withOpacity(0.45),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
+          // Header Tab Sistem + Tombol Gerigi ⚙️ (SettingsScreen)
+          Container(
+            key: widget.headerSpotlightKey,
+            child: Row(
+              children: [
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.settings_rounded, color: Color(0xFF67E8F9), size: 20),
-                      SizedBox(width: 6),
                       Text(
-                        'Pengaturan',
+                        'SISTEM & AKUN',
+                        style: TextStyle(
+                          color: Color(0xFF38BDF8),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.4,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Profil Pengurus Bendahara',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w800,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
-            ],
+                InkWell(
+                  onTap: () {
+                    AppFeedback.tap();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(16),
+                  child: GlassCard(
+                    borderRadius: 16,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    borderColor: const Color(0xFF38BDF8).withValues(alpha: 0.45),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.settings_rounded, color: Color(0xFF67E8F9), size: 20),
+                        SizedBox(width: 6),
+                        Text(
+                          'Pengaturan',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
 
           const SizedBox(height: 16),
 
-          // Kartu Profil Pengurus Bendahara (Glass Premium)
+          // Kartu Profil Pengurus Bendahara (Vibrant Glass)
           GlassCard(
             borderRadius: 28,
             padding: const EdgeInsets.all(18),
-            borderColor: const Color(0xFF34D399).withOpacity(0.45),
+            borderColor: const Color(0xFF34D399).withValues(alpha: 0.45),
             gradientColors: const [
-              Color(0xCC0B2228),
-              Color(0xCC0F172A),
-              Color(0xCC131B2E),
+              Color(0xD608352D),
+              Color(0xDC0B182C),
+              Color(0xD8141530),
             ],
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -431,9 +565,11 @@ class _SystemTabScreenState extends State<SystemTabScreen>
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF10B981).withOpacity(0.18),
+                                  color: const Color(0xFF10B981).withValues(alpha: 0.18),
                                   borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: const Color(0xFF34D399).withOpacity(0.45)),
+                                  border: Border.all(
+                                    color: const Color(0xFF34D399).withValues(alpha: 0.45),
+                                  ),
                                 ),
                                 child: Text(
                                   acc?.authMode == BendaharaAccount.modeGoogle
@@ -483,7 +619,7 @@ class _SystemTabScreenState extends State<SystemTabScreen>
                           style: TextStyle(color: Color(0xFF67E8F9), fontSize: 11.5, fontWeight: FontWeight.w800),
                         ),
                         style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: const Color(0xFF38BDF8).withOpacity(0.5)),
+                          side: BorderSide(color: const Color(0xFF38BDF8).withValues(alpha: 0.5)),
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                         ),
@@ -499,7 +635,7 @@ class _SystemTabScreenState extends State<SystemTabScreen>
                           style: TextStyle(color: Color(0xFFFDA4AF), fontSize: 11.5, fontWeight: FontWeight.w800),
                         ),
                         style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: const Color(0xFFF43F5E).withOpacity(0.5)),
+                          side: BorderSide(color: const Color(0xFFF43F5E).withValues(alpha: 0.5)),
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                         ),
@@ -517,7 +653,7 @@ class _SystemTabScreenState extends State<SystemTabScreen>
           InkWell(
             onTap: () {
               AppFeedback.tap();
-              if (provider.isProUser) {
+              if (isPro) {
                 PaywallScreen.showActiveSubscriptionSheet(context);
               } else {
                 PaywallScreen.show(context);
@@ -527,10 +663,10 @@ class _SystemTabScreenState extends State<SystemTabScreen>
             child: GlassCard(
               borderRadius: 24,
               padding: const EdgeInsets.all(16),
-              borderColor: provider.isProUser
-                  ? const Color(0xFF34D399).withOpacity(0.45)
-                  : const Color(0xFFFBBF24).withOpacity(0.5),
-              gradientColors: const [Color(0xCC1E170A), Color(0xCC091926)],
+              borderColor: isPro
+                  ? const Color(0xFF34D399).withValues(alpha: 0.48)
+                  : const Color(0xFFFBBF24).withValues(alpha: 0.55),
+              gradientColors: const [Color(0xD8241908), Color(0xDC091928)],
               child: Row(
                 children: [
                   Container(
@@ -540,9 +676,9 @@ class _SystemTabScreenState extends State<SystemTabScreen>
                       color: Colors.black26,
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: provider.isProUser
-                            ? const Color(0xFF34D399).withOpacity(0.45)
-                            : const Color(0xFFFBBF24).withOpacity(0.5),
+                        color: isPro
+                            ? const Color(0xFF34D399).withValues(alpha: 0.45)
+                            : const Color(0xFFFBBF24).withValues(alpha: 0.55),
                       ),
                     ),
                     alignment: Alignment.center,
@@ -556,14 +692,14 @@ class _SystemTabScreenState extends State<SystemTabScreen>
                         Text(
                           provider.proStatusSummaryLabel,
                           style: TextStyle(
-                            color: provider.isProUser ? const Color(0xFF34D399) : const Color(0xFFFDE68A),
+                            color: isPro ? const Color(0xFF34D399) : const Color(0xFFFDE68A),
                             fontSize: 13.5,
                             fontWeight: FontWeight.w900,
                           ),
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          provider.isProUser
+                          isPro
                               ? 'Semua fitur PRO terbuka penuh • Ketuk untuk detail'
                               : 'Ketuk untuk coba GRATIS 14 Hari atau upgrade PRO',
                           style: const TextStyle(color: Colors.white70, fontSize: 11),
@@ -577,181 +713,170 @@ class _SystemTabScreenState extends State<SystemTabScreen>
             ),
           ),
 
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
 
-          // Kartu Cepat Cadangan, Keamanan & Pengaturan Tampilan
+          // Bagian ⚡ Akses Cepat Pengurus (10 Kartu Grid Kaca Berwarna Lega)
           GlassCard(
-            borderRadius: 24,
+            borderRadius: 26,
             padding: const EdgeInsets.all(16),
+            borderColor: const Color(0xFF38BDF8).withValues(alpha: 0.40),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'AKSES CEPAT SISTEM',
-                  style: TextStyle(
-                    color: Color(0xFF34D399),
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.2,
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '⚡ AKSES CEPAT PENGURUS',
+                            style: TextStyle(
+                              color: Color(0xFF34D399),
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Pintasan Fitur Utama Bendahara Pondok',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (!isPro)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF59E0B).withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: const Color(0xFFFBBF24).withValues(alpha: 0.55),
+                          ),
+                        ),
+                        child: const Text(
+                          '👑 Mode Gratis',
+                          style: TextStyle(
+                            color: Color(0xFFFDE68A),
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: quickItems.length,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                    childAspectRatio: 1.52,
                   ),
+                  itemBuilder: (ctx, index) {
+                    final spec = quickItems[index];
+                    return _buildVibrantQuickCard(spec, cardOpacity);
+                  },
                 ),
+
                 const SizedBox(height: 12),
+
+                // Baris Cepat Keamanan 1-Ketuk (Kunci PIN & Privasi Layar)
                 Row(
                   children: [
-                    _quickTile(
-                      emoji: '🔐',
-                      title: 'Backup .KSBAK',
-                      subtitle: 'AES-256 terenkripsi',
-                      accent: const Color(0xFF34D399),
-                      onTap: () => EncryptedBackupHelper.backupEncryptedKsbak(context),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () => _lockAppNow(provider),
+                        borderRadius: BorderRadius.circular(14),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF07111F).withValues(alpha: 0.72),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: const Color(0xFFFBBF24).withValues(alpha: 0.38),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(hasPin ? '🔒' : '🔓', style: const TextStyle(fontSize: 14)),
+                              const SizedBox(width: 6),
+                              Flexible(
+                                child: Text(
+                                  hasPin ? 'Kunci PIN Layar' : 'Pasang PIN',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Color(0xFFFDE68A),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
                     const SizedBox(width: 10),
-                    _quickTile(
-                      emoji: '⬆️',
-                      title: 'Restore Backup',
-                      subtitle: '.JSON / .KSBAK',
-                      accent: const Color(0xFF38BDF8),
-                      onTap: () => EncryptedBackupHelper.restoreBackupAnyFormat(context, provider),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () async {
+                          AppFeedback.tap();
+                          await provider.setScreenPrivacyEnabled(!provider.isScreenPrivacyEnabled);
+                        },
+                        borderRadius: BorderRadius.circular(14),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF07111F).withValues(alpha: 0.72),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: provider.isScreenPrivacyEnabled
+                                  ? const Color(0xFF34D399).withValues(alpha: 0.5)
+                                  : const Color(0xFFFB7185).withValues(alpha: 0.35),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                provider.isScreenPrivacyEnabled ? '🙈' : '👁️',
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                              const SizedBox(width: 6),
+                              Flexible(
+                                child: Text(
+                                  provider.isScreenPrivacyEnabled
+                                      ? 'Anti-SS Aktif'
+                                      : 'Privasi Layar',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: provider.isScreenPrivacyEnabled
+                                        ? const Color(0xFF6EE7B7)
+                                        : const Color(0xFFFECDD3),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    _quickTile(
-                      emoji: hasPin ? '🔒' : '🔓',
-                      title: hasPin ? 'Kunci PIN' : 'Pasang PIN',
-                      subtitle: hasPin ? 'Ketuk kunci layar' : 'Belum aktif',
-                      accent: const Color(0xFFFBBF24),
-                      onTap: () => _lockAppNow(provider),
-                    ),
-                    const SizedBox(width: 10),
-                    _quickTile(
-                      emoji: '🛡️',
-                      title: 'Jejak Audit',
-                      subtitle: 'Log anti-ubah',
-                      accent: const Color(0xFF67E8F9),
-                      onTap: () {
-                        AppFeedback.tap();
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const AuditLogScreen()),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    _quickTile(
-                      emoji: provider.isScreenPrivacyEnabled ? '🙈' : '👁️',
-                      title: provider.isScreenPrivacyEnabled ? 'Privasi Aktif' : 'Privasi Layar',
-                      subtitle: provider.isScreenPrivacyEnabled ? 'Screenshot diblokir' : 'Blokir screenshot',
-                      accent: const Color(0xFFF43F5E),
-                      onTap: () async {
-                        AppFeedback.tap();
-                        await provider.setScreenPrivacyEnabled(!provider.isScreenPrivacyEnabled);
-                      },
-                    ),
-                    const SizedBox(width: 10),
-                    _quickTile(
-                      emoji: '🎨',
-                      title: 'Pengaturan',
-                      subtitle: 'Tarif, Tema & Drive',
-                      accent: const Color(0xFFD946EF),
-                      onTap: () {
-                        AppFeedback.tap();
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const SettingsScreen()),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    _quickTile(
-                      emoji: '🪪',
-                      title: provider.isProUser ? 'Kartu QR PDF' : 'Kartu QR 👑',
-                      subtitle: '8 kartu / A4 siap cetak',
-                      accent: const Color(0xFF34D399),
-                      onTap: () {
-                        AppFeedback.tap();
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const CetakKartuQrScreen()),
-                        );
-                      },
-                    ),
-                    const SizedBox(width: 10),
-                    _quickTile(
-                      emoji: '🎓',
-                      title: 'Tahun Ajaran',
-                      subtitle: 'Mutasi & Tutup Buku',
-                      accent: const Color(0xFF38BDF8),
-                      onTap: () {
-                        AppFeedback.tap();
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const TahunAjaranScreen()),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    _quickTile(
-                      emoji: '📊',
-                      title: provider.isProUser ? 'Laporan Yayasan' : 'Eksekutif 👑',
-                      subtitle: 'Analitik & PDF 1 hal',
-                      accent: const Color(0xFFFBBF24),
-                      onTap: () {
-                        AppFeedback.tap();
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const ExecutiveDashboardScreen()),
-                        );
-                      },
-                    ),
-                    const SizedBox(width: 10),
-                    _quickTile(
-                      emoji: '📲',
-                      title: 'Pengingat WA',
-                      subtitle: 'Antrean wali santri',
-                      accent: const Color(0xFF6EE7B7),
-                      onTap: () {
-                        AppFeedback.tap();
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const SmartWaReminderScreen()),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    _quickTile(
-                      emoji: '📥',
-                      title: 'Import Excel',
-                      subtitle: 'Massal 100–500 santri',
-                      accent: const Color(0xFF67E8F9),
-                      onTap: () {
-                        AppFeedback.tap();
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const ImportSantriExcelScreen()),
-                        );
-                      },
-                    ),
-                    const SizedBox(width: 10),
-                    const Expanded(child: SizedBox()),
                   ],
                 ),
               ],
@@ -764,7 +889,7 @@ class _SystemTabScreenState extends State<SystemTabScreen>
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Text(
-              'Pengembang: Moch Khoirul Azman • Kas-Santri v4.0 • ${peng.namaPondok} • © 2026',
+              'Pengembang: Moch Khoirul Azman • Kas-Santri v4.1 • ${peng.namaPondok} • © 2026',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: Colors.white38,
@@ -779,40 +904,109 @@ class _SystemTabScreenState extends State<SystemTabScreen>
     );
   }
 
-  Widget _quickTile({
-    required String emoji,
-    required String title,
-    required String subtitle,
-    required Color accent,
-    required VoidCallback onTap,
-  }) {
-    return Expanded(
+  Widget _buildVibrantQuickCard(_QuickAccessSpec spec, double cardOpacity) {
+    final topColor = Color.lerp(const Color(0xFF071324), spec.accent, 0.24)!
+        .withValues(alpha: (0.86 * cardOpacity).clamp(0.48, 0.90));
+    final bottomColor = const Color(0xFF091120)
+        .withValues(alpha: (0.90 * cardOpacity).clamp(0.52, 0.94));
+
+    return Material(
+      color: Colors.transparent,
       child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
+        onTap: spec.onTap,
+        borderRadius: BorderRadius.circular(20),
         child: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.28),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: accent.withOpacity(0.32)),
+            gradient: LinearGradient(
+              colors: [topColor, bottomColor],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: spec.accent.withValues(alpha: 0.45),
+              width: 1.1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: spec.accent.withValues(alpha: 0.12),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(emoji, style: const TextStyle(fontSize: 18)),
-              const SizedBox(height: 6),
-              Text(
-                title,
-                style: TextStyle(color: accent, fontSize: 12, fontWeight: FontWeight.w900),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: spec.accent.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(11),
+                      border: Border.all(
+                        color: spec.accent.withValues(alpha: 0.45),
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(spec.emoji, style: const TextStyle(fontSize: 17)),
+                  ),
+                  if (spec.isProLocked)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFF59E0B), Color(0xFFFDE047)],
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        '🔒 PRO',
+                        style: TextStyle(
+                          color: Color(0xFF030712),
+                          fontSize: 8.5,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    )
+                  else
+                    Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 11,
+                      color: spec.accent.withValues(alpha: 0.75),
+                    ),
+                ],
               ),
-              Text(
-                subtitle,
-                style: const TextStyle(color: Colors.white54, fontSize: 10),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    spec.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    spec.subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -820,4 +1014,22 @@ class _SystemTabScreenState extends State<SystemTabScreen>
       ),
     );
   }
+}
+
+class _QuickAccessSpec {
+  final String emoji;
+  final String title;
+  final String subtitle;
+  final Color accent;
+  final bool isProLocked;
+  final VoidCallback onTap;
+
+  const _QuickAccessSpec({
+    required this.emoji,
+    required this.title,
+    required this.subtitle,
+    required this.accent,
+    required this.isProLocked,
+    required this.onTap,
+  });
 }

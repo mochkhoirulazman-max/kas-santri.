@@ -42,6 +42,9 @@ class DatabaseHelper {
     return await openDatabase(
       path,
       version: 4,
+      onConfigure: (db) async {
+        await db.execute('PRAGMA foreign_keys = ON;');
+      },
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
       onOpen: (db) async {
@@ -50,37 +53,61 @@ class DatabaseHelper {
     );
   }
 
-  Future<void> _addColumnIfNotExists(Database db, String table, String columnDef) async {
+  Future<Set<String>> _getExistingColumns(DatabaseExecutor db, String table) async {
+    try {
+      final info = await db.rawQuery('PRAGMA table_info($table)');
+      return info.map((e) => e['name'].toString()).toSet();
+    } catch (_) {
+      return const <String>{};
+    }
+  }
+
+  Future<void> _addColumnIfNotExists(
+    Database db,
+    String table,
+    String columnDef, {
+    Set<String>? existingColumns,
+  }) async {
+    final colName = columnDef.trim().split(RegExp(r'\s+')).first;
+    final cols = existingColumns ?? await _getExistingColumns(db, table);
+    if (cols.contains(colName)) return;
     try {
       await db.execute('ALTER TABLE $table ADD COLUMN $columnDef;');
     } catch (_) {}
   }
 
   Future<void> _ensureColumnsAndIndexes(Database db) async {
-    await _addColumnIfNotExists(db, 'santri', 'foto_path TEXT');
-    await _addColumnIfNotExists(db, 'santri', 'qr_code TEXT');
-    await _addColumnIfNotExists(db, 'santri', "kategori_santri TEXT NOT NULL DEFAULT 'SANTRIYIN'");
-    await _addColumnIfNotExists(db, 'santri', "status_santri TEXT NOT NULL DEFAULT 'AKTIF'");
-    await _addColumnIfNotExists(db, 'setoran_bulanan', "metode_bayar TEXT NOT NULL DEFAULT 'TUNAI'");
-    await _addColumnIfNotExists(db, 'setoran_bulanan', 'potong_tunggakan INTEGER NOT NULL DEFAULT 0');
-    await _addColumnIfNotExists(db, 'setoran_bulanan', 'nominal_potong_tunggakan INTEGER NOT NULL DEFAULT 0');
-    await _addColumnIfNotExists(db, 'transaksi_harian', 'is_void INTEGER NOT NULL DEFAULT 0');
-    await _addColumnIfNotExists(db, 'transaksi_harian', "sumber_dompet TEXT NOT NULL DEFAULT 'TUNAI'");
-    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'pembulatan_jatah INTEGER NOT NULL DEFAULT 500');
-    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'is_pro INTEGER NOT NULL DEFAULT 0');
-    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'pro_plan TEXT');
-    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'onboarding_done INTEGER NOT NULL DEFAULT 0');
-    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'last_drive_backup_at TEXT');
-    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'auto_drive_backup INTEGER NOT NULL DEFAULT 0');
-    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'drive_account_email TEXT');
-    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'trial_started_at TEXT');
-    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'trial_expires_at TEXT');
-    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'has_used_trial INTEGER NOT NULL DEFAULT 0');
-    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', "tahun_ajaran TEXT NOT NULL DEFAULT '2026/2027 M / 1448 H'");
-    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'default_infak_masak INTEGER NOT NULL DEFAULT 130000');
-    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'default_infak_listrik INTEGER NOT NULL DEFAULT 20000');
-    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'default_infak_beras_liter REAL NOT NULL DEFAULT 15.0');
-    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'default_infak_beras_uang INTEGER NOT NULL DEFAULT 150000');
+    final santriCols = await _getExistingColumns(db, 'santri');
+    await _addColumnIfNotExists(db, 'santri', 'foto_path TEXT', existingColumns: santriCols);
+    await _addColumnIfNotExists(db, 'santri', 'qr_code TEXT', existingColumns: santriCols);
+    await _addColumnIfNotExists(db, 'santri', "kategori_santri TEXT NOT NULL DEFAULT 'SANTRIYIN'", existingColumns: santriCols);
+    await _addColumnIfNotExists(db, 'santri', "status_santri TEXT NOT NULL DEFAULT 'AKTIF'", existingColumns: santriCols);
+
+    final setoranCols = await _getExistingColumns(db, 'setoran_bulanan');
+    await _addColumnIfNotExists(db, 'setoran_bulanan', "metode_bayar TEXT NOT NULL DEFAULT 'TUNAI'", existingColumns: setoranCols);
+    await _addColumnIfNotExists(db, 'setoran_bulanan', 'potong_tunggakan INTEGER NOT NULL DEFAULT 0', existingColumns: setoranCols);
+    await _addColumnIfNotExists(db, 'setoran_bulanan', 'nominal_potong_tunggakan INTEGER NOT NULL DEFAULT 0', existingColumns: setoranCols);
+
+    final txCols = await _getExistingColumns(db, 'transaksi_harian');
+    await _addColumnIfNotExists(db, 'transaksi_harian', 'is_void INTEGER NOT NULL DEFAULT 0', existingColumns: txCols);
+    await _addColumnIfNotExists(db, 'transaksi_harian', "sumber_dompet TEXT NOT NULL DEFAULT 'TUNAI'", existingColumns: txCols);
+
+    final pengCols = await _getExistingColumns(db, 'pengaturan_aplikasi');
+    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'pembulatan_jatah INTEGER NOT NULL DEFAULT 500', existingColumns: pengCols);
+    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'is_pro INTEGER NOT NULL DEFAULT 0', existingColumns: pengCols);
+    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'pro_plan TEXT', existingColumns: pengCols);
+    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'onboarding_done INTEGER NOT NULL DEFAULT 0', existingColumns: pengCols);
+    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'last_drive_backup_at TEXT', existingColumns: pengCols);
+    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'auto_drive_backup INTEGER NOT NULL DEFAULT 0', existingColumns: pengCols);
+    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'drive_account_email TEXT', existingColumns: pengCols);
+    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'trial_started_at TEXT', existingColumns: pengCols);
+    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'trial_expires_at TEXT', existingColumns: pengCols);
+    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'has_used_trial INTEGER NOT NULL DEFAULT 0', existingColumns: pengCols);
+    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', "tahun_ajaran TEXT NOT NULL DEFAULT '2026/2027 M / 1448 H'", existingColumns: pengCols);
+    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'default_infak_masak INTEGER NOT NULL DEFAULT 130000', existingColumns: pengCols);
+    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'default_infak_listrik INTEGER NOT NULL DEFAULT 20000', existingColumns: pengCols);
+    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'default_infak_beras_liter REAL NOT NULL DEFAULT 15.0', existingColumns: pengCols);
+    await _addColumnIfNotExists(db, 'pengaturan_aplikasi', 'default_infak_beras_uang INTEGER NOT NULL DEFAULT 150000', existingColumns: pengCols);
 
     await _createV3InfakTablesAndIndexes(db);
     await _createV33AuditTableAndIndex(db);
@@ -88,6 +115,7 @@ class DatabaseHelper {
     try {
       await db.execute('CREATE INDEX IF NOT EXISTS idx_tx_santri_tgl ON transaksi_harian (santri_id, tanggal_lokal, is_void);');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_santri_qr ON santri (qr_code);');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_mutasi_dompet_jenis_tipe ON mutasi_dompet (jenis_dompet, tipe);');
     } catch (_) {}
     await _backfillQrCodes(db);
   }
@@ -432,13 +460,16 @@ class DatabaseHelper {
       'CREATE INDEX idx_tunggakan_log_santri ON tunggakan_log (santri_id);',
     );
     await db.execute(
-      'CREATE INDEX idx_mutasi_dompet_tanggal ON mutasi_dompet (tanggal_lokal);',
+      'CREATE INDEX IF NOT EXISTS idx_mutasi_dompet_tanggal ON mutasi_dompet (tanggal_lokal);',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_mutasi_dompet_jenis_tipe ON mutasi_dompet (jenis_dompet, tipe);',
     );
 
     // Inisialisasi data pengaturan bawaan
     await db.insert('pengaturan_aplikasi', {
       'id': 1,
-      'nama_pondok': 'PPS MIFTAHUSSUNAN',
+      'nama_pondok': 'Nama Pondok',
       'nama_pengurus': 'Pengurus Kas & Keuangan',
       'kontak_pengurus': '081234567890',
       'default_jatah_harian': 10000,
@@ -573,15 +604,44 @@ class DatabaseHelper {
     );
   }
 
-  Future<void> deleteSantri(String santriId) async {
+  Future<int> deleteSantri(
+    String santriId, {
+    String sumberDompet = 'TUNAI',
+  }) async {
     final db = await database;
+    final dompet = _normalizeDompet(sumberDompet);
+    int refundedSaldo = 0;
     await db.transaction((txn) async {
+      final santriMaps = await txn.query(
+        'santri',
+        where: 'id = ?',
+        whereArgs: [santriId],
+      );
+      if (santriMaps.isNotEmpty) {
+        final santri = Santri.fromMap(santriMaps.first);
+        if (santri.saldoTotal > 0) {
+          refundedSaldo = santri.saldoTotal;
+          final now = DateTime.now();
+          await txn.insert('mutasi_dompet', {
+            'id': const Uuid().v4(),
+            'jenis_dompet': dompet,
+            'tipe': 'KELUAR',
+            'nominal': refundedSaldo,
+            'referensi_id': santriId,
+            'catatan':
+                'Pengembalian/Penghapusan Saldo Santri ${santri.namaLengkap}',
+            'tanggal_lokal': DateFormatter.toLocalDateString(now),
+            'created_at': now.toIso8601String(),
+          });
+        }
+      }
       await txn.delete('infak_santri', where: 'santri_id = ?', whereArgs: [santriId]);
       await txn.delete('tunggakan_log', where: 'santri_id = ?', whereArgs: [santriId]);
       await txn.delete('transaksi_harian', where: 'santri_id = ?', whereArgs: [santriId]);
       await txn.delete('setoran_bulanan', where: 'santri_id = ?', whereArgs: [santriId]);
       await txn.delete('santri', where: 'id = ?', whereArgs: [santriId]);
     });
+    return refundedSaldo;
   }
 
   Future<List<String>> getAllKamars() async {
@@ -785,6 +845,12 @@ class DatabaseHelper {
                 )
               : 0;
           jatahBaru += tambahanJatah;
+        } else if (opsiSusulan == null && durasiHari > 0 && sisaSetoranMasukSaldo > 0) {
+          jatahBaru = CurrencyFormatter.hitungJatahHarianBulat(
+            sisaSetoranMasukSaldo,
+            durasiHari,
+            kelipatan: kelipatanPembulatan,
+          );
         }
       }
 
@@ -951,8 +1017,36 @@ class DatabaseHelper {
       };
 
       if (isOverlimit && overlimitHandling == OverlimitHandling.hitungUlangRataRata) {
-        const sisaHariPeriode = 20;
         if (saldoBaru > 0) {
+          int sisaHariPeriode = 0;
+          final latestSetoranRows = await txn.query(
+            'setoran_bulanan',
+            columns: ['tanggal_setor', 'durasi_hari'],
+            where: 'santri_id = ?',
+            whereArgs: [santriId],
+            orderBy: 'tanggal_setor DESC, rowid DESC',
+            limit: 1,
+          );
+          if (latestSetoranRows.isNotEmpty) {
+            final tglSetorStr =
+                latestSetoranRows.first['tanggal_setor']?.toString() ?? '';
+            final durasi =
+                (latestSetoranRows.first['durasi_hari'] as num?)?.toInt() ?? 30;
+            final tglSetor = DateTime.tryParse(tglSetorStr);
+            if (tglSetor != null && durasi > 0) {
+              final tglAmbil = DateTime(waktu.year, waktu.month, waktu.day);
+              final startDay =
+                  DateTime(tglSetor.year, tglSetor.month, tglSetor.day);
+              final elapsedDays = tglAmbil.difference(startDay).inDays + 1;
+              sisaHariPeriode = (durasi - elapsedDays).clamp(1, durasi);
+            }
+          }
+          if (sisaHariPeriode <= 0) {
+            sisaHariPeriode = santri.jatahHarian > 0
+                ? (saldoBaru / santri.jatahHarian).ceil().clamp(1, 30)
+                : 20;
+          }
+
           final pengaturanMaps = await txn.query('pengaturan_aplikasi', where: 'id = 1');
           final kelipatan = pengaturanMaps.isNotEmpty
               ? ((pengaturanMaps.first['pembulatan_jatah'] as num?)?.toInt() ?? 500)
@@ -1053,15 +1147,89 @@ class DatabaseHelper {
             });
           }
         } else {
-          // Void setoran: kurangi saldo yang sempat disetor dan tarik balik dari dompet asal
-          final int restoredSaldo = (currentSantri.saldoTotal - tx.nominal).clamp(0, double.infinity).toInt();
+          // Void setoran: rekonsiliasi penuh dengan setoran_bulanan, potongan tunggakan & mutasi_dompet
+          int nominalPotongTunggakan = 0;
+          final matchingSetoran = await txn.query(
+            'setoran_bulanan',
+            where: 'santri_id = ? AND tanggal_setor = ? AND nominal_setoran = ?',
+            whereArgs: [tx.santriId, tx.tanggalLokal, tx.nominal],
+            orderBy: 'rowid DESC',
+            limit: 1,
+          );
+          if (matchingSetoran.isNotEmpty) {
+            final setoranRow = matchingSetoran.first;
+            nominalPotongTunggakan =
+                (setoranRow['nominal_potong_tunggakan'] as num?)?.toInt() ?? 0;
+            final setoranId = setoranRow['id']?.toString();
+            if (setoranId != null && setoranId.isNotEmpty) {
+              await txn.delete(
+                'setoran_bulanan',
+                where: 'id = ?',
+                whereArgs: [setoranId],
+              );
+            }
+          }
+
+          final int porsiSaldoJajan =
+              (tx.nominal - nominalPotongTunggakan).clamp(0, tx.nominal);
+          int tunggakanBaru = currentSantri.tunggakan + nominalPotongTunggakan;
+          String catatanTunggakanBaru = currentSantri.catatanTunggakan;
+          if (nominalPotongTunggakan > 0 && catatanTunggakanBaru.isEmpty) {
+            catatanTunggakanBaru = 'Pemulihan Tunggakan (Void Setoran)';
+          }
+
+          int saldoBaru = currentSantri.saldoTotal;
+          int selisihTerpakai = 0;
+          if (currentSantri.saldoTotal >= porsiSaldoJajan) {
+            saldoBaru = currentSantri.saldoTotal - porsiSaldoJajan;
+          } else {
+            // Sebagian/seluruh saldo setoran sudah terpakai jajan -> konversi ke Tunggakan (TALANGAN_SALDO)
+            selisihTerpakai = porsiSaldoJajan - currentSantri.saldoTotal;
+            saldoBaru = 0;
+            tunggakanBaru += selisihTerpakai;
+            catatanTunggakanBaru = catatanTunggakanBaru.isEmpty
+                ? 'Talangan Kas Pondok (Void Setoran)'
+                : '$catatanTunggakanBaru, Talangan Void Setoran';
+          }
+
           await txn.update(
             'santri',
-            {'saldo_total': restoredSaldo},
+            {
+              'saldo_total': saldoBaru,
+              'tunggakan': tunggakanBaru,
+              'catatan_tunggakan': catatanTunggakanBaru,
+            },
             where: 'id = ?',
             whereArgs: [tx.santriId],
           );
 
+          if (nominalPotongTunggakan > 0) {
+            await txn.insert('tunggakan_log', {
+              'id': const Uuid().v4(),
+              'santri_id': tx.santriId,
+              'tipe': 'ROLLBACK_POTONG_SETORAN',
+              'nominal': nominalPotongTunggakan,
+              'saldo_tunggakan_setelah':
+                  currentSantri.tunggakan + nominalPotongTunggakan,
+              'catatan': 'Pemulihan potongan tunggakan dari Void Setoran ${tx.id}',
+              'created_at': now.toIso8601String(),
+            });
+          }
+
+          if (selisihTerpakai > 0) {
+            await txn.insert('tunggakan_log', {
+              'id': const Uuid().v4(),
+              'santri_id': tx.santriId,
+              'tipe': 'TALANGAN_SALDO',
+              'nominal': selisihTerpakai,
+              'saldo_tunggakan_setelah': tunggakanBaru,
+              'catatan':
+                  'Selisih saldo terpakai dari pembatalan setoran ${tx.id}',
+              'created_at': now.toIso8601String(),
+            });
+          }
+
+          final tglNow = DateFormatter.toLocalDateString(now);
           await txn.insert('mutasi_dompet', {
             'id': const Uuid().v4(),
             'jenis_dompet': dompetAsal,
@@ -1069,46 +1237,186 @@ class DatabaseHelper {
             'nominal': tx.nominal,
             'referensi_id': tx.id,
             'catatan': 'Void Setoran ${currentSantri.namaLengkap}',
-            'tanggal_lokal': DateFormatter.toLocalDateString(now),
+            'tanggal_lokal': tglNow,
             'created_at': now.toIso8601String(),
           });
+
+          // Jika ada potongan tunggakan atau selisih saldo yang sudah terpakai jajan (sudah tercatat KELUAR sebelumnya),
+          // catat jurnal penyeimbang piutang talangan agar saldo dompet tetap 100% sama dengan totalBrankasFisik.
+          final int koreksiPiutangDompet =
+              nominalPotongTunggakan + selisihTerpakai;
+          if (koreksiPiutangDompet > 0) {
+            await txn.insert('mutasi_dompet', {
+              'id': const Uuid().v4(),
+              'jenis_dompet': dompetAsal,
+              'tipe': 'MASUK',
+              'nominal': koreksiPiutangDompet,
+              'referensi_id': tx.id,
+              'catatan':
+                  'Rekonsiliasi Piutang/Tunggakan atas Void Setoran ${currentSantri.namaLengkap}',
+              'tanggal_lokal': tglNow,
+              'created_at': now.toIso8601String(),
+            });
+          }
         }
       }
     });
   }
 
   Future<void> editTransaksi(String id, int newNominal, String? note) async {
+    if (newNominal <= 0) {
+      throw ArgumentError('Nominal transaksi harus lebih dari Rp 0.');
+    }
     final db = await database;
     await db.transaction((txn) async {
       final maps = await txn.query('transaksi_harian', where: 'id = ?', whereArgs: [id]);
       if (maps.isEmpty) return;
 
       final tx = TransaksiHarian.fromMap(maps.first);
+      if (tx.isVoided) return;
+
       final int diff = newNominal - tx.nominal;
+      final santriMaps = await txn.query('santri', where: 'id = ?', whereArgs: [tx.santriId]);
+      if (santriMaps.isEmpty) return;
+
+      final currentSantri = Santri.fromMap(santriMaps.first);
+      final dompet = _normalizeDompet(tx.sumberDompet);
+      final now = DateTime.now();
+      final tglNow = DateFormatter.toLocalDateString(now);
+
+      int saldoBaru = currentSantri.saldoTotal;
+      int tunggakanBaru = currentSantri.tunggakan;
+      String catatanTunggakanBaru = currentSantri.catatanTunggakan;
+      int deltaDompet = 0; // positif = MASUK ke dompet, negatif = KELUAR dari dompet
+
+      if (tx.tipe == TipeTransaksi.pengambilan) {
+        if (diff > 0) {
+          // Pengambilan bertambah sebesar diff
+          if (currentSantri.saldoTotal >= diff) {
+            saldoBaru = currentSantri.saldoTotal - diff;
+            deltaDompet = -diff;
+          } else {
+            final int terpotongDariSaldo = currentSantri.saldoTotal;
+            final int tambahanTunggakan = diff - terpotongDariSaldo;
+            saldoBaru = 0;
+            tunggakanBaru += tambahanTunggakan;
+            catatanTunggakanBaru = catatanTunggakanBaru.isEmpty
+                ? 'Talangan Kas Pondok'
+                : catatanTunggakanBaru;
+            deltaDompet = -terpotongDariSaldo;
+
+            await txn.insert('tunggakan_log', {
+              'id': const Uuid().v4(),
+              'santri_id': tx.santriId,
+              'tipe': 'TALANGAN_SALDO',
+              'nominal': tambahanTunggakan,
+              'saldo_tunggakan_setelah': tunggakanBaru,
+              'catatan': note ?? 'Koreksi Edit Pengambilan ${tx.id}',
+              'created_at': now.toIso8601String(),
+            });
+          }
+        } else if (diff < 0) {
+          // Pengambilan berkurang -> kembalikan ke tunggakan dulu jika ada, sisanya ke saldo
+          int sisaRefund = -diff;
+          int nominalRollbackTunggakan = 0;
+          if (tunggakanBaru > 0) {
+            if (sisaRefund >= tunggakanBaru) {
+              nominalRollbackTunggakan = tunggakanBaru;
+              sisaRefund -= tunggakanBaru;
+              tunggakanBaru = 0;
+              catatanTunggakanBaru = '';
+            } else {
+              nominalRollbackTunggakan = sisaRefund;
+              tunggakanBaru -= sisaRefund;
+              sisaRefund = 0;
+            }
+          }
+          saldoBaru += sisaRefund;
+          deltaDompet = sisaRefund;
+
+          if (nominalRollbackTunggakan > 0) {
+            await txn.insert('tunggakan_log', {
+              'id': const Uuid().v4(),
+              'santri_id': tx.santriId,
+              'tipe': 'KOREKSI_EDIT',
+              'nominal': nominalRollbackTunggakan,
+              'saldo_tunggakan_setelah': tunggakanBaru,
+              'catatan': 'Pengurangan tunggakan dari edit transaksi ${tx.id}',
+              'created_at': now.toIso8601String(),
+            });
+          }
+        }
+      } else {
+        // TipeTransaksi.setoran
+        if (diff > 0) {
+          saldoBaru = currentSantri.saldoTotal + diff;
+          deltaDompet = diff;
+        } else if (diff < 0) {
+          final int pengurangan = -diff;
+          if (currentSantri.saldoTotal >= pengurangan) {
+            saldoBaru = currentSantri.saldoTotal - pengurangan;
+            deltaDompet = -pengurangan;
+          } else {
+            final int terpotongDariSaldo = currentSantri.saldoTotal;
+            final int tambahanTunggakan = pengurangan - terpotongDariSaldo;
+            saldoBaru = 0;
+            tunggakanBaru += tambahanTunggakan;
+            catatanTunggakanBaru = catatanTunggakanBaru.isEmpty
+                ? 'Talangan Kas Pondok (Koreksi Setoran)'
+                : catatanTunggakanBaru;
+            deltaDompet = -terpotongDariSaldo;
+
+            await txn.insert('tunggakan_log', {
+              'id': const Uuid().v4(),
+              'santri_id': tx.santriId,
+              'tipe': 'TALANGAN_SALDO',
+              'nominal': tambahanTunggakan,
+              'saldo_tunggakan_setelah': tunggakanBaru,
+              'catatan': note ?? 'Selisih koreksi edit setoran ${tx.id}',
+              'created_at': now.toIso8601String(),
+            });
+          }
+        }
+      }
 
       await txn.update(
         'transaksi_harian',
         {
           'nominal': newNominal,
           'catatan': note,
+          'saldo_setelah_transaksi': saldoBaru,
+          'is_overlimit':
+              (tx.isOverlimit || tunggakanBaru > currentSantri.tunggakan)
+                  ? 1
+                  : 0,
         },
         where: 'id = ?',
         whereArgs: [id],
       );
 
-      final santriMaps = await txn.query('santri', where: 'id = ?', whereArgs: [tx.santriId]);
-      if (santriMaps.isNotEmpty) {
-        final currentSaldo = santriMaps.first['saldo_total'] as int;
-        final updatedSaldo = tx.tipe == TipeTransaksi.pengambilan
-            ? currentSaldo - diff
-            : currentSaldo + diff;
+      await txn.update(
+        'santri',
+        {
+          'saldo_total': saldoBaru,
+          'tunggakan': tunggakanBaru,
+          'catatan_tunggakan': catatanTunggakanBaru,
+        },
+        where: 'id = ?',
+        whereArgs: [tx.santriId],
+      );
 
-        await txn.update(
-          'santri',
-          {'saldo_total': updatedSaldo},
-          where: 'id = ?',
-          whereArgs: [tx.santriId],
-        );
+      if (deltaDompet != 0) {
+        await txn.insert('mutasi_dompet', {
+          'id': const Uuid().v4(),
+          'jenis_dompet': dompet,
+          'tipe': deltaDompet > 0 ? 'MASUK' : 'KELUAR',
+          'nominal': deltaDompet.abs(),
+          'referensi_id': tx.id,
+          'catatan':
+              'Koreksi Edit Transaksi ${currentSantri.namaLengkap}${note != null && note.isNotEmpty ? ' ($note)' : ''}',
+          'tanggal_lokal': tglNow,
+          'created_at': now.toIso8601String(),
+        });
       }
     });
   }
@@ -1163,6 +1471,158 @@ class DatabaseHelper {
       orderBy: 'waktu_ambil ASC',
     );
     return maps.map((m) => TransaksiHarian.fromMap(m)).toList();
+  }
+
+  /// Mengambil seluruh transaksi pengambilan hari ini untuk semua santri dalam 1 query (Eliminasi N+1).
+  Future<Map<String, List<TransaksiHarian>>> getAllTransaksiPengambilanHariIniMap(
+    String tanggalLokal,
+  ) async {
+    final db = await database;
+    final maps = await db.query(
+      'transaksi_harian',
+      where: "tanggal_lokal = ? AND is_void = 0 AND tipe = 'PENGAMBILAN'",
+      whereArgs: [tanggalLokal],
+      orderBy: 'waktu_ambil ASC',
+    );
+    final grouped = <String, List<TransaksiHarian>>{};
+    for (final m in maps) {
+      final tx = TransaksiHarian.fromMap(m);
+      grouped.putIfAbsent(tx.santriId, () => <TransaksiHarian>[]).add(tx);
+    }
+    return grouped;
+  }
+
+  /// Menghitung kuota efektif harian (`jatahHariIni`) seluruh santri aktif secara batch (0 N+1 query),
+  /// menghubungkan `OverlimitHandling.potongBesok` dan `ModeSisaHarian.akumulasi`.
+  Future<Map<String, int>> computeEffectiveDailyQuotaMap({
+    required String todayLokal,
+    required List<Santri> activeSantri,
+    required ModeSisaHarian modeSisaHarian,
+  }) async {
+    final result = <String, int>{
+      for (final s in activeSantri) s.id: s.jatahHarian,
+    };
+    if (activeSantri.isEmpty) return result;
+
+    final todayDate = DateFormatter.parseLocalDate(todayLokal);
+    final yesterdayDate = todayDate.subtract(const Duration(days: 1));
+    final yesterdayLokal = DateFormatter.toLocalDateString(yesterdayDate);
+
+    final db = await database;
+
+    if (modeSisaHarian == ModeSisaHarian.ketat) {
+      // Pada mode Ketat, hanya cek apakah kemarin ada transaksi overlimit berstatus POTONG_BESOK
+      final yesterdayRows = await db.rawQuery('''
+        SELECT
+          santri_id,
+          COALESCE(SUM(nominal), 0) AS total_kemarin,
+          MAX(CASE WHEN overlimit_handling = 'POTONG_BESOK' THEN 1 ELSE 0 END) AS has_potong_besok
+        FROM transaksi_harian
+        WHERE tanggal_lokal = ?
+          AND is_void = 0
+          AND tipe = 'PENGAMBILAN'
+        GROUP BY santri_id
+      ''', [yesterdayLokal]);
+
+      final yesterdayBySantri = <String, ({int total, bool hasPotongBesok})>{};
+      for (final r in yesterdayRows) {
+        final sid = r['santri_id']?.toString() ?? '';
+        if (sid.isEmpty) continue;
+        yesterdayBySantri[sid] = (
+          total: (r['total_kemarin'] as num?)?.toInt() ?? 0,
+          hasPotongBesok: ((r['has_potong_besok'] as num?)?.toInt() ?? 0) == 1,
+        );
+      }
+
+      for (final s in activeSantri) {
+        final yInfo = yesterdayBySantri[s.id];
+        if (yInfo != null && yInfo.hasPotongBesok && yInfo.total > s.jatahHarian) {
+          final excess = yInfo.total - s.jatahHarian;
+          result[s.id] = (s.jatahHarian - excess).clamp(0, s.jatahHarian);
+        }
+      }
+      return result;
+    }
+
+    // ModeSisaHarian.akumulasi:
+    // Hitung akumulasi sisa jatah dari tanggal mulai periode (setoran terakhir atau transaksi pertama < hari ini)
+    final setoranRows = await db.rawQuery('''
+      SELECT santri_id, MAX(tanggal_setor) AS last_setor
+      FROM setoran_bulanan
+      WHERE tanggal_setor < ?
+      GROUP BY santri_id
+    ''', [todayLokal]);
+
+    final lastSetorBySantri = <String, String>{};
+    for (final r in setoranRows) {
+      final sid = r['santri_id']?.toString() ?? '';
+      final tgl = r['last_setor']?.toString() ?? '';
+      if (sid.isNotEmpty && tgl.isNotEmpty) {
+        lastSetorBySantri[sid] = tgl;
+      }
+    }
+
+    final priorTxRows = await db.rawQuery('''
+      SELECT
+        santri_id,
+        tanggal_lokal,
+        COALESCE(SUM(nominal), 0) AS total_hari
+      FROM transaksi_harian
+      WHERE tanggal_lokal < ?
+        AND is_void = 0
+        AND tipe = 'PENGAMBILAN'
+      GROUP BY santri_id, tanggal_lokal
+    ''', [todayLokal]);
+
+    final txBySantri = <String, List<({String tanggal, int total})>>{};
+    for (final r in priorTxRows) {
+      final sid = r['santri_id']?.toString() ?? '';
+      final tgl = r['tanggal_lokal']?.toString() ?? '';
+      final tot = (r['total_hari'] as num?)?.toInt() ?? 0;
+      if (sid.isNotEmpty && tgl.isNotEmpty) {
+        txBySantri
+            .putIfAbsent(sid, () => <({String tanggal, int total})>[])
+            .add((tanggal: tgl, total: tot));
+      }
+    }
+
+    for (final s in activeSantri) {
+      String? anchorStr = lastSetorBySantri[s.id];
+      final txList = txBySantri[s.id] ?? const <({String tanggal, int total})>[];
+      if (anchorStr == null && txList.isNotEmpty) {
+        anchorStr = txList
+            .map((e) => e.tanggal)
+            .reduce((a, b) => a.compareTo(b) <= 0 ? a : b);
+      }
+      if (anchorStr == null) {
+        result[s.id] = s.jatahHarian;
+        continue;
+      }
+
+      final anchorDate = DateFormatter.parseLocalDate(anchorStr);
+      final elapsedDays = todayDate.difference(anchorDate).inDays.clamp(0, 30);
+      if (elapsedDays <= 0) {
+        result[s.id] = s.jatahHarian;
+        continue;
+      }
+
+      int totalAmbilSejakAnchor = 0;
+      for (final item in txList) {
+        if (item.tanggal.compareTo(anchorStr) >= 0) {
+          totalAmbilSejakAnchor += item.total;
+        }
+      }
+
+      final int totalKuotaLalu = elapsedDays * s.jatahHarian;
+      final int sisaAkumulasiLalu = totalKuotaLalu - totalAmbilSejakAnchor;
+      final int jatahEfektif = (s.jatahHarian + sisaAkumulasiLalu).clamp(
+        0,
+        s.saldoTotal > s.jatahHarian ? s.saldoTotal : s.jatahHarian * (elapsedDays + 1),
+      );
+      result[s.id] = jatahEfektif;
+    }
+
+    return result;
   }
 
   Future<List<TransaksiHarian>> getAllTransaksi({
@@ -1428,8 +1888,34 @@ class DatabaseHelper {
       throw FormatException(validation.errorMessage ?? 'Struktur backup JSON tidak valid.');
     }
 
+    // Verifikasi integritas rantai SHA-256 audit_log sebelum membuka transaksi restore
+    List<AuditLogEntry> verifiedAuditEntries = const [];
+    if (data['audit_log'] is List && (data['audit_log'] as List).isNotEmpty) {
+      verifiedAuditEntries = (data['audit_log'] as List)
+          .whereType<Map>()
+          .map((m) => AuditLogEntry.fromMap(Map<String, dynamic>.from(m)))
+          .toList();
+      final chainCheck = AuditLogEntry.verifyChain(verifiedAuditEntries);
+      if (!chainCheck.isValid) {
+        throw FormatException(
+          'Jejak Audit pada file backup tidak valid atau telah dimodifikasi (baris ke-${(chainCheck.brokenIndex ?? 0) + 1}). Pemulihan dibatalkan demi keamanan.',
+        );
+      }
+    }
+
     final db = await database;
     await db.transaction((txn) async {
+      // Simpan status lisensi & trial asli perangkat agar tidak bisa dimanipulasi via file JSON luar
+      final origPengRows =
+          await txn.query('pengaturan_aplikasi', where: 'id = 1');
+      final origPeng = origPengRows.isNotEmpty ? origPengRows.first : null;
+      final int origIsPro = (origPeng?['is_pro'] as num?)?.toInt() ?? 0;
+      final Object? origProPlan = origPeng?['pro_plan'];
+      final Object? origTrialStarted = origPeng?['trial_started_at'];
+      final Object? origTrialExpires = origPeng?['trial_expires_at'];
+      final int origHasUsedTrial =
+          (origPeng?['has_used_trial'] as num?)?.toInt() ?? 0;
+
       await txn.delete('infak_santri');
       await txn.delete('serah_terima_infak');
       await txn.delete('tunggakan_log');
@@ -1533,14 +2019,13 @@ class DatabaseHelper {
         }
       }
 
-      if (data['audit_log'] is List) {
+      if (verifiedAuditEntries.isNotEmpty) {
         await txn.delete('audit_log');
         final auditCols = await _getTableColumns(txn, 'audit_log');
-        for (var row in (data['audit_log'] as List)) {
-          final map = Map<String, dynamic>.from(row as Map);
+        for (final entry in verifiedAuditEntries) {
           await txn.insert(
             'audit_log',
-            _filterRowColumns(map, auditCols),
+            _filterRowColumns(entry.toMap(), auditCols),
             conflictAlgorithm: ConflictAlgorithm.replace,
           );
         }
@@ -1549,13 +2034,26 @@ class DatabaseHelper {
       final pengCols = await _getTableColumns(txn, 'pengaturan_aplikasi');
       final pengList = data['pengaturan_aplikasi'] as List;
       if (pengList.isEmpty) {
-        await txn.insert('pengaturan_aplikasi', {
-          ...PengaturanAplikasi(onboardingDone: true).toMap(),
-        });
+        final fallbackMap = PengaturanAplikasi(onboardingDone: true).toMap();
+        fallbackMap['is_pro'] = origIsPro;
+        fallbackMap['pro_plan'] = origProPlan;
+        fallbackMap['trial_started_at'] = origTrialStarted;
+        fallbackMap['trial_expires_at'] = origTrialExpires;
+        fallbackMap['has_used_trial'] = origHasUsedTrial;
+        await txn.insert('pengaturan_aplikasi', fallbackMap);
       } else {
         for (var row in pengList) {
           final map = Map<String, dynamic>.from(row as Map);
           map['onboarding_done'] = map['onboarding_done'] ?? 1;
+          // Pertahankan otoritas lisensi & trial asli perangkat (anti-privilege escalation via JSON)
+          map['is_pro'] = origIsPro;
+          map['pro_plan'] = origProPlan;
+          map['trial_started_at'] = origTrialStarted;
+          map['trial_expires_at'] = origTrialExpires;
+          final importedUsedTrial =
+              (map['has_used_trial'] as num?)?.toInt() ?? 0;
+          map['has_used_trial'] =
+              (origHasUsedTrial == 1 || importedUsedTrial == 1) ? 1 : 0;
           await txn.insert(
             'pengaturan_aplikasi',
             _filterRowColumns(map, pengCols),
@@ -1584,7 +2082,9 @@ class DatabaseHelper {
 
     await db.insert('pengaturan_aplikasi', {
       'id': 1,
-      'nama_pondok': 'PPS MIFTAHUSSUNAN',
+      'nama_pondok': currentPengaturan.namaPondok.trim().isNotEmpty
+          ? currentPengaturan.namaPondok.trim()
+          : 'Nama Pondok',
       'nama_pengurus': 'Pengurus Kas & Keuangan',
       'kontak_pengurus': '081234567890',
       'default_jatah_harian': 10000,
@@ -1821,36 +2321,27 @@ class DatabaseHelper {
       }
     }
 
-    final rows = await db.query('mutasi_dompet');
-    int tunai = 0;
-    int rekening = 0;
+    final agg = await db.rawQuery('''
+      SELECT
+        COALESCE(SUM(CASE
+          WHEN UPPER(TRIM(tipe)) = 'TARIK_TUNAI' THEN nominal
+          WHEN UPPER(TRIM(tipe)) = 'MASUK' AND UPPER(TRIM(jenis_dompet)) NOT IN ('REKENING', 'BANK', 'TRANSFER') THEN nominal
+          WHEN UPPER(TRIM(tipe)) = 'KELUAR' AND UPPER(TRIM(jenis_dompet)) NOT IN ('REKENING', 'BANK', 'TRANSFER') THEN -nominal
+          ELSE 0
+        END), 0) AS tunai,
+        COALESCE(SUM(CASE
+          WHEN UPPER(TRIM(tipe)) = 'TARIK_TUNAI' THEN -nominal
+          WHEN UPPER(TRIM(tipe)) = 'MASUK' AND UPPER(TRIM(jenis_dompet)) IN ('REKENING', 'BANK', 'TRANSFER') THEN nominal
+          WHEN UPPER(TRIM(tipe)) = 'KELUAR' AND UPPER(TRIM(jenis_dompet)) IN ('REKENING', 'BANK', 'TRANSFER') THEN -nominal
+          ELSE 0
+        END), 0) AS rekening
+      FROM mutasi_dompet
+    ''');
 
-    for (final row in rows) {
-      final jenis = _normalizeDompet(row['jenis_dompet'] as String? ?? 'TUNAI');
-      final tipe = (row['tipe'] as String? ?? 'MASUK').toUpperCase();
-      final nominal = (row['nominal'] as num?)?.toInt() ?? 0;
-
-      if (tipe == 'TARIK_TUNAI') {
-        rekening -= nominal;
-        tunai += nominal;
-      } else if (tipe == 'MASUK') {
-        if (jenis == 'REKENING') {
-          rekening += nominal;
-        } else {
-          tunai += nominal;
-        }
-      } else if (tipe == 'KELUAR') {
-        if (jenis == 'REKENING') {
-          rekening -= nominal;
-        } else {
-          tunai -= nominal;
-        }
-      }
-    }
-
+    final row = agg.isNotEmpty ? agg.first : const <String, Object?>{};
     return {
-      'tunai': tunai,
-      'rekening': rekening,
+      'tunai': (row['tunai'] as num?)?.toInt() ?? 0,
+      'rekening': (row['rekening'] as num?)?.toInt() ?? 0,
     };
   }
 
@@ -2277,53 +2768,53 @@ class DatabaseHelper {
 
   Future<Map<String, dynamic>> getSaldoKantongInfak() async {
     final db = await database;
-    final infakRows = await db.query('infak_santri');
-    final serahRows = await db.query('serah_terima_infak');
+    final infakAgg = await db.rawQuery('''
+      SELECT
+        COALESCE(SUM(CASE
+          WHEN UPPER(TRIM(sumber_dompet)) NOT IN ('REKENING', 'BANK', 'TRANSFER') THEN
+            (CASE WHEN is_masak_bebas = 1 THEN 0 ELSE nominal_masak END) +
+            (CASE WHEN is_listrik_bebas = 1 THEN 0 ELSE nominal_listrik END) +
+            (CASE WHEN jenis_beras = '${InfakSantriModel.berasUangVal}' THEN beras_uang ELSE 0 END)
+          ELSE 0
+        END), 0) AS masuk_tunai,
+        COALESCE(SUM(CASE
+          WHEN UPPER(TRIM(sumber_dompet)) IN ('REKENING', 'BANK', 'TRANSFER') THEN
+            (CASE WHEN is_masak_bebas = 1 THEN 0 ELSE nominal_masak END) +
+            (CASE WHEN is_listrik_bebas = 1 THEN 0 ELSE nominal_listrik END) +
+            (CASE WHEN jenis_beras = '${InfakSantriModel.berasUangVal}' THEN beras_uang ELSE 0 END)
+          ELSE 0
+        END), 0) AS masuk_rekening,
+        COALESCE(SUM(CASE
+          WHEN jenis_beras = '${InfakSantriModel.berasFisik}' THEN beras_liter
+          ELSE 0.0
+        END), 0.0) AS beras_masuk
+      FROM infak_santri
+    ''');
 
-    int masukTunai = 0;
-    int masukRekening = 0;
-    double berasMasuk = 0.0;
+    final serahAgg = await db.rawQuery('''
+      SELECT
+        COALESCE(SUM(CASE
+          WHEN UPPER(TRIM(sumber_dompet)) = 'TUNAI' THEN nominal_uang
+          ELSE 0
+        END), 0) AS serah_tunai,
+        COALESCE(SUM(CASE
+          WHEN UPPER(TRIM(sumber_dompet)) = 'REKENING' THEN nominal_uang
+          ELSE 0
+        END), 0) AS serah_rekening,
+        COALESCE(SUM(jumlah_beras_liter), 0.0) AS beras_serah
+      FROM serah_terima_infak
+    ''');
 
-    for (final r in infakRows) {
-      final dompet = _normalizeDompet(r['sumber_dompet']?.toString() ?? 'TUNAI');
-      final isMasakBebas = (r['is_masak_bebas'] as num?)?.toInt() == 1;
-      final isListrikBebas = (r['is_listrik_bebas'] as num?)?.toInt() == 1;
-      final jenisBeras = r['jenis_beras']?.toString() ?? 'BELUM';
+    final infRow = infakAgg.isNotEmpty ? infakAgg.first : const <String, Object?>{};
+    final serRow = serahAgg.isNotEmpty ? serahAgg.first : const <String, Object?>{};
 
-      final masak = isMasakBebas ? 0 : ((r['nominal_masak'] as num?)?.toInt() ?? 0);
-      final listrik =
-          isListrikBebas ? 0 : ((r['nominal_listrik'] as num?)?.toInt() ?? 0);
-      final berasUang = jenisBeras == InfakSantriModel.berasUangVal
-          ? ((r['beras_uang'] as num?)?.toInt() ?? 0)
-          : 0;
-      final totalUang = masak + listrik + berasUang;
+    final int masukTunai = (infRow['masuk_tunai'] as num?)?.toInt() ?? 0;
+    final int masukRekening = (infRow['masuk_rekening'] as num?)?.toInt() ?? 0;
+    final double berasMasuk = (infRow['beras_masuk'] as num?)?.toDouble() ?? 0.0;
 
-      if (dompet == 'REKENING') {
-        masukRekening += totalUang;
-      } else {
-        masukTunai += totalUang;
-      }
-
-      if (jenisBeras == InfakSantriModel.berasFisik) {
-        berasMasuk += (r['beras_liter'] as num?)?.toDouble() ?? 0.0;
-      }
-    }
-
-    int serahTunai = 0;
-    int serahRekening = 0;
-    double berasSerah = 0.0;
-
-    for (final s in serahRows) {
-      final sumber = (s['sumber_dompet']?.toString() ?? 'TUNAI').toUpperCase();
-      final nom = (s['nominal_uang'] as num?)?.toInt() ?? 0;
-      final liter = (s['jumlah_beras_liter'] as num?)?.toDouble() ?? 0.0;
-      if (sumber == 'REKENING') {
-        serahRekening += nom;
-      } else if (sumber == 'TUNAI') {
-        serahTunai += nom;
-      }
-      berasSerah += liter;
-    }
+    final int serahTunai = (serRow['serah_tunai'] as num?)?.toInt() ?? 0;
+    final int serahRekening = (serRow['serah_rekening'] as num?)?.toInt() ?? 0;
+    final double berasSerah = (serRow['beras_serah'] as num?)?.toDouble() ?? 0.0;
 
     final sisaTunai = masukTunai - serahTunai;
     final sisaRekening = masukRekening - serahRekening;

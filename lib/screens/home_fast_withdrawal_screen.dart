@@ -1,13 +1,12 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../config/app_config.dart';
-import '../models/santri_status.dart';
 import '../providers/kas_santri_provider.dart';
+import '../widgets/app_background_wrapper.dart';
 import '../widgets/stat_card.dart';
 import '../widgets/santri_card.dart';
 import '../widgets/fast_withdrawal_bottom_sheet.dart';
@@ -20,9 +19,21 @@ import 'santri/qr_scanner_screen.dart';
 
 class HomeFastWithdrawalScreen extends StatefulWidget {
   final VoidCallback? onOpenBukuInfak;
+  final ValueChanged<String>? onOpenSetoranForSantri;
+  final GlobalKey? headerCrownSpotlightKey;
+  final GlobalKey? vaultSpotlightKey;
+  final GlobalKey? addSantriSpotlightKey;
+  final GlobalKey? cardsAreaSpotlightKey;
 
-  const HomeFastWithdrawalScreen({Key? key, this.onOpenBukuInfak})
-      : super(key: key);
+  const HomeFastWithdrawalScreen({
+    Key? key,
+    this.onOpenBukuInfak,
+    this.onOpenSetoranForSantri,
+    this.headerCrownSpotlightKey,
+    this.vaultSpotlightKey,
+    this.addSantriSpotlightKey,
+    this.cardsAreaSpotlightKey,
+  }) : super(key: key);
 
   @override
   State<HomeFastWithdrawalScreen> createState() => _HomeFastWithdrawalScreenState();
@@ -122,7 +133,7 @@ class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen>
     super.build(context);
     final provider = Provider.of<KasSantriProvider>(context);
     final isTwoCol = provider.pengaturan.isTwoColGrid;
-    final isPro = provider.pengaturan.isPro;
+    final isPro = provider.hasProAccess;
     final filteredList = provider.filteredSantriStatusList;
     final bottomSafe = MediaQuery.of(context).padding.bottom;
 
@@ -184,103 +195,84 @@ class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen>
                       const SizedBox(height: 10),
 
                       // Header Utama: Logo, Judul & Tombol "+ Santri" + Ikon Mahkota Freemium
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Row(
-                              children: [
-                                // Logo Tap-to-Change
-                                InkWell(
-                                  onTap: _pickLogo,
-                                  borderRadius: BorderRadius.circular(16),
-                                  child: Container(
-                                    width: 44,
-                                    height: 44,
-                                    padding: const EdgeInsets.all(2),
-                                    decoration: BoxDecoration(
-                                      gradient: const LinearGradient(
-                                        colors: [Color(0xFF34D399), Color(0xFF38BDF8), Color(0xFFD946EF)],
+                      Container(
+                        key: widget.headerCrownSpotlightKey,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  // Logo Tap-to-Change
+                                  InkWell(
+                                    onTap: _pickLogo,
+                                    borderRadius: BorderRadius.circular(16),
+                                    child: Container(
+                                      width: 44,
+                                      height: 44,
+                                      padding: const EdgeInsets.all(2),
+                                      decoration: BoxDecoration(
+                                        gradient: const LinearGradient(
+                                          colors: [Color(0xFF34D399), Color(0xFF38BDF8), Color(0xFFD946EF)],
+                                        ),
+                                        borderRadius: BorderRadius.circular(16),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: const Color(0xFF10B981).withValues(alpha: 0.4),
+                                            blurRadius: 10,
+                                            offset: const Offset(0, 3),
+                                          ),
+                                        ],
                                       ),
-                                      borderRadius: BorderRadius.circular(16),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: const Color(0xFF10B981).withOpacity(0.4),
-                                          blurRadius: 10,
-                                          offset: const Offset(0, 3),
+                                      child: KasSantriLogoMark(
+                                        customLogoPath: provider.pengaturan.logoPath,
+                                        size: 40,
+                                        borderRadius: 14,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          'KAS & KEUANGAN SANTRI',
+                                          style: TextStyle(
+                                            color: Color(0xFF34D399),
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.w900,
+                                            letterSpacing: 1.1,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 1),
+                                        Text(
+                                          provider.pengaturan.namaPondok,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w900,
+                                            letterSpacing: -0.2,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       ],
                                     ),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(14),
-                                      child: Container(
-                                        color: const Color(0xFF030712),
-                                        padding: const EdgeInsets.all(2),
-                                        child: provider.pengaturan.logoPath != null &&
-                                                File(provider.pengaturan.logoPath!).existsSync()
-                                            ? Image.file(
-                                                File(provider.pengaturan.logoPath!),
-                                                fit: BoxFit.contain,
-                                              )
-                                            : Image.asset(
-                                                'logo.jpg',
-                                                fit: BoxFit.contain,
-                                                errorBuilder: (_, __, ___) => const Center(
-                                                  child: Text(
-                                                    'PPS',
-                                                    style: TextStyle(
-                                                      color: Color(0xFF34D399),
-                                                      fontWeight: FontWeight.bold,
-                                                      fontSize: 11,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                      ),
-                                    ),
                                   ),
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(
-                                        'KAS & KEUANGAN SANTRI',
-                                        style: TextStyle(
-                                          color: Color(0xFF34D399),
-                                          fontSize: 9,
-                                          fontWeight: FontWeight.w900,
-                                          letterSpacing: 1.1,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      const SizedBox(height: 1),
-                                      Text(
-                                        provider.pengaturan.namaPondok,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w900,
-                                          letterSpacing: -0.2,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 8),
+                            const SizedBox(width: 8),
 
-                          // Tombol "+ Santri" & Ikon Mahkota Freemium (👑)
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
+                            // Tombol "+ Santri" & Ikon Mahkota Freemium (👑)
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ElevatedButton(
+                                  key: widget.addSantriSpotlightKey,
+                                  style: ElevatedButton.styleFrom(
                                   padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
                                   minimumSize: Size.zero,
                                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -299,7 +291,10 @@ class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen>
                                     return;
                                   }
                                   AppFeedback.tap();
-                                  TambahSantriBottomSheet.show(context);
+                                  TambahSantriBottomSheet.show(
+                                    context,
+                                    onOpenSetoran: widget.onOpenSetoranForSantri,
+                                  );
                                 },
                                 child: const Text(
                                   '+ Santri',
@@ -381,9 +376,10 @@ class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen>
                                   );
                                 },
                               ),
-                            ],
-                          ),
-                        ],
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -392,23 +388,26 @@ class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen>
 
             // Hero Card: Total Uang Titipan (Brankas Fisik)
             SliverToBoxAdapter(
-              child: SafeVaultCard(
-                totalBrankas: provider.totalBrankasFisik,
-                totalKeluarHariIni: provider.totalPengeluaranHariIni,
-                totalKuotaHariIni: provider.totalKuotaHariIni,
-                totalTunggakan: provider.totalTunggakanPondok,
-                countTunggakan: provider.countSantriTunggakan,
-                jumlahSantri: provider.allSantri.where((s) => s.statusAktif).length,
-                isHidden: provider.pengaturan.hideBalance,
-                isProUser: provider.isProUser,
-                kasLaciTunai: provider.kasLaciTunai,
-                rekeningBank: provider.rekeningBank,
-                onToggleHide: provider.toggleHideBalance,
-                onTunggakanTap: () => provider.setFilter('TUNGGAKAN'),
-                onTarikTunaiTap: () => TarikTunaiBottomSheet.show(context),
-                onUpgradeProTap: () => PaywallScreen.show(
-                  context,
-                  triggerFeature: 'Multi-Dompet: Pisah Kas Laci Tunai vs Rekening Bank',
+              child: Container(
+                key: widget.vaultSpotlightKey,
+                child: SafeVaultCard(
+                  totalBrankas: provider.totalBrankasFisik,
+                  totalKeluarHariIni: provider.totalPengeluaranHariIni,
+                  totalKuotaHariIni: provider.totalKuotaHariIni,
+                  totalTunggakan: provider.totalTunggakanPondok,
+                  countTunggakan: provider.countSantriTunggakan,
+                  jumlahSantri: provider.allSantri.where((s) => s.statusAktif).length,
+                  isHidden: provider.pengaturan.hideBalance,
+                  isProUser: provider.isProUser,
+                  kasLaciTunai: provider.kasLaciTunai,
+                  rekeningBank: provider.rekeningBank,
+                  onToggleHide: provider.toggleHideBalance,
+                  onTunggakanTap: () => provider.setFilter('TUNGGAKAN'),
+                  onTarikTunaiTap: () => TarikTunaiBottomSheet.show(context),
+                  onUpgradeProTap: () => PaywallScreen.show(
+                    context,
+                    triggerFeature: 'Multi-Dompet: Pisah Kas Laci Tunai vs Rekening Bank',
+                  ),
                 ),
               ),
             ),
@@ -599,6 +598,7 @@ class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen>
             // Bar Pencarian & Switcher 2 Kotak vs 1 Baris
             SliverToBoxAdapter(
               child: Padding(
+                key: filteredList.isEmpty ? widget.cardsAreaSpotlightKey : null,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 child: Row(
                   children: [
@@ -607,7 +607,7 @@ class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen>
                         controller: _searchController,
                         style: const TextStyle(color: Colors.white, fontSize: 12.5),
                         decoration: InputDecoration(
-                          hintText: 'Cari nama santri atau kamar...',
+                          hintText: 'Cari nama santri atau kamar/kelas...',
                           prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF38BDF8)),
                           suffixIcon: _searchController.text.isNotEmpty
                               ? IconButton(
@@ -778,11 +778,14 @@ class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen>
                   delegate: SliverChildBuilderDelegate(
                     (ctx, idx) {
                       final status = filteredList[idx];
-                      return SantriCard(
-                        status: status,
-                        isTwoCol: true,
-                        onAmbilTap: () => FastWithdrawalBottomSheet.show(context, status),
-                        onTunggakanTap: () => TunggakanBottomSheet.show(context, status.santri),
+                      return RepaintBoundary(
+                        key: idx == 0 ? widget.cardsAreaSpotlightKey : null,
+                        child: SantriCard(
+                          status: status,
+                          isTwoCol: true,
+                          onAmbilTap: () => FastWithdrawalBottomSheet.show(context, status),
+                          onTunggakanTap: () => TunggakanBottomSheet.show(context, status.santri),
+                        ),
                       );
                     },
                     childCount: filteredList.length,
@@ -796,11 +799,14 @@ class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen>
                   delegate: SliverChildBuilderDelegate(
                     (ctx, idx) {
                       final status = filteredList[idx];
-                      return SantriCard(
-                        status: status,
-                        isTwoCol: false,
-                        onAmbilTap: () => FastWithdrawalBottomSheet.show(context, status),
-                        onTunggakanTap: () => TunggakanBottomSheet.show(context, status.santri),
+                      return RepaintBoundary(
+                        key: idx == 0 ? widget.cardsAreaSpotlightKey : null,
+                        child: SantriCard(
+                          status: status,
+                          isTwoCol: false,
+                          onAmbilTap: () => FastWithdrawalBottomSheet.show(context, status),
+                          onTunggakanTap: () => TunggakanBottomSheet.show(context, status.santri),
+                        ),
                       );
                     },
                     childCount: filteredList.length,

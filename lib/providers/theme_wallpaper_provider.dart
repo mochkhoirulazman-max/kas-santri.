@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/app_feedback.dart';
 
 enum WallpaperPreset {
+  sunriseBeach,
   obsidianAurora,
   emeraldMist,
   midnightGold,
@@ -21,6 +22,7 @@ class WallpaperPresetSpec {
   final Color glowPrimary;
   final Color glowSecondary;
   final Color accentColor;
+  final String? bundledAssetPath;
 
   const WallpaperPresetSpec({
     required this.preset,
@@ -30,11 +32,15 @@ class WallpaperPresetSpec {
     required this.glowPrimary,
     required this.glowSecondary,
     required this.accentColor,
+    this.bundledAssetPath,
   });
 }
 
 class ThemeWallpaperProvider extends ChangeNotifier {
-  static const String _keyPreset = 'ks_v32_wallpaper_preset';
+  static const String defaultBundledWallpaperAsset =
+      'assets/wallpapers/default_wallpaper.jpg';
+
+  static const String _keyPreset = 'ks_v41_wallpaper_preset';
   static const String _keyCustomPath = 'ks_v32_custom_wallpaper_path';
   static const String _keyCardOpacity = 'ks_v32_card_opacity';
   static const String _keyWallpaperDim = 'ks_v32_wallpaper_dim';
@@ -42,6 +48,16 @@ class ThemeWallpaperProvider extends ChangeNotifier {
   static const String _keyHapticEnabled = 'ks_v32_haptic_enabled';
 
   static const List<WallpaperPresetSpec> presets = [
+    WallpaperPresetSpec(
+      preset: WallpaperPreset.sunriseBeach,
+      name: 'Sunrise Pantai Teduh',
+      subtitle: 'Pantai matahari terbit bawaan (Default)',
+      gradientColors: [Color(0xFF061523), Color(0xFF102A3B), Color(0xFF07131E)],
+      glowPrimary: Color(0xFFF59E0B),
+      glowSecondary: Color(0xFF10B981),
+      accentColor: Color(0xFFFBBF24),
+      bundledAssetPath: defaultBundledWallpaperAsset,
+    ),
     WallpaperPresetSpec(
       preset: WallpaperPreset.obsidianAurora,
       name: 'Obsidian Aurora',
@@ -81,27 +97,27 @@ class ThemeWallpaperProvider extends ChangeNotifier {
     WallpaperPresetSpec(
       preset: WallpaperPreset.matteCharcoal,
       name: 'Matte Charcoal',
-      subtitle: 'Abu gelap minimalis kontras tinggi',
-      gradientColors: [Color(0xFF090A0D), Color(0xFF16181F), Color(0xFF0C0E12)],
-      glowPrimary: Color(0xFF64748B),
-      glowSecondary: Color(0xFF475569),
-      accentColor: Color(0xFFCBD5E1),
+      subtitle: 'Gelap kontras tinggi super ringan',
+      gradientColors: [Color(0xFF07090E), Color(0xFF121722), Color(0xFF090C12)],
+      glowPrimary: Color(0xFF38BDF8),
+      glowSecondary: Color(0xFF10B981),
+      accentColor: Color(0xFF67E8F9),
     ),
   ];
 
-  WallpaperPreset _preset = WallpaperPreset.obsidianAurora;
+  WallpaperPreset _preset = WallpaperPreset.sunriseBeach;
   WallpaperPreset get preset => _preset;
 
   String? _customWallpaperPath;
   String? get customWallpaperPath => _customWallpaperPath;
 
-  double _cardOpacity = 0.72;
+  double _cardOpacity = 0.68;
   double get cardOpacity => _cardOpacity;
 
-  double _wallpaperDim = 0.42;
+  double _wallpaperDim = 0.46;
   double get wallpaperDim => _wallpaperDim;
 
-  double _wallpaperBlur = 6.0;
+  double _wallpaperBlur = 2.0;
   double get wallpaperBlur => _wallpaperBlur;
 
   bool _hapticEnabled = true;
@@ -131,13 +147,15 @@ class ThemeWallpaperProvider extends ChangeNotifier {
       if (presetName != null) {
         _preset = WallpaperPreset.values.firstWhere(
           (e) => e.name == presetName,
-          orElse: () => WallpaperPreset.obsidianAurora,
+          orElse: () => WallpaperPreset.sunriseBeach,
         );
+      } else {
+        _preset = WallpaperPreset.sunriseBeach;
       }
       _customWallpaperPath = prefs.getString(_keyCustomPath);
-      _cardOpacity = (prefs.getDouble(_keyCardOpacity) ?? 0.72).clamp(0.35, 0.95);
-      _wallpaperDim = (prefs.getDouble(_keyWallpaperDim) ?? 0.42).clamp(0.15, 0.85);
-      _wallpaperBlur = (prefs.getDouble(_keyWallpaperBlur) ?? 6.0).clamp(0.0, 20.0);
+      _cardOpacity = (prefs.getDouble(_keyCardOpacity) ?? 0.68).clamp(0.35, 0.95);
+      _wallpaperDim = (prefs.getDouble(_keyWallpaperDim) ?? 0.46).clamp(0.15, 0.85);
+      _wallpaperBlur = (prefs.getDouble(_keyWallpaperBlur) ?? 2.0).clamp(0.0, 20.0);
       _hapticEnabled = prefs.getBool(_keyHapticEnabled) ?? true;
       AppFeedback.hapticEnabled = _hapticEnabled;
     } catch (_) {}

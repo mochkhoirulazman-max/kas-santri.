@@ -455,7 +455,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
       }
 
       if (mounted) {
-        if (provider.pengaturan.isPro) {
+        if (provider.hasProAccess) {
           _showFloatingSnackBar('Lisensi Kas-Santri PRO sudah aktif di perangkat ini!');
         } else {
           _showFloatingSnackBar(res.message, backgroundColor: const Color(0xFF06B6D4));
@@ -993,7 +993,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<KasSantriProvider>(context);
-    final isPro = provider.pengaturan.isPro;
+    final isPro = provider.hasProAccess;
     final bottomInset = MediaQuery.of(context).padding.bottom;
     final selectedOffer = _selectedOffer;
 

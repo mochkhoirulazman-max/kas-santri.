@@ -62,7 +62,7 @@ class _RekapLaporanScreenState extends State<RekapLaporanScreen>
     return '''*Assalamu’alaikum Warahmatullahi Wabarakatuh* 🌸
 
 Yth. *Bapak/Ibu Wali Santri*
-dari ananda tercinta: *${santri.namaLengkap}* (${santri.kamar})
+dari ananda tercinta: *${santri.namaLengkap}* (Kamar / Kelas: ${santri.kamar})
 di Tempat.
 
 Semoga Bapak/Ibu sekeluarga senantiasa berada dalam lindungan, rahmat, dan keberkahan dari Allah Subhanahu wa Ta'ala.
@@ -285,6 +285,13 @@ Salam hormat & ta'dzim,
                 child: InkWell(
                   onTap: () {
                     AppFeedback.tap();
+                    if (!provider.hasProAccess) {
+                      PaywallScreen.show(
+                        context,
+                        triggerFeature: 'Laporan Eksekutif Pengasuh & Yayasan',
+                      );
+                      return;
+                    }
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -301,16 +308,16 @@ Salam hormat & ta'dzim,
                       ),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: const Color(0xFF34D399).withOpacity(0.45),
+                        color: const Color(0xFF34D399).withValues(alpha: 0.45),
                       ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          provider.isProUser
+                          provider.hasProAccess
                               ? '📊 Eksekutif Yayasan'
-                              : '📊 Eksekutif 👑',
+                              : '📊 Eksekutif 🔒 PRO',
                           style: const TextStyle(
                             color: Color(0xFF6EE7B7),
                             fontSize: 12,
@@ -332,6 +339,13 @@ Salam hormat & ta'dzim,
                 child: InkWell(
                   onTap: () {
                     AppFeedback.tap();
+                    if (!provider.hasProAccess) {
+                      PaywallScreen.show(
+                        context,
+                        triggerFeature: 'Pusat Antrean Pengingat WA Cerdas',
+                      );
+                      return;
+                    }
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -348,16 +362,16 @@ Salam hormat & ta'dzim,
                       ),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: const Color(0xFFFBBF24).withOpacity(0.45),
+                        color: const Color(0xFFFBBF24).withValues(alpha: 0.45),
                       ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          provider.isProUser
+                          provider.hasProAccess
                               ? '📲 Antrean WA Cerdas'
-                              : '📲 Pengingat WA 👑',
+                              : '📲 Pengingat WA 🔒 PRO',
                           style: const TextStyle(
                             color: Color(0xFFFDE68A),
                             fontSize: 12,
@@ -378,13 +392,30 @@ Salam hormat & ta'dzim,
           ),
           const SizedBox(height: 12),
 
-          // 1. Audit Kas Harian Card
+          // 1. Audit Kas Harian Card (Vibrant Cyan -> Blue Glass)
           Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: const Color(0xFF0F172A).withOpacity(cardOpacity),
+              gradient: LinearGradient(
+                colors: [
+                  const Color(0xFF072638).withValues(alpha: (0.88 * cardOpacity).clamp(0.45, 0.92)),
+                  const Color(0xFF0E1B3A).withValues(alpha: (0.90 * cardOpacity).clamp(0.48, 0.94)),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
               borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: Colors.white12),
+              border: Border.all(
+                color: const Color(0xFF38BDF8).withValues(alpha: 0.40),
+                width: 1.2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF06B6D4).withValues(alpha: 0.16),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -593,17 +624,32 @@ Salam hormat & ta'dzim,
 
         const SizedBox(height: 14),
 
-        // 1B. Ekspor Laporan Resmi Yayasan (Excel & PDF Berkop) - PRO
+        // 1B. Ekspor Laporan Resmi Yayasan (Royal Gold -> Amber / Emerald Glass)
         Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: const Color(0xFF0F172A).withOpacity(cardOpacity),
+            gradient: LinearGradient(
+              colors: [
+                const Color(0xFF2B1C08).withValues(alpha: (0.86 * cardOpacity).clamp(0.45, 0.92)),
+                const Color(0xFF07242A).withValues(alpha: (0.90 * cardOpacity).clamp(0.48, 0.94)),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
             borderRadius: BorderRadius.circular(28),
             border: Border.all(
               color: provider.isProUser
-                  ? const Color(0xFF10B981).withOpacity(0.4)
-                  : const Color(0xFFFBBF24).withOpacity(0.45),
+                  ? const Color(0xFF34D399).withValues(alpha: 0.45)
+                  : const Color(0xFFFBBF24).withValues(alpha: 0.45),
+              width: 1.2,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFF59E0B).withValues(alpha: 0.14),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -742,13 +788,30 @@ Salam hormat & ta'dzim,
 
         const SizedBox(height: 14),
 
-        // 2. Transparansi Wali Santri & Generator Laporan WA
+        // 2. Transparansi Wali Santri & Generator Laporan WA (Emerald -> Cyan Glass)
         Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: const Color(0xFF0F172A).withOpacity(cardOpacity),
+            gradient: LinearGradient(
+              colors: [
+                const Color(0xFF063B2F).withValues(alpha: (0.86 * cardOpacity).clamp(0.45, 0.92)),
+                const Color(0xFF0A1D36).withValues(alpha: (0.90 * cardOpacity).clamp(0.48, 0.94)),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
             borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: Colors.white12),
+            border: Border.all(
+              color: const Color(0xFF34D399).withValues(alpha: 0.40),
+              width: 1.2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -953,13 +1016,28 @@ Salam hormat & ta'dzim,
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F172A).withOpacity(cardOpacity),
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFF33140A).withValues(alpha: (0.86 * cardOpacity).clamp(0.45, 0.92)),
+            const Color(0xFF180C24).withValues(alpha: (0.90 * cardOpacity).clamp(0.48, 0.94)),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(28),
         border: Border.all(
           color: kritisList.isNotEmpty
-              ? const Color(0xFFF59E0B).withOpacity(0.5)
-              : Colors.white12,
+              ? const Color(0xFFF59E0B).withValues(alpha: 0.50)
+              : const Color(0xFFFB7185).withValues(alpha: 0.35),
+          width: 1.2,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFF59E0B).withValues(alpha: 0.14),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

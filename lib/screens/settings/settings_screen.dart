@@ -14,6 +14,7 @@ import '../../providers/theme_wallpaper_provider.dart';
 import '../../services/account_auth_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/backup_service.dart';
+import '../../services/google_drive_backup_service.dart';
 import '../../services/subscription_service.dart';
 import '../../utils/app_feedback.dart';
 import '../../utils/currency_formatter.dart';
@@ -22,6 +23,7 @@ import '../../widgets/app_background_wrapper.dart';
 import '../../widgets/direct_dana_payment_sheet.dart';
 import '../../widgets/encrypted_backup_helper.dart';
 import '../../widgets/legal_document_sheet.dart';
+import '../../widgets/panduan_aplikasi_sheet.dart';
 import '../auth/login_screen.dart';
 import '../paywall_screen.dart';
 import '../pin_lock_screen.dart';
@@ -501,7 +503,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (ctx) => AlertDialog(
         title: const Text('Reset Data Simulasi?'),
         content: const Text(
-          'Seluruh data santri dan transaksi akan dikembalikan ke data awal simulasi PPS Miftahussunan.',
+          'Seluruh data santri dan transaksi akan dikembalikan ke data awal simulasi Kas-Santri.',
           style: TextStyle(fontSize: 12.5),
         ),
         actions: [
@@ -702,6 +704,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           GlassCard(
             borderRadius: 26,
             padding: const EdgeInsets.all(18),
+            borderColor: const Color(0xFF34D399).withValues(alpha: 0.42),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -780,6 +783,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           GlassCard(
             borderRadius: 26,
             padding: const EdgeInsets.all(18),
+            borderColor: const Color(0xFFFBBF24).withValues(alpha: 0.42),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -909,6 +913,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           GlassCard(
             borderRadius: 26,
             padding: const EdgeInsets.all(18),
+            borderColor: const Color(0xFFFB7185).withValues(alpha: 0.42),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1105,15 +1110,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: OutlinedButton.icon(
                     onPressed: () {
                       AppFeedback.tap();
+                      if (!isPro) {
+                        PaywallScreen.show(
+                          context,
+                          triggerFeature: 'Jejak Audit Keamanan Anti-Curang (Read-Only)',
+                        );
+                        return;
+                      }
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (_) => const AuditLogScreen()),
                       );
                     },
                     icon: const Icon(Icons.policy_outlined, size: 16, color: Color(0xFF38BDF8)),
-                    label: const Text(
-                      'Jejak Audit Keamanan (Read-Only)',
-                      style: TextStyle(color: Color(0xFF67E8F9), fontSize: 11.5, fontWeight: FontWeight.w800),
+                    label: Text(
+                      isPro
+                          ? 'Jejak Audit Keamanan (Read-Only)'
+                          : 'Jejak Audit Keamanan (Read-Only) 👑',
+                      style: const TextStyle(color: Color(0xFF67E8F9), fontSize: 11.5, fontWeight: FontWeight.w800),
                     ),
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(color: const Color(0xFF38BDF8).withOpacity(0.45)),
@@ -1130,6 +1144,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           GlassCard(
             borderRadius: 26,
             padding: const EdgeInsets.all(18),
+            borderColor: const Color(0xFF22D3EE).withValues(alpha: 0.42),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1152,7 +1167,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           backgroundColor: const Color(0xFF0E7490),
                           foregroundColor: Colors.white,
                         ),
-                        child: const Text('🔐 Backup .KSBAK', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900)),
+                        child: Text(
+                          isPro ? '🔐 Backup .KSBAK' : '🔐 Backup .KSBAK 👑',
+                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900),
+                        ),
                       ),
                     ),
                   ],
@@ -1173,13 +1191,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       child: OutlinedButton(
                         onPressed: () {
                           AppFeedback.tap();
+                          if (!isPro) {
+                            PaywallScreen.show(
+                              context,
+                              triggerFeature: 'Import Massal Santri dari Excel (.xlsx)',
+                            );
+                            return;
+                          }
                           Navigator.push(
                             context,
                             MaterialPageRoute(builder: (_) => const ImportSantriExcelScreen()),
                           );
                         },
                         style: OutlinedButton.styleFrom(side: BorderSide(color: const Color(0xFF34D399).withOpacity(0.45))),
-                        child: const Text('📥 Import Excel', style: TextStyle(color: Color(0xFF6EE7B7), fontSize: 11, fontWeight: FontWeight.w800)),
+                        child: Text(
+                          isPro ? '📥 Import Excel' : '📥 Import Excel 👑',
+                          style: const TextStyle(color: Color(0xFF6EE7B7), fontSize: 11, fontWeight: FontWeight.w800),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -1187,6 +1215,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       child: OutlinedButton(
                         onPressed: () {
                           AppFeedback.tap();
+                          if (!isPro) {
+                            PaywallScreen.show(
+                              context,
+                              triggerFeature: 'Cetak Massal Kartu Santri QR Siap Laminating (PDF A4)',
+                            );
+                            return;
+                          }
                           Navigator.push(
                             context,
                             MaterialPageRoute(builder: (_) => const CetakKartuQrScreen()),
@@ -1207,96 +1242,248 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: OutlinedButton(
                     onPressed: () {
                       AppFeedback.tap();
+                      if (!isPro) {
+                        PaywallScreen.show(
+                          context,
+                          triggerFeature:
+                              'Manajemen Tahun Ajaran, Mutasi Kamar/Kelas & Tutup Buku Alumni',
+                        );
+                        return;
+                      }
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (_) => const TahunAjaranScreen()),
                       );
                     },
-                    style: OutlinedButton.styleFrom(side: BorderSide(color: const Color(0xFF38BDF8).withOpacity(0.45))),
-                    child: const Text('🎓 Manajemen Tahun Ajaran & Mutasi Kamar', style: TextStyle(color: Color(0xFF67E8F9), fontSize: 11.5, fontWeight: FontWeight.w800)),
+                    style: OutlinedButton.styleFrom(side: BorderSide(color: const Color(0xFF38BDF8).withValues(alpha: 0.45))),
+                    child: Text(
+                      isPro
+                          ? '🎓 Manajemen Tahun Ajaran & Mutasi Kamar / Kelas'
+                          : '🎓 Tahun Ajaran & Mutasi Kamar / Kelas 👑',
+                      style: const TextStyle(color: Color(0xFF67E8F9), fontSize: 11.5, fontWeight: FontWeight.w800),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 10),
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.28),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.white12),
+                    gradient: LinearGradient(
+                      colors: [
+                        const Color(0xFF072235).withValues(alpha: 0.78),
+                        const Color(0xFF0A1428).withValues(alpha: 0.82),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isLinked
+                          ? const Color(0xFF34D399).withValues(alpha: 0.45)
+                          : const Color(0xFF38BDF8).withValues(alpha: 0.35),
+                    ),
                   ),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
-                        isLinked ? '☁️ Drive Terhubung: $linkedEmail' : '☁️ Google Drive: Belum ditautkan',
-                        style: TextStyle(color: isLinked ? const Color(0xFF6EE7B7) : Colors.white70, fontSize: 11.5, fontWeight: FontWeight.w700),
+                        isLinked
+                            ? '☁️ Drive Terhubung: $linkedEmail'
+                            : '☁️ Google Drive Cloud Sync (Belum ditautkan)',
+                        style: TextStyle(
+                          color: isLinked ? const Color(0xFF6EE7B7) : Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        isLinked
+                            ? 'Cadangan tersimpan privat di folder AppData akun Google Anda.'
+                            : 'Tautkan akun Google untuk sinkronisasi otomatis, atau gunakan Backup Lokal (.KSBAK / .JSON) di atas.',
+                        style: const TextStyle(color: Colors.white60, fontSize: 10.5, height: 1.3),
+                      ),
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 42,
+                        child: OutlinedButton.icon(
+                          onPressed: _isDriveBusy
+                              ? null
+                              : () async {
+                                  if (!isPro) {
+                                    await PaywallScreen.show(
+                                      context,
+                                      triggerFeature: 'Auto-Backup & Restore Google Drive',
+                                    );
+                                    return;
+                                  }
+                                  if (!isLinked) {
+                                    setState(() => _isDriveBusy = true);
+                                    try {
+                                      await provider.connectGoogleDrive();
+                                      if (mounted) {
+                                        AppFeedback.success();
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('Akun Google Drive berhasil dihubungkan!'),
+                                            backgroundColor: Color(0xFF10B981),
+                                          ),
+                                        );
+                                      }
+                                    } catch (e) {
+                                      if (mounted) {
+                                        await _showGoogleDriveFriendlyDialog(e);
+                                      }
+                                    } finally {
+                                      if (mounted) setState(() => _isDriveBusy = false);
+                                    }
+                                  } else {
+                                    await provider.disconnectGoogleDrive();
+                                  }
+                                },
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(
+                              color: isLinked
+                                  ? const Color(0xFFFB7185).withValues(alpha: 0.55)
+                                  : const Color(0xFF38BDF8).withValues(alpha: 0.65),
+                            ),
+                            backgroundColor: isLinked
+                                ? const Color(0xFF3B0A18).withValues(alpha: 0.35)
+                                : const Color(0xFF0A253A).withValues(alpha: 0.50),
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          icon: Icon(
+                            isLinked ? Icons.link_off_rounded : Icons.cloud_outlined,
+                            size: 16,
+                            color: isLinked ? const Color(0xFFFDA4AF) : const Color(0xFF67E8F9),
+                          ),
+                          label: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              _isDriveBusy
+                                  ? 'Menghubungkan Google...'
+                                  : (isLinked ? 'Putuskan Akun Google' : 'Hubungkan Google'),
+                              style: TextStyle(
+                                color: isLinked ? const Color(0xFFFECDD3) : const Color(0xFF67E8F9),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Row(
                         children: [
                           Expanded(
-                            child: OutlinedButton(
-                              onPressed: _isDriveBusy
-                                  ? null
-                                  : () async {
-                                      if (!isPro) {
-                                        await PaywallScreen.show(context, triggerFeature: 'Auto-Backup & Restore Google Drive');
-                                        return;
-                                      }
-                                      if (!isLinked) {
+                            child: SizedBox(
+                              height: 40,
+                              child: ElevatedButton.icon(
+                                onPressed: _isDriveBusy
+                                    ? null
+                                    : () async {
+                                        if (!isPro) {
+                                          await PaywallScreen.show(
+                                            context,
+                                            triggerFeature: 'Auto-Backup & Restore Google Drive',
+                                          );
+                                          return;
+                                        }
                                         setState(() => _isDriveBusy = true);
                                         try {
-                                          await provider.connectGoogleDrive();
+                                          final dt = await provider.backupToGoogleDriveNow();
+                                          if (mounted) {
+                                            AppFeedback.success();
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  'Terunggah ke Drive (${DateFormatter.formatFullDateTime(dt)})',
+                                                ),
+                                                backgroundColor: const Color(0xFF10B981),
+                                              ),
+                                            );
+                                          }
                                         } catch (e) {
                                           if (mounted) {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(content: Text('Gagal menautkan Google: $e'), backgroundColor: const Color(0xFFE11D48)),
-                                            );
+                                            await _showGoogleDriveFriendlyDialog(e);
                                           }
                                         } finally {
                                           if (mounted) setState(() => _isDriveBusy = false);
                                         }
-                                      } else {
-                                        await provider.disconnectGoogleDrive();
-                                      }
-                                    },
-                              child: Text(isLinked ? 'Lepas Google' : 'Hubungkan Google', style: const TextStyle(fontSize: 11)),
+                                      },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF10B981),
+                                  foregroundColor: const Color(0xFF030712),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                                icon: const Icon(Icons.cloud_upload_outlined, size: 15),
+                                label: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    _isDriveBusy ? 'Proses...' : 'Backup Drive',
+                                    style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900),
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: ElevatedButton(
-                              onPressed: _isDriveBusy
-                                  ? null
-                                  : () async {
-                                      if (!isPro) {
-                                        await PaywallScreen.show(context, triggerFeature: 'Auto-Backup & Restore Google Drive');
-                                        return;
-                                      }
-                                      setState(() => _isDriveBusy = true);
-                                      try {
-                                        final dt = await provider.backupToGoogleDriveNow();
-                                        if (mounted) {
-                                          AppFeedback.success();
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(
-                                              content: Text('Terunggah ke Drive (${DateFormatter.formatFullDateTime(dt)})'),
-                                              backgroundColor: const Color(0xFF10B981),
-                                            ),
+                            child: SizedBox(
+                              height: 40,
+                              child: OutlinedButton.icon(
+                                onPressed: _isDriveBusy
+                                    ? null
+                                    : () async {
+                                        if (!isPro) {
+                                          await PaywallScreen.show(
+                                            context,
+                                            triggerFeature: 'Pulihkan Backup dari Google Drive',
                                           );
+                                          return;
                                         }
-                                      } catch (e) {
-                                        if (mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(content: Text('Gagal upload Drive: $e'), backgroundColor: const Color(0xFFE11D48)),
+                                        setState(() => _isDriveBusy = true);
+                                        try {
+                                          final res = await provider.fetchGoogleDriveBackupForRestore();
+                                          if (!mounted) return;
+                                          setState(() => _isDriveBusy = false);
+                                          await _showConfirmRestoreDialog(
+                                            sourceLabel: 'Google Drive (AppData)',
+                                            validation: res.validation,
+                                            cloudModifiedTime: res.modifiedTime,
                                           );
+                                        } catch (e) {
+                                          if (mounted) {
+                                            await _showGoogleDriveFriendlyDialog(e);
+                                          }
+                                        } finally {
+                                          if (mounted) setState(() => _isDriveBusy = false);
                                         }
-                                      } finally {
-                                        if (mounted) setState(() => _isDriveBusy = false);
-                                      }
-                                    },
-                              child: Text(_isDriveBusy ? 'Proses...' : 'Backup Drive', style: const TextStyle(fontSize: 11)),
+                                      },
+                                style: OutlinedButton.styleFrom(
+                                  side: BorderSide(color: const Color(0xFF38BDF8).withValues(alpha: 0.55)),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                                icon: const Icon(
+                                  Icons.cloud_download_outlined,
+                                  size: 15,
+                                  color: Color(0xFF67E8F9),
+                                ),
+                                label: const FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    'Pulihkan Drive',
+                                    style: TextStyle(
+                                      color: Color(0xFF67E8F9),
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ],
@@ -1323,49 +1510,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   },
                 ),
                 const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: _isDriveBusy
-                            ? null
-                            : () async {
-                                if (!isPro) {
-                                  await PaywallScreen.show(context, triggerFeature: 'Pulihkan Backup dari Google Drive');
-                                  return;
-                                }
-                                setState(() => _isDriveBusy = true);
-                                try {
-                                  final res = await provider.fetchGoogleDriveBackupForRestore();
-                                  if (!mounted) return;
-                                  setState(() => _isDriveBusy = false);
-                                  await _showConfirmRestoreDialog(
-                                    sourceLabel: 'Google Drive (AppData)',
-                                    validation: res.validation,
-                                    cloudModifiedTime: res.modifiedTime,
-                                  );
-                                } catch (e) {
-                                  if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Gagal unduh Drive: $e'), backgroundColor: const Color(0xFFE11D48)),
-                                    );
-                                  }
-                                } finally {
-                                  if (mounted) setState(() => _isDriveBusy = false);
-                                }
-                              },
-                        child: const Text('📥 Pulihkan Drive', style: TextStyle(color: Color(0xFF67E8F9), fontSize: 11)),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: _confirmReset,
-                        style: OutlinedButton.styleFrom(side: BorderSide(color: const Color(0xFFF43F5E).withOpacity(0.5))),
-                        child: const Text('🔄 Reset Simulasi', style: TextStyle(color: Color(0xFFFECDD3), fontSize: 11)),
-                      ),
-                    ),
-                  ],
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: _confirmReset,
+                    style: OutlinedButton.styleFrom(side: BorderSide(color: const Color(0xFFF43F5E).withValues(alpha: 0.5))),
+                    child: const Text('🔄 Reset Data Simulasi', style: TextStyle(color: Color(0xFFFECDD3), fontSize: 11.5, fontWeight: FontWeight.w800)),
+                  ),
                 ),
               ],
             ),
@@ -1377,6 +1528,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           GlassCard(
             borderRadius: 26,
             padding: const EdgeInsets.all(18),
+            borderColor: const Color(0xFFD946EF).withValues(alpha: 0.42),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1425,6 +1577,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ],
                 const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () => PanduanAplikasiSheet.show(context),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: const Color(0xFF34D399).withValues(alpha: 0.50)),
+                      padding: const EdgeInsets.symmetric(vertical: 11),
+                    ),
+                    icon: const Text('📖', style: TextStyle(fontSize: 15)),
+                    label: const Text(
+                      'Panduan Aplikasi & Putar Ulang Tutorial',
+                      style: TextStyle(
+                        color: Color(0xFF6EE7B7),
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
                 Row(
                   children: [
                     Expanded(
@@ -1459,9 +1631,87 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           const SizedBox(height: 22),
           Text(
-            'Pengembang: Moch Khoirul Azman • Kas-Santri v3.2 • ${settings.namaPondok} • © 2026',
+            'Pengembang: Moch Khoirul Azman • Kas-Santri v4.1 • ${settings.namaPondok} • © 2026',
             textAlign: TextAlign.center,
             style: const TextStyle(color: Colors.white38, fontSize: 10),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showGoogleDriveFriendlyDialog(Object error) async {
+    AppFeedback.alert();
+    final friendly = GoogleDriveBackupService.mapAuthError(error);
+    if (!mounted) return;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dlgCtx) => AlertDialog(
+        backgroundColor: const Color(0xFF0A182B),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: BorderSide(
+            color: const Color(0xFFFBBF24).withValues(alpha: 0.50),
+          ),
+        ),
+        title: Row(
+          children: [
+            const Icon(Icons.cloud_sync_rounded, color: Color(0xFFFDE68A), size: 22),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                friendly.title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          friendly.message,
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 12.5,
+            height: 1.42,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dlgCtx),
+            child: const Text('Tutup', style: TextStyle(color: Colors.white60)),
+          ),
+          OutlinedButton.icon(
+            onPressed: () {
+              Navigator.pop(dlgCtx);
+              _backupJson();
+            },
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(color: const Color(0xFF38BDF8).withValues(alpha: 0.55)),
+            ),
+            icon: const Icon(Icons.download_rounded, size: 15, color: Color(0xFF67E8F9)),
+            label: const Text(
+              'Backup Lokal (.JSON)',
+              style: TextStyle(color: Color(0xFF67E8F9), fontSize: 11.5, fontWeight: FontWeight.w800),
+            ),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(dlgCtx);
+              EncryptedBackupHelper.backupEncryptedKsbak(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF10B981),
+              foregroundColor: const Color(0xFF030712),
+            ),
+            icon: const Icon(Icons.enhanced_encryption_rounded, size: 15),
+            label: const Text(
+              'Backup Lokal (.KSBAK)',
+              style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900),
+            ),
           ),
         ],
       ),

@@ -57,7 +57,7 @@ class ReportService {
     buffer.writeln('*Assalamu’alaikum Warahmatullahi Wabarakatuh* 🌸\n');
     buffer.writeln('Yth. *Bapak/Ibu Wali Santri*');
     buffer.writeln('dari ananda tercinta: *${santri.namaLengkap}* (${santri.namaPanggilan})');
-    buffer.writeln('Kamar / Asrama: *${santri.kamar}*\n');
+    buffer.writeln('Kamar / Kelas: *${santri.kamar}*\n');
     buffer.writeln('Semoga Bapak/Ibu senantiasa dalam keadaan sehat wal afiat dan selalu dalam lindungan Allah SWT. Aamiin.\n');
     buffer.writeln('Izin menyampaikan laporan rekapitulasi mutasi buku kas santri per $todayStr:\n');
     buffer.writeln('💰 *STATUS TITIPAN & JATAH SANTRI:*');
@@ -215,7 +215,7 @@ Mohon kiranya Bapak/Ibu dapat menyiapkan setoran lanjutan agar kebutuhan harian 
                     children: [
                       pw.Text('Nama Santri: ${santri.namaLengkap}'),
                       pw.Text('Nama Panggilan: ${santri.namaPanggilan}'),
-                      pw.Text('Kamar / Asrama: ${santri.kamar}'),
+                      pw.Text('Kamar / Kelas: ${santri.kamar}'),
                     ],
                   ),
                   pw.Column(
@@ -346,7 +346,7 @@ Mohon kiranya Bapak/Ibu dapat menyiapkan setoran lanjutan agar kebutuhan harian 
     buffer.writeln('Alhamdulillah, telah kami terima titipan *Setoran Sambangan* dari Wali Santri ananda:');
     buffer.writeln('• Nama: *${santri.namaLengkap}* (${santri.kategoriLabel})');
     if (santri.kamar.trim().isNotEmpty) {
-      buffer.writeln('• Kamar / Asrama: *${santri.kamar}*');
+      buffer.writeln('• Kamar / Kelas: *${santri.kamar}*');
     }
     buffer.writeln('• Total Uang Diterima: *${CurrencyFormatter.format(totalDiterima)}* (${infak.sumberDompet})');
     buffer.writeln('━━━━━━━━━━━━━━━━━━━━━');
@@ -421,7 +421,7 @@ Mohon kiranya Bapak/Ibu dapat menyiapkan setoran lanjutan agar kebutuhan harian 
     buffer.writeln('Yth. *Bapak/Ibu Wali Santri*');
     buffer.writeln('dari ananda: *${santri.namaLengkap}* (${santri.kategoriLabel})');
     if (santri.kamar.trim().isNotEmpty) {
-      buffer.writeln('Kamar / Asrama: *${santri.kamar}*');
+      buffer.writeln('Kamar / Kelas: *${santri.kamar}*');
     }
     buffer.writeln('');
     buffer.writeln('Dengan hormat menginformasikan jadwal & kewajiban *Infak Bulanan* periode *$periodeBulan* (TA ${pengaturan.tahunAjaran}):');

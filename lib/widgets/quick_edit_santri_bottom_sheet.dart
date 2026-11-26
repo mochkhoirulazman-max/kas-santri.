@@ -141,10 +141,21 @@ class _QuickEditSantriBottomSheetState extends State<QuickEditSantriBottomSheet>
       bottom: false,
       child: Container(
         padding: EdgeInsets.fromLTRB(20, 16, 20, 20 + bottomInset + bottomSafe),
-        decoration: const BoxDecoration(
-          color: Color(0xFF070B14),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-          border: Border(top: BorderSide(color: Color(0xFF06B6D4), width: 1.5)),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xF5072638), Color(0xF70A162B), Color(0xF713112B)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          border: const Border(top: BorderSide(color: Color(0xFF06B6D4), width: 1.5)),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF06B6D4).withValues(alpha: 0.18),
+              blurRadius: 24,
+              offset: const Offset(0, -6),
+            ),
+          ],
         ),
       child: SingleChildScrollView(
         child: Column(
@@ -275,7 +286,7 @@ class _QuickEditSantriBottomSheetState extends State<QuickEditSantriBottomSheet>
               children: [
                 Expanded(child: _buildField('NAMA PANGGILAN', _namaPanggilanController, 'Contoh: Ahmad')),
                 const SizedBox(width: 10),
-                Expanded(child: _buildField('KAMAR / ASRAMA', _kamarController, 'Contoh: Kamar 1')),
+                Expanded(child: _buildField('KAMAR / KELAS', _kamarController, 'Contoh: Kamar 1 / 7A')),
               ],
             ),
             const SizedBox(height: 10),
@@ -480,52 +491,123 @@ class _QuickEditSantriBottomSheetState extends State<QuickEditSantriBottomSheet>
               ),
             ],
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Tindakan ini akan menghapus santri ${s.namaLengkap} (${s.kamar}) secara permanen beserta seluruh saldo (${CurrencyFormatter.format(s.saldoTotal)}), tunggakan (${CurrencyFormatter.format(s.tunggakan)}), dan riwayat mutasi.',
-                style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
-              ),
-              const SizedBox(height: 12),
-              InkWell(
-                onTap: () {
-                  AppFeedback.tap();
-                  setDialogState(() => confirmedCheck = !confirmedCheck);
-                },
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF4C0519).withOpacity(0.45),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: confirmedCheck ? const Color(0xFFFB7185) : Colors.white12,
-                    ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Tindakan ini akan menghapus santri ${s.namaLengkap} (${s.kamar}) secara permanen beserta seluruh riwayat mutasinya.',
+                    style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
                   ),
-                  child: Row(
-                    children: [
-                      Checkbox(
-                        value: confirmedCheck,
-                        activeColor: const Color(0xFFE11D48),
-                        onChanged: (v) {
-                          AppFeedback.tap();
-                          setDialogState(() => confirmedCheck = v ?? false);
-                        },
-                      ),
-                      const Expanded(
-                        child: Text(
-                          'Saya paham & yakin ingin menghapus data santri ini permanen.',
-                          style: TextStyle(color: Color(0xFFFECDD3), fontSize: 11, fontWeight: FontWeight.w700),
+                  if (s.saldoTotal > 0 || s.tunggakan > 0) ...[
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF451A03).withValues(alpha: 0.55),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFFFBBF24).withValues(alpha: 0.55),
                         ),
                       ),
-                    ],
+                      child: Text(
+                        s.saldoTotal > 0
+                            ? '⚠️ Santri ini masih memiliki saldo titipan sebesar ${CurrencyFormatter.format(s.saldoTotal)}.\n'
+                                'Jika dihapus permanen, saldo tersebut dianggap dikembalikan tunai kepada santri/wali dan otomatis dicatat KELUAR pada Kas Laci Tunai (mutasi_dompet) serta Jejak Audit agar Brankas & Dompet tetap 100% seimbang.'
+                            : '⚠️ Santri ini masih memiliki catatan tunggakan sebesar ${CurrencyFormatter.format(s.tunggakan)}. Sebaiknya arsipkan sebagai Boyong/Lulus agar riwayat tetap tersimpan.',
+                        style: const TextStyle(
+                          color: Color(0xFFFDE68A),
+                          fontSize: 11,
+                          height: 1.38,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF6EE7B7),
+                        side: const BorderSide(color: Color(0xFF34D399)),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () async {
+                        Navigator.pop(ctx);
+                        Navigator.pop(context);
+                        AppFeedback.tap();
+                        final provider = Provider.of<KasSantriProvider>(
+                          context,
+                          listen: false,
+                        );
+                        await provider.tutupBukuArsipSantri(
+                          [s.id],
+                          statusTujuan: Santri.statusAlumniVal,
+                        );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                '${s.namaLengkap} diarsipkan sebagai Boyong/Lulus (Riwayat tetap aman).',
+                              ),
+                              backgroundColor: const Color(0xFF10B981),
+                            ),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.archive_outlined, size: 16),
+                      label: const Text(
+                        '📦 Arsipkan sebagai Boyong / Lulus (Aman)',
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900),
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 10),
+                  InkWell(
+                    onTap: () {
+                      AppFeedback.tap();
+                      setDialogState(() => confirmedCheck = !confirmedCheck);
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF4C0519).withOpacity(0.45),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: confirmedCheck ? const Color(0xFFFB7185) : Colors.white12,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Checkbox(
+                            value: confirmedCheck,
+                            activeColor: const Color(0xFFE11D48),
+                            onChanged: (v) {
+                              AppFeedback.tap();
+                              setDialogState(() => confirmedCheck = v ?? false);
+                            },
+                          ),
+                          Expanded(
+                            child: Text(
+                              s.saldoTotal > 0
+                                  ? 'Saya paham saldo ${CurrencyFormatter.format(s.saldoTotal)} dianggap dikembalikan & ingin menghapus permanen.'
+                                  : 'Saya paham & yakin ingin menghapus data santri ini permanen.',
+                              style: const TextStyle(color: Color(0xFFFECDD3), fontSize: 11, fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
           actions: [
             TextButton(
               onPressed: () {

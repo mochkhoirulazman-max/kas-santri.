@@ -379,7 +379,7 @@
       const samples = [
         {
           device_id: 'KS-9A2B4C1D',
-          nama_pondok: 'PPS Miftahussunan',
+          nama_pondok: 'PP Al-Ikhlas Nusantara',
           nama_bendahara: 'Ustadz Ahmad Fauzi',
           no_wa: '081234567890',
           tier: 'YEARLY',

@@ -2,10 +2,13 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart';
 import '../models/pengaturan.dart';
 import '../models/santri_status.dart';
+import '../providers/kas_santri_provider.dart';
+import '../screens/paywall_screen.dart';
 import '../utils/app_feedback.dart';
 import '../utils/currency_formatter.dart';
 import '../utils/date_formatter.dart';
@@ -26,6 +29,15 @@ class StrukGambarDialog extends StatefulWidget {
     required SantriStatusHariIni status,
     required PengaturanAplikasi pengaturan,
   }) async {
+    final provider = Provider.of<KasSantriProvider>(context, listen: false);
+    if (!provider.hasProAccess) {
+      AppFeedback.alert();
+      await PaywallScreen.show(
+        context,
+        triggerFeature: 'Bagikan Struk Gambar PNG Resmi Tanpa Watermark',
+      );
+      return;
+    }
     await showDialog(
       context: context,
       builder: (_) => StrukGambarDialog(
@@ -121,12 +133,17 @@ class _StrukGambarDialogState extends State<StrukGambarDialog> {
                           child: ClipOval(
                             child: hasCustomLogo
                                 ? Image.file(File(logoPath), fit: BoxFit.cover)
-                                : Image.asset(
-                                    'logo.jpg',
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => const Icon(
+                                : Container(
+                                    decoration: const BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [Color(0xFF065F46), Color(0xFF0E7490)],
+                                      ),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: const Icon(
                                       Icons.mosque_rounded,
-                                      color: Color(0xFF065F46),
+                                      color: Color(0xFFFDE68A),
+                                      size: 24,
                                     ),
                                   ),
                           ),
@@ -174,7 +191,7 @@ class _StrukGambarDialogState extends State<StrukGambarDialog> {
 
                     // Identitas Santri
                     _rowItem('Nama Santri', s.namaLengkap, boldValue: true),
-                    _rowItem('Kamar / Asrama', s.kamar),
+                    _rowItem('Kamar / Kelas', s.kamar),
                     _rowItem('Jatah Harian', '${CurrencyFormatter.format(s.jatahHarian)} / hari'),
 
                     const SizedBox(height: 10),

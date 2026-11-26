@@ -138,6 +138,51 @@ class _ImportSantriExcelScreenState extends State<ImportSantriExcelScreen> {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<KasSantriProvider>(context);
+    if (!provider.hasProAccess) {
+      return AppBackgroundWrapper(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(title: const Text('Import Santri Massal (.xlsx) 🔒')),
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: GlassCard(
+                borderRadius: 24,
+                padding: const EdgeInsets.all(22),
+                borderColor: const Color(0xFFFBBF24).withValues(alpha: 0.5),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('📥 👑', style: TextStyle(fontSize: 32)),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Import Massal Excel 100–500 Santri (PRO)',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Impor ratusan data santri sekaligus dari file .xlsx tersedia pada Kas-Santri PRO atau Uji Coba Gratis 14 Hari.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: () => PaywallScreen.show(
+                        context,
+                        triggerFeature: 'Import Santri Massal dari Excel (.xlsx)',
+                      ),
+                      icon: const Text('👑'),
+                      label: const Text('Buka Kas-Santri PRO / Trial 14 Hari'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     final parsed = _parseResult;
 
     return AppBackgroundWrapper(

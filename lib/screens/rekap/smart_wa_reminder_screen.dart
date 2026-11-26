@@ -108,6 +108,95 @@ class _SmartWaReminderScreenState extends State<SmartWaReminderScreen> {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<KasSantriProvider>(context);
+    if (!provider.hasProAccess) {
+      return AppBackgroundWrapper(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(title: const Text('Pusat Pengingat Wali Santri')),
+          body: SafeArea(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: GlassCard(
+                  borderRadius: 26,
+                  padding: const EdgeInsets.all(24),
+                  borderColor: const Color(0xFFFBBF24).withValues(alpha: 0.55),
+                  gradientColors: const [
+                    Color(0xDE06382E),
+                    Color(0xE00A1628),
+                  ],
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('🔔', style: TextStyle(fontSize: 40)),
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF59E0B).withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFFBBF24)),
+                        ),
+                        child: const Text(
+                          '🔒 FITUR KHUSUS PRO',
+                          style: TextStyle(
+                            color: Color(0xFFFDE68A),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.0,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Pusat Antrean Pengingat WA Cerdas',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Kirim pesan pengingat santun 1-klik ke wali santri untuk Saldo Kritis (<3 hari), Infak Jatuh Tempo, dan Tunggakan tanpa spam.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () => PaywallScreen.show(
+                            context,
+                            triggerFeature:
+                                'Pusat Antrean Pengingat WA Cerdas (1-Klik Anti-Spam)',
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFFBBF24),
+                            foregroundColor: const Color(0xFF030712),
+                            padding: const EdgeInsets.symmetric(vertical: 13),
+                          ),
+                          icon: const Icon(Icons.workspace_premium_rounded, size: 18),
+                          label: const Text(
+                            'Coba Gratis 14 Hari / Upgrade PRO',
+                            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12.5),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     final queues = SmartWaReminderService.buildPriorityQueues(
       activeSantri: provider.santriStatusList.map((e) => e.santri).toList(),
       infakPeriodeList: provider.infakPeriodeList,

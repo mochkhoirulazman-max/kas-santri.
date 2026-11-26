@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import '../models/cash_opname_log.dart';
@@ -306,8 +305,7 @@ class ExecutiveAnalyticsService {
         final f = File(path);
         if (await f.exists()) return await f.readAsBytes();
       }
-      final data = await rootBundle.load('logo.jpg');
-      return data.buffer.asUint8List();
+      return null;
     } catch (_) {
       return null;
     }
@@ -340,19 +338,33 @@ class ExecutiveAnalyticsService {
                 ),
                 child: pw.Row(
                   children: [
-                    if (logoImage != null) ...[
-                      pw.Container(
-                        width: 40,
-                        height: 40,
-                        decoration: pw.BoxDecoration(
-                          color: PdfColors.white,
-                          borderRadius: pw.BorderRadius.circular(6),
+                    pw.Container(
+                      width: 40,
+                      height: 40,
+                      decoration: pw.BoxDecoration(
+                        color: logoImage != null
+                            ? PdfColors.white
+                            : const PdfColor.fromInt(0xFF0F766E),
+                        borderRadius: pw.BorderRadius.circular(6),
+                        border: pw.Border.all(
+                          color: const PdfColor.fromInt(0xFFFBBF24),
+                          width: 1,
                         ),
-                        padding: const pw.EdgeInsets.all(3),
-                        child: pw.Image(logoImage, fit: pw.BoxFit.contain),
                       ),
-                      pw.SizedBox(width: 10),
-                    ],
+                      padding: const pw.EdgeInsets.all(3),
+                      alignment: pw.Alignment.center,
+                      child: logoImage != null
+                          ? pw.Image(logoImage, fit: pw.BoxFit.contain)
+                          : pw.Text(
+                              'KS',
+                              style: pw.TextStyle(
+                                color: PdfColors.white,
+                                fontSize: 13,
+                                fontWeight: pw.FontWeight.bold,
+                              ),
+                            ),
+                    ),
+                    pw.SizedBox(width: 10),
                     pw.Expanded(
                       child: pw.Column(
                         crossAxisAlignment: pw.CrossAxisAlignment.start,

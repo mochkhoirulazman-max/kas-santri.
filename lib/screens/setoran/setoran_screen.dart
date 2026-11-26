@@ -10,18 +10,21 @@ import '../../utils/currency_formatter.dart';
 import '../../utils/date_formatter.dart';
 import '../../widgets/sambangan_receipt_dialog.dart';
 import '../../widgets/searchable_santri_picker.dart';
+import '../paywall_screen.dart';
 import 'buku_infak_view.dart';
 
 class SetoranScreen extends StatefulWidget {
   final VoidCallback? onSaved;
   final int activeSubTab;
   final ValueChanged<int>? onSubTabChanged;
+  final String? preselectedSantriId;
 
   const SetoranScreen({
     Key? key,
     this.onSaved,
     this.activeSubTab = 0,
     this.onSubTabChanged,
+    this.preselectedSantriId,
   }) : super(key: key);
 
   @override
@@ -33,11 +36,11 @@ class _SetoranScreenState extends State<SetoranScreen>
   @override
   bool get wantKeepAlive => true;
   String? _selectedSantriId;
-  TipeSetoran _tipeSetoran = TipeSetoran.awalBulan;
+  TipeSetoran _tipeSetoran = TipeSetoran.sambanganSplit;
   bool _potongTunggakan = true;
   String _sumberDompet = 'TUNAI'; // 'TUNAI' atau 'REKENING'
 
-  final TextEditingController _nominalController = TextEditingController(text: '300.000');
+  final TextEditingController _nominalController = TextEditingController(text: '500.000');
   final TextEditingController _durasiController = TextEditingController(text: '30');
   final TextEditingController _catatanController = TextEditingController();
 
@@ -58,9 +61,21 @@ class _SetoranScreenState extends State<SetoranScreen>
   @override
   void initState() {
     super.initState();
+    _selectedSantriId = widget.preselectedSantriId;
     _tglMasuk = DateTime.now().toLocal();
     _tglHabisYmd =
         InfakSantriModel.hitungTglHabis(DateFormatter.toLocalDateString(_tglMasuk));
+  }
+
+  @override
+  void didUpdateWidget(covariant SetoranScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.preselectedSantriId != null &&
+        widget.preselectedSantriId != oldWidget.preselectedSantriId) {
+      setState(() {
+        _selectedSantriId = widget.preselectedSantriId;
+      });
+    }
   }
 
   @override
@@ -285,9 +300,7 @@ class _SetoranScreenState extends State<SetoranScreen>
 
     final catatan = _catatanController.text.trim().isNotEmpty
         ? _catatanController.text.trim()
-        : (_tipeSetoran == TipeSetoran.awalBulan
-            ? 'Setoran Bulanan'
-            : 'Top-Up Susulan');
+        : 'Top-Up Jajan';
 
     await provider.catatSetoran(
       santriId: targetId,
@@ -363,9 +376,16 @@ class _SetoranScreenState extends State<SetoranScreen>
             child: Container(
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: const Color(0xFF0F172A).withOpacity(cardOpacity),
+                gradient: LinearGradient(
+                  colors: [
+                    const Color(0xFF072534).withValues(alpha: (0.88 * cardOpacity).clamp(0.48, 0.92)),
+                    const Color(0xFF101936).withValues(alpha: (0.88 * cardOpacity).clamp(0.48, 0.92)),
+                  ],
+                ),
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: Colors.white12),
+                border: Border.all(
+                  color: const Color(0xFF38BDF8).withValues(alpha: 0.35),
+                ),
               ),
               child: Row(
                 children: [
@@ -393,9 +413,38 @@ class _SetoranScreenState extends State<SetoranScreen>
                       Container(
                         padding: const EdgeInsets.all(18),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF0F172A).withOpacity(cardOpacity),
+                          gradient: LinearGradient(
+                            colors: isSambangan
+                                ? [
+                                    const Color(0xFF2B1D08).withValues(alpha: (0.86 * cardOpacity).clamp(0.46, 0.92)),
+                                    const Color(0xFF072B27).withValues(alpha: (0.90 * cardOpacity).clamp(0.48, 0.94)),
+                                    const Color(0xFF0B162C).withValues(alpha: (0.90 * cardOpacity).clamp(0.48, 0.94)),
+                                  ]
+                                : [
+                                    const Color(0xFF06372E).withValues(alpha: (0.86 * cardOpacity).clamp(0.46, 0.92)),
+                                    const Color(0xFF08243A).withValues(alpha: (0.90 * cardOpacity).clamp(0.48, 0.94)),
+                                    const Color(0xFF121633).withValues(alpha: (0.90 * cardOpacity).clamp(0.48, 0.94)),
+                                  ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
                           borderRadius: BorderRadius.circular(28),
-                          border: Border.all(color: Colors.white12),
+                          border: Border.all(
+                            color: isSambangan
+                                ? const Color(0xFFFBBF24).withValues(alpha: 0.42)
+                                : const Color(0xFF38BDF8).withValues(alpha: 0.42),
+                            width: 1.2,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: (isSambangan
+                                      ? const Color(0xFFF59E0B)
+                                      : const Color(0xFF06B6D4))
+                                  .withValues(alpha: 0.16),
+                              blurRadius: 20,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -409,12 +458,12 @@ class _SetoranScreenState extends State<SetoranScreen>
                                     children: [
                                       Text(
                                         isSambangan
-                                            ? 'SMART SPLIT SAMBANGAN v3.0'
-                                            : 'PEMASUKAN KAS',
+                                            ? 'SMART SPLIT SAMBANGAN'
+                                            : 'PEMASUKAN UANG SAKU',
                                         style: TextStyle(
                                           color: isSambangan
                                               ? const Color(0xFFFBBF24)
-                                              : const Color(0xFF34D399),
+                                              : const Color(0xFF38BDF8),
                                           fontSize: 9.5,
                                           fontWeight: FontWeight.w900,
                                           letterSpacing: 1.2,
@@ -424,7 +473,7 @@ class _SetoranScreenState extends State<SetoranScreen>
                                       Text(
                                         isSambangan
                                             ? 'Sambangan (Infak + Uang Jajan)'
-                                            : 'Setoran Bulanan & Top-Up',
+                                            : 'Top-Up Uang Jajan Santri',
                                         style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 16,
@@ -437,9 +486,9 @@ class _SetoranScreenState extends State<SetoranScreen>
                                       Text(
                                         isSambangan
                                             ? 'Otomatis pisah Kas Infak Pondok (Masak, Listrik, Beras) & Uang Jajan.'
-                                            : 'Otomatis membagi nominal setoran menjadi kuota jatah harian.',
+                                            : 'Menambah saldo uang jajan santri & menghitung kuota jatah harian otomatis.',
                                         style: const TextStyle(
-                                          color: Colors.white54,
+                                          color: Colors.white70,
                                           fontSize: 10.5,
                                         ),
                                       ),
@@ -580,11 +629,11 @@ class _SetoranScreenState extends State<SetoranScreen>
 
                             const SizedBox(height: 14),
 
-                            // 3 Jenis Setoran: Awal Bulan | Top-Up Susulan | Sambangan
+                            // 2 Jenis Setoran Praktis: Sambangan (Infak + Jajan) | Top-Up Jajan
                             const Text(
                               'JENIS SETORAN',
                               style: TextStyle(
-                                color: Colors.white54,
+                                color: Colors.white70,
                                 fontSize: 10,
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: 0.5,
@@ -594,24 +643,17 @@ class _SetoranScreenState extends State<SetoranScreen>
                             Row(
                               children: [
                                 _buildTipeChip(
-                                  '📅 Awal Bulan',
-                                  TipeSetoran.awalBulan,
-                                  const Color(0xFF34D399),
-                                  defaultNominal: 300000,
-                                ),
-                                const SizedBox(width: 6),
-                                _buildTipeChip(
-                                  '➕ Top-Up',
-                                  TipeSetoran.susulanTopUp,
-                                  const Color(0xFF38BDF8),
-                                  defaultNominal: 150000,
-                                ),
-                                const SizedBox(width: 6),
-                                _buildTipeChip(
-                                  '🎁 Sambangan',
+                                  '🎁 Sambangan (Infak + Jajan)',
                                   TipeSetoran.sambanganSplit,
                                   const Color(0xFFFBBF24),
                                   defaultNominal: 500000,
+                                ),
+                                const SizedBox(width: 8),
+                                _buildTipeChip(
+                                  '➕ Top-Up Jajan',
+                                  TipeSetoran.susulanTopUp,
+                                  const Color(0xFF38BDF8),
+                                  defaultNominal: 300000,
                                 ),
                               ],
                             ),
@@ -927,20 +969,37 @@ class _SetoranScreenState extends State<SetoranScreen>
         onTap: () {
           AppFeedback.tap();
           setState(() {
+            final prev = _tipeSetoran;
             _tipeSetoran = tipe;
-            if (tipe == TipeSetoran.sambanganSplit && _nominal < 300000) {
-              _nominalController.text =
-                  CurrencyFormatter.formatWithoutSymbol(defaultNominal);
+            if (prev != tipe) {
+              if (tipe == TipeSetoran.sambanganSplit && _nominal <= 300000) {
+                _nominalController.text =
+                    CurrencyFormatter.formatWithoutSymbol(defaultNominal);
+              } else if (tipe == TipeSetoran.susulanTopUp && _nominal == 500000) {
+                _nominalController.text =
+                    CurrencyFormatter.formatWithoutSymbol(defaultNominal);
+              }
             }
           });
         },
         borderRadius: BorderRadius.circular(14),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+          padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 8),
           decoration: BoxDecoration(
-            color: isSelected ? accent.withOpacity(0.18) : const Color(0xFF070B14),
+            gradient: isSelected
+                ? LinearGradient(
+                    colors: [
+                      accent.withValues(alpha: 0.28),
+                      accent.withValues(alpha: 0.12),
+                    ],
+                  )
+                : null,
+            color: isSelected ? null : const Color(0xFF070D1B).withValues(alpha: 0.72),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: isSelected ? accent : Colors.white12),
+            border: Border.all(
+              color: isSelected ? accent : Colors.white12,
+              width: isSelected ? 1.3 : 1,
+            ),
           ),
           alignment: Alignment.center,
           child: FittedBox(
@@ -948,9 +1007,9 @@ class _SetoranScreenState extends State<SetoranScreen>
             child: Text(
               label,
               style: TextStyle(
-                color: isSelected ? accent : Colors.white60,
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
+                color: isSelected ? accent : Colors.white70,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w900,
               ),
             ),
           ),
@@ -1302,11 +1361,22 @@ class _SetoranScreenState extends State<SetoranScreen>
   }
 
   Widget _buildDompetChip(String label, String value, Color accent) {
-    final isSelected = _sumberDompet == value;
+    final isPro = Provider.of<KasSantriProvider>(context).hasProAccess;
+    final isLockedRekening = value == 'REKENING' && !isPro;
+    final isSelected = _sumberDompet == value && !isLockedRekening;
+    final displayLabel = isLockedRekening ? '$label 👑' : label;
     return Expanded(
       child: InkWell(
         onTap: () {
           AppFeedback.tap();
+          if (isLockedRekening) {
+            PaywallScreen.show(
+              context,
+              triggerFeature: 'Multi-Dompet: Pisah Kas Laci Tunai vs Rekening Bank',
+            );
+            setState(() => _sumberDompet = 'TUNAI');
+            return;
+          }
           setState(() => _sumberDompet = value);
         },
         borderRadius: BorderRadius.circular(14),
@@ -1315,13 +1385,21 @@ class _SetoranScreenState extends State<SetoranScreen>
           decoration: BoxDecoration(
             color: isSelected ? accent.withOpacity(0.18) : const Color(0xFF070B14),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: isSelected ? accent : Colors.white12),
+            border: Border.all(
+              color: isSelected
+                  ? accent
+                  : (isLockedRekening
+                      ? const Color(0xFFFBBF24).withValues(alpha: 0.45)
+                      : Colors.white12),
+            ),
           ),
           alignment: Alignment.center,
           child: Text(
-            label,
+            displayLabel,
             style: TextStyle(
-              color: isSelected ? accent : Colors.white60,
+              color: isSelected
+                  ? accent
+                  : (isLockedRekening ? const Color(0xFFFDE68A) : Colors.white60),
               fontSize: 11,
               fontWeight: FontWeight.w800,
             ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/kas_santri_provider.dart';
+import '../screens/paywall_screen.dart';
 import '../utils/app_feedback.dart';
 import '../utils/currency_formatter.dart';
 
@@ -8,6 +9,15 @@ class TarikTunaiBottomSheet extends StatefulWidget {
   const TarikTunaiBottomSheet({Key? key}) : super(key: key);
 
   static Future<void> show(BuildContext context) async {
+    final provider = Provider.of<KasSantriProvider>(context, listen: false);
+    if (!provider.hasProAccess) {
+      AppFeedback.alert();
+      await PaywallScreen.show(
+        context,
+        triggerFeature: 'Multi-Dompet: Pisah Kas Laci Tunai vs Rekening Bank & Tarik ke Laci',
+      );
+      return;
+    }
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -119,10 +129,21 @@ class _TarikTunaiBottomSheetState extends State<TarikTunaiBottomSheet> {
       top: true,
       bottom: false,
       child: Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFF0E1422),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-          border: Border(top: BorderSide(color: Color(0xFFF59E0B), width: 1.5)),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xF52B1D07), Color(0xF70C172B), Color(0xF7062328)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          border: const Border(top: BorderSide(color: Color(0xFFF59E0B), width: 1.5)),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFF59E0B).withValues(alpha: 0.18),
+              blurRadius: 24,
+              offset: const Offset(0, -6),
+            ),
+          ],
         ),
         padding: EdgeInsets.only(
           top: 12,

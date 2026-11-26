@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../database/database_helper.dart';
 import '../../models/audit_log.dart';
+import '../../providers/kas_santri_provider.dart';
 import '../../utils/app_feedback.dart';
 import '../../utils/date_formatter.dart';
 import '../../widgets/app_background_wrapper.dart';
+import '../paywall_screen.dart';
 
 class AuditLogScreen extends StatefulWidget {
   const AuditLogScreen({Key? key}) : super(key: key);
@@ -72,6 +75,53 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final provider = Provider.of<KasSantriProvider>(context);
+    if (!provider.hasProAccess) {
+      return AppBackgroundWrapper(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(title: const Text('Jejak Audit Keamanan 🔒')),
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: GlassCard(
+                borderRadius: 24,
+                padding: const EdgeInsets.all(22),
+                borderColor: const Color(0xFFFBBF24).withValues(alpha: 0.5),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('🛡️ 👑', style: TextStyle(fontSize: 32)),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Jejak Audit Anti-Curang (PRO)',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Fitur log keamanan rantai hash SHA-256 tersedia eksklusif pada Kas-Santri PRO atau selama masa Uji Coba Gratis 14 Hari.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: () => PaywallScreen.show(
+                        context,
+                        triggerFeature: 'Jejak Audit Keamanan Anti-Curang (Hash-Chain)',
+                      ),
+                      icon: const Text('👑'),
+                      label: const Text('Buka Kas-Santri PRO / Trial 14 Hari'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     final verif = _verification;
     final chainOk = verif?.isValid ?? true;
 

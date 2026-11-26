@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/santri.dart';
 import '../providers/kas_santri_provider.dart';
+import '../screens/paywall_screen.dart';
 import '../utils/app_feedback.dart';
 import '../utils/currency_formatter.dart';
 
@@ -101,11 +102,22 @@ class _TunggakanBottomSheetState extends State<TunggakanBottomSheet> {
       bottom: false,
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF101324),
+          gradient: const LinearGradient(
+            colors: [Color(0xF52D0A18), Color(0xF7111024), Color(0xF7091324)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
           border: Border(
-            top: BorderSide(color: const Color(0xFFF43F5E).withOpacity(0.4), width: 1.5),
+            top: BorderSide(color: const Color(0xFFFB7185).withValues(alpha: 0.55), width: 1.5),
           ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFF43F5E).withValues(alpha: 0.18),
+              blurRadius: 24,
+              offset: const Offset(0, -6),
+            ),
+          ],
         ),
         padding: EdgeInsets.only(
           top: 12,
@@ -394,11 +406,22 @@ class _TunggakanBottomSheetState extends State<TunggakanBottomSheet> {
   }
 
   Widget _buildDompetChip(String label, String value, Color accent) {
-    final isSelected = _sumberDompet == value;
+    final isPro = Provider.of<KasSantriProvider>(context).hasProAccess;
+    final isLockedRekening = value == 'REKENING' && !isPro;
+    final isSelected = _sumberDompet == value && !isLockedRekening;
+    final displayLabel = isLockedRekening ? '$label 👑' : label;
     return Expanded(
       child: InkWell(
         onTap: () {
           AppFeedback.tap();
+          if (isLockedRekening) {
+            PaywallScreen.show(
+              context,
+              triggerFeature: 'Multi-Dompet: Pisah Kas Laci Tunai vs Rekening Bank',
+            );
+            setState(() => _sumberDompet = 'TUNAI');
+            return;
+          }
           setState(() => _sumberDompet = value);
         },
         borderRadius: BorderRadius.circular(12),
@@ -407,13 +430,21 @@ class _TunggakanBottomSheetState extends State<TunggakanBottomSheet> {
           decoration: BoxDecoration(
             color: isSelected ? accent.withOpacity(0.18) : const Color(0xFF060A14),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: isSelected ? accent : Colors.white12),
+            border: Border.all(
+              color: isSelected
+                  ? accent
+                  : (isLockedRekening
+                      ? const Color(0xFFFBBF24).withValues(alpha: 0.45)
+                      : Colors.white12),
+            ),
           ),
           alignment: Alignment.center,
           child: Text(
-            label,
+            displayLabel,
             style: TextStyle(
-              color: isSelected ? accent : Colors.white60,
+              color: isSelected
+                  ? accent
+                  : (isLockedRekening ? const Color(0xFFFDE68A) : Colors.white60),
               fontSize: 11,
               fontWeight: FontWeight.w800,
             ),

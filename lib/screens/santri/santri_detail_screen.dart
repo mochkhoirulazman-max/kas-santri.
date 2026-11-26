@@ -14,6 +14,7 @@ import '../../widgets/fast_withdrawal_bottom_sheet.dart';
 import '../../widgets/tunggakan_bottom_sheet.dart';
 import 'emergency_override_dialog.dart';
 import 'santri_form_screen.dart';
+import '../paywall_screen.dart';
 import '../setoran/setoran_form_screen.dart';
 
 class SantriDetailScreen extends StatefulWidget {
@@ -536,8 +537,16 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> {
                 Expanded(
                   child: OutlinedButton.icon(
                     icon: const Icon(Icons.send_to_mobile, size: 16),
-                    label: const Text('Kirim WA'),
+                    label: Text(provider.hasProAccess ? 'Kirim WA' : 'Kirim WA 👑'),
                     onPressed: () {
+                      AppFeedback.tap();
+                      if (!provider.hasProAccess) {
+                        PaywallScreen.show(
+                          context,
+                          triggerFeature: 'Kirim Laporan WhatsApp 1-Klik & Tanpa Watermark',
+                        );
+                        return;
+                      }
                       ReportService.instance.sendWhatsAppReport(
                         santri: santri,
                         mutasiList: _mutasiList,
@@ -549,8 +558,16 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> {
                 const SizedBox(width: 8),
                 IconButton.filledTonal(
                   icon: const Icon(Icons.picture_as_pdf, color: Color(0xFF00796B)),
-                  tooltip: 'Cetak Dokumen PDF',
+                  tooltip: provider.hasProAccess ? 'Cetak Dokumen PDF' : 'Cetak Dokumen PDF (PRO)',
                   onPressed: () {
+                    AppFeedback.tap();
+                    if (!provider.hasProAccess) {
+                      PaywallScreen.show(
+                        context,
+                        triggerFeature: 'Cetak Dokumen PDF Mutasi Santri',
+                      );
+                      return;
+                    }
                     ReportService.instance.generateAndPrintPdf(
                       santri: santri,
                       mutasiList: _mutasiList,

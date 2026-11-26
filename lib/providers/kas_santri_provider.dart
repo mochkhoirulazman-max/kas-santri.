@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -90,14 +91,37 @@ class KasSantriProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool get isProUser =>
-      !_isClockTampered && !_isLicenseRevoked && _pengaturan.isPro;
+  final ValueNotifier<int> spotlightTourRequestNotifier = ValueNotifier<int>(0);
+
+  void triggerSpotlightTour() {
+    spotlightTourRequestNotifier.value++;
+  }
 
   TrialStatus _trialStatus = const TrialStatus();
   TrialStatus get trialStatus => _trialStatus;
 
+  bool get isProActive =>
+      !_isClockTampered &&
+      !_isLicenseRevoked &&
+      _pengaturan.isPro &&
+      _pengaturan.proPlan != 'TRIAL_14D';
+
   bool get isTrialActive =>
-      _pengaturan.isPro && _pengaturan.proPlan == 'TRIAL_14D' && _trialStatus.isActive;
+      !_isClockTampered &&
+      !_isLicenseRevoked &&
+      _trialStatus.isActive &&
+      (_pengaturan.proPlan == 'TRIAL_14D' || !_pengaturan.isPro);
+
+  /// Gerbang terpusat akses fitur PRO (aktif jika paket PRO aktif ATAU Uji Coba 14 Hari aktif).
+  bool get hasProAccess {
+    SubscriptionService.instance.updateAccessState(
+      isProActive: isProActive,
+      isTrialActive: isTrialActive,
+    );
+    return SubscriptionService.instance.hasProAccess;
+  }
+
+  bool get isProUser => hasProAccess;
 
   int get trialRemainingDays => _trialStatus.remainingDays;
 
@@ -415,6 +439,21 @@ class KasSantriProvider extends ChangeNotifier {
         return;
       }
 
+      // Pada release build (!kDebugMode), pastikan status PRO di DB tidak pernah aktif
+      // tanpa lisensi Ed25519 valid, langganan Play Store aktif, atau Trial 14 Hari aktif.
+      if (!kDebugMode &&
+          _pengaturan.isPro &&
+          !status.isPro &&
+          !_trialStatus.isActive &&
+          (_activeLicense == null || !_activeLicense!.isValid)) {
+        await deactivatePro();
+        return;
+      }
+
+      SubscriptionService.instance.updateAccessState(
+        isProActive: isProActive,
+        isTrialActive: isTrialActive,
+      );
       notifyListeners();
     } catch (_) {}
   }
@@ -476,7 +515,7 @@ class KasSantriProvider extends ChangeNotifier {
     required bool useSimulationData,
   }) async {
     final updated = _pengaturan.copyWith(
-      namaPondok: namaPondok.trim().isNotEmpty ? namaPondok.trim() : 'PPS MIFTAHUSSUNAN',
+      namaPondok: namaPondok.trim().isNotEmpty ? namaPondok.trim() : 'Nama Pondok',
       namaPengurus: namaPengurus.trim().isNotEmpty ? namaPengurus.trim() : 'Pengurus Kas & Keuangan',
       defaultJatahHarian: defaultJatahHarian > 0 ? defaultJatahHarian : 10000,
       pembulatanJatah: pembulatanJatah,
@@ -496,6 +535,10 @@ class KasSantriProvider extends ChangeNotifier {
     final updated = _pengaturan.copyWith(isPro: true, proPlan: plan);
     _pengaturan = updated;
     await _db.updatePengaturan(updated);
+    SubscriptionService.instance.updateAccessState(
+      isProActive: isProActive,
+      isTrialActive: isTrialActive,
+    );
     notifyListeners();
   }
 
@@ -503,11 +546,16 @@ class KasSantriProvider extends ChangeNotifier {
     final updated = _pengaturan.copyWith(isPro: false, clearProPlan: true);
     _pengaturan = updated;
     await _db.updatePengaturan(updated);
+    SubscriptionService.instance.updateAccessState(
+      isProActive: isProActive,
+      isTrialActive: isTrialActive,
+    );
     notifyListeners();
   }
 
-  /// Toggle uji coba sementara untuk menguji fitur PRO vs Gratis secara cepat
+  /// Toggle uji coba sementara HANYA untuk debug build (dinonaktifkan mutlak pada release build).
   Future<void> toggleProPreview() async {
+    if (!kDebugMode) return;
     if (_pengaturan.isPro) {
       await deactivatePro();
     } else {
@@ -521,24 +569,37 @@ class KasSantriProvider extends ChangeNotifier {
     _allSantri = await _db.getAllSantri(onlyActive: false);
 
     final todayStr = DateFormatter.toLocalDateString(DateTime.now());
+    final activeSantri = _allSantri.where((s) => s.statusAktif).toList();
 
-    // 1. Status hari ini untuk setiap santri aktif
+    // 1. Batch query transaksi hari ini & kuota efektif untuk seluruh santri aktif (Eliminasi N+1)
+    final txHariIniBySantri =
+        await _db.getAllTransaksiPengambilanHariIniMap(todayStr);
+    final effectiveQuotaBySantri = await _db.computeEffectiveDailyQuotaMap(
+      todayLokal: todayStr,
+      activeSantri: activeSantri,
+      modeSisaHarian: _pengaturan.modeSisaHarian,
+    );
+
     List<SantriStatusHariIni> statuses = [];
     int totalKuota = 0;
-    for (var santri in _allSantri.where((s) => s.statusAktif)) {
-      totalKuota += santri.jatahHarian;
-      final txHariIni = await _db.getTransaksiHariIni(santri.id, todayStr);
-      final totalAmbil = await _db.getTotalPengambilanHariIni(santri.id, todayStr);
+    for (final santri in activeSantri) {
+      final jatahHariIni =
+          effectiveQuotaBySantri[santri.id] ?? santri.jatahHarian;
+      totalKuota += jatahHariIni;
+      final txHariIni =
+          txHariIniBySantri[santri.id] ?? const <TransaksiHarian>[];
+      final totalAmbil =
+          txHariIni.fold<int>(0, (sum, t) => sum + t.nominal);
 
-      int sisaJatah = santri.jatahHarian - totalAmbil;
-      final hasOverlimit = txHariIni.any((t) => t.isOverlimit);
+      final int sisaJatah = jatahHariIni - totalAmbil;
+      final bool hasOverlimit = txHariIni.any((t) => t.isOverlimit);
 
       statuses.add(
         SantriStatusHariIni(
           santri: santri,
           totalAmbilHariIni: totalAmbil,
           sisaJatahHariIni: sisaJatah,
-          jatahHariIni: santri.jatahHarian,
+          jatahHariIni: jatahHariIni,
           transaksiHariIni: txHariIni,
           hasOverlimitToday: hasOverlimit,
         ),
@@ -879,7 +940,14 @@ class KasSantriProvider extends ChangeNotifier {
       targetBerasLiter: _pengaturan.defaultInfakBerasLiter,
       targetBerasUang: _pengaturan.defaultInfakBerasUang,
     );
-    await _db.upsertInfakSantri(infak.copyWith(statusLunas: statusLunas));
+    final updatedInfak = infak.copyWith(statusLunas: statusLunas);
+    await _db.upsertInfakSantri(updatedInfak);
+    await _recordAudit(
+      action: 'EDIT_INFAK_MANUAL',
+      targetId: infak.santriId,
+      summary:
+          'Memperbarui catatan infak periode ${infak.periodeBulan} (Status: $statusLunas, Dompet: ${infak.sumberDompet}).',
+    );
     await markLocalDataChanged();
     await loadAllData();
   }
@@ -1011,17 +1079,23 @@ class KasSantriProvider extends ChangeNotifier {
     await loadAllData();
   }
 
-  Future<void> deleteSantri(String santriId) async {
-    final targetName = _allSantri
-            .where((s) => s.id == santriId)
-            .map((s) => s.namaLengkap)
-            .firstOrNull ??
-        santriId;
-    await _db.deleteSantri(santriId);
+  Future<void> deleteSantri(
+    String santriId, {
+    String sumberDompet = 'TUNAI',
+  }) async {
+    final targetSantri =
+        _allSantri.where((s) => s.id == santriId).firstOrNull;
+    final targetName = targetSantri?.namaLengkap ?? santriId;
+    final refundedSaldo = await _db.deleteSantri(
+      santriId,
+      sumberDompet: sumberDompet,
+    );
     await _recordAudit(
       action: 'HAPUS_SANTRI',
       targetId: santriId,
-      summary: 'Menghapus data santri $targetName (ID: $santriId).',
+      summary: refundedSaldo > 0
+          ? 'Menghapus permanen santri $targetName (ID: $santriId) dengan pengembalian saldo Rp$refundedSaldo dari $sumberDompet.'
+          : 'Menghapus permanen data santri $targetName (ID: $santriId).',
     );
     await markLocalDataChanged();
     await loadAllData();
@@ -1187,9 +1261,10 @@ class KasSantriProvider extends ChangeNotifier {
     await _db.restoreFromJson(data);
     final restoredSettings = await _db.getPengaturan();
     await AuthService.instance.syncRestoredPinToSecureStorage(restoredSettings.pinKeamanan);
+    await syncSubscriptionEntitlement();
     await _recordAudit(
       action: 'RESTORE_BACKUP',
-      summary: 'Memulihkan seluruh data aplikasi dari file cadangan.',
+      summary: 'Memulihkan seluruh data aplikasi dari file cadangan terverifikasi.',
     );
     await loadAllData();
   }

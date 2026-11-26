@@ -8,6 +8,7 @@ import 'santri_form_screen.dart';
 import 'santri_detail_screen.dart';
 import 'import_santri_excel_screen.dart';
 import 'cetak_kartu_qr_screen.dart';
+import '../paywall_screen.dart';
 
 class SantriListScreen extends StatefulWidget {
   const SantriListScreen({Key? key}) : super(key: key);
@@ -40,7 +41,7 @@ class _SantriListScreenState extends State<SantriListScreen> {
               child: TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
-                  hintText: 'Cari nama santri atau kamar...',
+                  hintText: 'Cari nama santri atau kamar/kelas...',
                   prefixIcon: const Icon(Icons.search, color: Colors.teal),
                   suffixIcon: _searchController.text.isNotEmpty
                       ? IconButton(
@@ -120,6 +121,13 @@ class _SantriListScreenState extends State<SantriListScreen> {
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () {
+                        if (!provider.hasProAccess) {
+                          PaywallScreen.show(
+                            context,
+                            triggerFeature: 'Import Santri Massal dari Excel (.xlsx)',
+                          );
+                          return;
+                        }
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -128,13 +136,23 @@ class _SantriListScreenState extends State<SantriListScreen> {
                         );
                       },
                       icon: const Icon(Icons.upload_file_rounded, size: 16),
-                      label: const Text('Import Excel', style: TextStyle(fontSize: 11.5)),
+                      label: Text(
+                        provider.hasProAccess ? 'Import Excel' : 'Import Excel 👑',
+                        style: const TextStyle(fontSize: 11.5),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () {
+                        if (!provider.hasProAccess) {
+                          PaywallScreen.show(
+                            context,
+                            triggerFeature: 'Cetak Massal Kartu Santri QR PDF (A4)',
+                          );
+                          return;
+                        }
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -148,7 +166,7 @@ class _SantriListScreenState extends State<SantriListScreen> {
                       ),
                       icon: const Icon(Icons.qr_code_2_rounded, size: 16),
                       label: Text(
-                        provider.isProUser ? 'Cetak Kartu QR' : 'Kartu QR 👑',
+                        provider.hasProAccess ? 'Cetak Kartu QR' : 'Kartu QR 👑',
                         style: const TextStyle(fontSize: 11.5),
                       ),
                     ),
@@ -170,19 +188,21 @@ class _SantriListScreenState extends State<SantriListScreen> {
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
                   final status = filteredList[index];
-                  return SantriCard(
-                    status: status,
-                    isTwoCol: false,
-                    onAmbilTap: () => FastWithdrawalBottomSheet.show(context, status),
-                    onTunggakanTap: () => TunggakanBottomSheet.show(context, status.santri),
-                    onDetailTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => SantriDetailScreen(santriId: status.santri.id),
-                        ),
-                      );
-                    },
+                  return RepaintBoundary(
+                    child: SantriCard(
+                      status: status,
+                      isTwoCol: false,
+                      onAmbilTap: () => FastWithdrawalBottomSheet.show(context, status),
+                      onTunggakanTap: () => TunggakanBottomSheet.show(context, status.santri),
+                      onDetailTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => SantriDetailScreen(santriId: status.santri.id),
+                          ),
+                        );
+                      },
+                    ),
                   );
                 },
                 childCount: filteredList.length,
@@ -198,6 +218,14 @@ class _SantriListScreenState extends State<SantriListScreen> {
         icon: const Icon(Icons.person_add),
         label: const Text('Tambah Santri'),
         onPressed: () {
+          if (provider.hasReachedFreeSantriLimit) {
+            PaywallScreen.show(
+              context,
+              triggerFeature:
+                  'Santri Tanpa Batas — Kuota Mode Gratis maksimal ${KasSantriProvider.maxFreeSantriQuota} santri aktif telah tercapai.',
+            );
+            return;
+          }
           Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const SantriFormScreen()),

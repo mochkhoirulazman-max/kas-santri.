@@ -75,7 +75,7 @@ class _SantriFormScreenState extends State<SantriFormScreen> {
       return;
     }
 
-    final parsedSaldo = CurrencyFormatter.parse(_saldoAwalController.text);
+    final parsedSaldo = isEdit ? CurrencyFormatter.parse(_saldoAwalController.text) : 0;
     final parsedJatah = CurrencyFormatter.parse(_jatahHarianController.text);
 
     final santri = Santri(
@@ -86,8 +86,8 @@ class _SantriFormScreenState extends State<SantriFormScreen> {
       statusSantri: _statusSantri,
       kamar: _kamarController.text.trim(),
       noWaWali: _noWaWaliController.text.trim().isNotEmpty ? _noWaWaliController.text.trim() : null,
-      saldoTotal: parsedSaldo,
-      setoranAwal: widget.santriToEdit?.setoranAwal ?? parsedSaldo,
+      saldoTotal: isEdit ? (widget.santriToEdit?.saldoTotal ?? parsedSaldo) : 0,
+      setoranAwal: isEdit ? (widget.santriToEdit?.setoranAwal ?? 0) : 0,
       jatahHarian: parsedJatah > 0 ? parsedJatah : 10000,
       tunggakan: widget.santriToEdit?.tunggakan ?? 0,
       catatanTunggakan: widget.santriToEdit?.catatanTunggakan ?? '',
@@ -133,8 +133,8 @@ class _SantriFormScreenState extends State<SantriFormScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Informasi Pribadi & Asrama',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF004D40)),
+                      'Informasi Pribadi & Kamar / Kelas',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF34D399)),
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
@@ -160,9 +160,9 @@ class _SantriFormScreenState extends State<SantriFormScreen> {
                     TextFormField(
                       controller: _kamarController,
                       decoration: InputDecoration(
-                        labelText: 'Kamar / Asrama / Kelas *',
+                        labelText: 'Kamar / Kelas *',
                         prefixIcon: const Icon(Icons.meeting_room_outlined),
-                        hintText: 'Contoh: Kamar Abu Bakar (01)',
+                        hintText: 'Contoh: Kamar 1 / Kelas 7A',
                         suffixIcon: provider.kamars.isNotEmpty
                             ? PopupMenuButton<String>(
                                 icon: const Icon(Icons.arrow_drop_down),
@@ -252,19 +252,6 @@ class _SantriFormScreenState extends State<SantriFormScreen> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 12),
-                    if (!isEdit)
-                      TextFormField(
-                        controller: _saldoAwalController,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [RibuanInputFormatter()],
-                        decoration: const InputDecoration(
-                          labelText: 'Saldo Titipan Awal (Rp)',
-                          prefixIcon: Icon(Icons.account_balance_wallet_outlined),
-                          prefixText: 'Rp ',
-                          helperText: 'Bisa diisi nanti via menu Setoran Bulanan',
-                        ),
-                      ),
                     if (isEdit) ...[
                       const SizedBox(height: 12),
                       SwitchListTile(
