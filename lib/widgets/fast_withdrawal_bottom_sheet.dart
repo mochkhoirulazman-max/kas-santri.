@@ -232,12 +232,23 @@ class _FastWithdrawalBottomSheetState extends State<FastWithdrawalBottomSheet> {
                     alignment: Alignment.center,
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(15),
-                      child: _santri.fotoPath != null && File(_santri.fotoPath!).existsSync()
-                          ? Image.file(
-                              File(_santri.fotoPath!),
+                      child: _santri.fotoPath != null && _santri.fotoPath!.trim().isNotEmpty
+                          ? Image(
+                              image: ResizeImage(
+                                FileImage(File(_santri.fotoPath!)),
+                                width: 180,
+                              ),
                               width: 44,
                               height: 44,
                               fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Text(
+                                _getInitials(_santri.namaLengkap),
+                                style: const TextStyle(
+                                  color: Color(0xFF34D399),
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 15,
+                                ),
+                              ),
                             )
                           : Text(
                               _getInitials(_santri.namaLengkap),

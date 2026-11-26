@@ -76,13 +76,19 @@ class UndoToastHelper {
                     color: const Color(0xFFFBBF24).withOpacity(0.55),
                   ),
                 ),
-                child: const Text(
-                  'Batal',
-                  style: TextStyle(
-                    color: Color(0xFFFDE68A),
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w900,
-                  ),
+                child: ValueListenableBuilder<UndoState?>(
+                  valueListenable: provider.undoStateNotifier,
+                  builder: (context, undoState, _) {
+                    final secs = undoState?.countdown ?? provider.undoCountdown;
+                    return Text(
+                      secs > 0 ? 'Batal (${secs}s)' : 'Batal',
+                      style: const TextStyle(
+                        color: Color(0xFFFDE68A),
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
@@ -148,13 +154,16 @@ class UndoBottomBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<KasSantriProvider>(
-      builder: (context, provider, child) {
-        if (!provider.canUndo) return const SizedBox.shrink();
+    final provider = Provider.of<KasSantriProvider>(context, listen: false);
+    return ValueListenableBuilder<UndoState?>(
+      valueListenable: provider.undoStateNotifier,
+      builder: (context, undoState, child) {
+        if (undoState == null || undoState.countdown <= 0) {
+          return const SizedBox.shrink();
+        }
 
-        final santri = provider.lastSantri;
-        final tx = provider.lastTransaction;
-        if (santri == null || tx == null) return const SizedBox.shrink();
+        final santri = undoState.santri;
+        final tx = undoState.transaction;
 
         return Container(
           margin: const EdgeInsets.all(12),
@@ -213,7 +222,7 @@ class UndoBottomBanner extends StatelessWidget {
                   visualDensity: VisualDensity.compact,
                 ),
                 child: Text(
-                  'BATAL (${provider.undoCountdown}s)',
+                  'BATAL (${undoState.countdown}s)',
                   style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                 ),
               ),

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:excel/excel.dart';
+import 'package:flutter/foundation.dart' show compute;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
@@ -162,7 +163,7 @@ class YayasanExportService {
   static final NumFormat _literNumFormat =
       CustomNumericNumFormat(formatCode: '0.0" L"');
 
-  CellStyle _kopTitleStyle() => CellStyle(
+  static CellStyle _kopTitleStyle() => CellStyle(
         bold: true,
         fontSize: 13,
         fontColorHex: ExcelColor.fromHexString('#FFFFFF'),
@@ -171,7 +172,7 @@ class YayasanExportService {
         verticalAlign: VerticalAlign.Center,
       );
 
-  CellStyle _kopSubStyle() => CellStyle(
+  static CellStyle _kopSubStyle() => CellStyle(
         bold: true,
         fontSize: 11,
         fontColorHex: ExcelColor.fromHexString('#0F172A'),
@@ -180,7 +181,7 @@ class YayasanExportService {
         verticalAlign: VerticalAlign.Center,
       );
 
-  CellStyle _kopMetaStyle() => CellStyle(
+  static CellStyle _kopMetaStyle() => CellStyle(
         fontSize: 9,
         fontColorHex: ExcelColor.fromHexString('#334155'),
         backgroundColorHex: ExcelColor.fromHexString('#F1F5F9'),
@@ -188,7 +189,7 @@ class YayasanExportService {
         verticalAlign: VerticalAlign.Center,
       );
 
-  CellStyle _tableHeaderStyle({String bgHex = '#0F172A'}) => CellStyle(
+  static CellStyle _tableHeaderStyle({String bgHex = '#0F172A'}) => CellStyle(
         bold: true,
         fontSize: 10,
         fontColorHex: ExcelColor.fromHexString('#FFFFFF'),
@@ -202,7 +203,7 @@ class YayasanExportService {
         bottomBorder: _headerCellBorder,
       );
 
-  CellStyle _dataStyle({
+  static CellStyle _dataStyle({
     HorizontalAlign align = HorizontalAlign.Left,
     String? bgHex,
     String fontHex = '#0F172A',
@@ -226,7 +227,7 @@ class YayasanExportService {
     );
   }
 
-  CellStyle _totalStyle({
+  static CellStyle _totalStyle({
     HorizontalAlign align = HorizontalAlign.Right,
     NumFormat? numFormat,
     String bgHex = '#E2E8F0',
@@ -247,7 +248,7 @@ class YayasanExportService {
     );
   }
 
-  ({String bgHex, String fontHex}) _statusPalette(String status) {
+  static ({String bgHex, String fontHex}) _statusPalette(String status) {
     switch (status.toUpperCase()) {
       case 'LUNAS':
       case 'SAH':
@@ -269,7 +270,7 @@ class YayasanExportService {
     }
   }
 
-  void _writeMergedBanner(
+  static void _writeMergedBanner(
     Sheet sheet, {
     required int row,
     required int lastCol,
@@ -287,7 +288,7 @@ class YayasanExportService {
     }
   }
 
-  void _writeStyledRow(
+  static void _writeStyledRow(
     Sheet sheet, {
     required int row,
     required List<CellValue> values,
@@ -303,13 +304,13 @@ class YayasanExportService {
     }
   }
 
-  void _applyColumnWidths(Sheet sheet, List<double> widths) {
+  static void _applyColumnWidths(Sheet sheet, List<double> widths) {
     for (int c = 0; c < widths.length; c++) {
       sheet.setColumnWidth(c, widths[c]);
     }
   }
 
-  void _writeSignatureBlock(
+  static void _writeSignatureBlock(
     Sheet sheet, {
     required int startRow,
     required int lastCol,
@@ -364,7 +365,8 @@ class YayasanExportService {
     );
   }
 
-  /// Menghasilkan bytes Excel (.xlsx) Multi-Sheet Yayasan yang rapi & siap cetak:
+  /// Menghasilkan bytes Excel (.xlsx) Multi-Sheet Yayasan yang rapi & siap cetak
+  /// di background isolate agar UI tidak pernah freeze:
   /// Sheet 1: Rekap Santri
   /// Sheet 2: Buku Mutasi
   /// Sheet 3: Dompet & Opname
@@ -380,6 +382,36 @@ class YayasanExportService {
     required List<CashOpnameLog> opnameLogs,
     required String periodeLabel,
   }) async {
+    return compute<Map<String, dynamic>, List<int>>(
+      _buildExcelYayasanBytesIsolate,
+      <String, dynamic>{
+        'pengaturan': pengaturan,
+        'santriList': santriList,
+        'mutasiRows': mutasiRows,
+        'dompetRows': dompetRows,
+        'totalBrankasFisik': totalBrankasFisik,
+        'kasLaciTunai': kasLaciTunai,
+        'rekeningBank': rekeningBank,
+        'totalTunggakanPondok': totalTunggakanPondok,
+        'opnameLogs': opnameLogs,
+        'periodeLabel': periodeLabel,
+      },
+    );
+  }
+
+  static List<int> _buildExcelYayasanBytesIsolate(
+    Map<String, dynamic> request,
+  ) {
+    final pengaturan = request['pengaturan'] as PengaturanAplikasi;
+    final santriList = request['santriList'] as List<Santri>;
+    final mutasiRows = request['mutasiRows'] as List<Map<String, dynamic>>;
+    final dompetRows = request['dompetRows'] as List<Map<String, dynamic>>;
+    final totalBrankasFisik = request['totalBrankasFisik'] as int;
+    final kasLaciTunai = request['kasLaciTunai'] as int;
+    final rekeningBank = request['rekeningBank'] as int;
+    final totalTunggakanPondok = request['totalTunggakanPondok'] as int;
+    final opnameLogs = request['opnameLogs'] as List<CashOpnameLog>;
+    final periodeLabel = request['periodeLabel'] as String;
     final excel = Excel.createExcel();
     final printDate = _formatTanggalId(DateTime.now().toLocal());
 
@@ -1184,7 +1216,7 @@ class YayasanExportService {
     return 'CICIL';
   }
 
-  ({
+  static ({
     List<Santri> sorted,
     int totalMasak,
     int totalListrik,
@@ -1696,7 +1728,8 @@ class YayasanExportService {
     );
   }
 
-  /// Menghasilkan bytes Excel (.xlsx) 4-Sheet Buku Infak rapi & siap cetak:
+  /// Menghasilkan bytes Excel (.xlsx) 4-Sheet Buku Infak rapi & siap cetak
+  /// di background isolate agar UI tidak pernah freeze:
   /// Sheet 1: Rekap Total & Serah Terima
   /// Sheet 2: Santriyin
   /// Sheet 3: Santriyat
@@ -1709,6 +1742,30 @@ class YayasanExportService {
     required List<SerahTerimaInfakModel> serahTerimaList,
     required Map<String, dynamic> saldoKantongInfak,
   }) async {
+    return compute<Map<String, dynamic>, List<int>>(
+      _buildExcelBukuInfakBytesIsolate,
+      <String, dynamic>{
+        'pengaturan': pengaturan,
+        'periodeBulan': periodeBulan,
+        'santriList': santriList,
+        'infakList': infakList,
+        'serahTerimaList': serahTerimaList,
+        'saldoKantongInfak': saldoKantongInfak,
+      },
+    );
+  }
+
+  static List<int> _buildExcelBukuInfakBytesIsolate(
+    Map<String, dynamic> request,
+  ) {
+    final pengaturan = request['pengaturan'] as PengaturanAplikasi;
+    final periodeBulan = request['periodeBulan'] as String;
+    final santriList = request['santriList'] as List<Santri>;
+    final infakList = request['infakList'] as List<InfakSantriModel>;
+    final serahTerimaList =
+        request['serahTerimaList'] as List<SerahTerimaInfakModel>;
+    final saldoKantongInfak =
+        request['saldoKantongInfak'] as Map<String, dynamic>;
     final infakBySantriId = <String, InfakSantriModel>{
       for (final item in infakList) item.santriId: item,
     };

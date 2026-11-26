@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:cryptography/cryptography.dart';
+import 'package:flutter/foundation.dart' show compute;
 
 class BackupValidationResult {
   final bool isValid;
@@ -167,7 +168,7 @@ class BackupService {
   }
 
   /// Mengenkripsi payload JSON backup menggunakan PBKDF2-HMAC-SHA256 + AES-256-GCM
-  /// menjadi format portabel `.ksbak` (UTF-8 JSON envelope terenkripsi).
+  /// menjadi format portabel `.ksbak` (UTF-8 JSON envelope terenkripsi) di background isolate.
   static Future<Uint8List> encryptBackupToKsbak({
     required Map<String, dynamic> backupData,
     required String password,
@@ -175,6 +176,20 @@ class BackupService {
     if (password.trim().length < 4) {
       throw const FormatException('Password enkripsi backup minimal 4 karakter.');
     }
+    return compute<Map<String, dynamic>, Uint8List>(
+      _encryptBackupToKsbakIsolate,
+      <String, dynamic>{
+        'backupData': backupData,
+        'password': password,
+      },
+    );
+  }
+
+  static Future<Uint8List> _encryptBackupToKsbakIsolate(
+    Map<String, dynamic> request,
+  ) async {
+    final backupData = request['backupData'] as Map<String, dynamic>;
+    final password = request['password'] as String;
     final rng = Random.secure();
     final salt = List<int>.generate(16, (_) => rng.nextInt(256));
     final key = await _deriveBackupKey(password, salt);
@@ -202,7 +217,8 @@ class BackupService {
     return Uint8List.fromList(utf8.encode(jsonEncode(envelope)));
   }
 
-  /// Mendekripsi file `.ksbak` dengan password lalu memvalidasi struktur tabel Kas-Santri.
+  /// Mendekripsi file `.ksbak` dengan password lalu memvalidasi struktur tabel Kas-Santri
+  /// di background isolate agar UI tidak pernah freeze.
   static Future<BackupValidationResult> decryptAndValidateKsbak({
     required Uint8List bytes,
     required String password,
@@ -210,6 +226,20 @@ class BackupService {
     if (password.isEmpty) {
       return BackupValidationResult.invalid('Password dekripsi wajib diisi.');
     }
+    return compute<Map<String, dynamic>, BackupValidationResult>(
+      _decryptAndValidateKsbakIsolate,
+      <String, dynamic>{
+        'bytes': bytes,
+        'password': password,
+      },
+    );
+  }
+
+  static Future<BackupValidationResult> _decryptAndValidateKsbakIsolate(
+    Map<String, dynamic> request,
+  ) async {
+    final bytes = request['bytes'] as Uint8List;
+    final password = request['password'] as String;
     try {
       final rawStr = utf8.decode(bytes);
       final envelope = jsonDecode(rawStr);

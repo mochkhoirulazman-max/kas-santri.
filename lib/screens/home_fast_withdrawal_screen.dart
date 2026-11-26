@@ -134,6 +134,11 @@ class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen>
     final provider = Provider.of<KasSantriProvider>(context);
     final isTwoCol = provider.pengaturan.isTwoColGrid;
     final isPro = provider.hasProAccess;
+    if (isPro && _crownGlowController.isAnimating) {
+      _crownGlowController.stop();
+    } else if (!isPro && !_crownGlowController.isAnimating) {
+      _crownGlowController.repeat(reverse: true);
+    }
     final filteredList = provider.filteredSantriStatusList;
     final bottomSafe = MediaQuery.of(context).padding.bottom;
 
@@ -302,79 +307,83 @@ class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen>
                                 ),
                               ),
                               const SizedBox(width: 6),
-                              AnimatedBuilder(
-                                animation: _crownGlowController,
-                                builder: (context, child) {
-                                  final glowOpacity = 0.25 + (_crownGlowController.value * 0.35);
-                                  return InkWell(
-                                    onTap: () {
-                                      AppFeedback.tap();
-                                      if (isPro) {
-                                        PaywallScreen.showActiveSubscriptionSheet(context);
-                                      } else {
-                                        PaywallScreen.show(context);
-                                      }
-                                    },
-                                    borderRadius: BorderRadius.circular(13),
-                                    child: Stack(
-                                      clipBehavior: Clip.none,
-                                      children: [
-                                        Container(
-                                          width: 38,
-                                          height: 36,
-                                          decoration: BoxDecoration(
-                                            gradient: const LinearGradient(
-                                              colors: [Color(0xFF1E170A), Color(0xFF0A0E17)],
-                                              begin: Alignment.topLeft,
-                                              end: Alignment.bottomRight,
-                                            ),
-                                            borderRadius: BorderRadius.circular(13),
-                                            border: Border.all(
-                                              color: isPro
-                                                  ? const Color(0xFF34D399)
-                                                  : const Color(0xFFFBBF24).withOpacity(0.85),
-                                              width: 1.3,
-                                            ),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: (isPro
-                                                        ? const Color(0xFF10B981)
-                                                        : const Color(0xFFF59E0B))
-                                                    .withOpacity(glowOpacity),
-                                                blurRadius: 10,
-                                                spreadRadius: 0.5,
-                                              ),
-                                            ],
-                                          ),
-                                          alignment: Alignment.center,
-                                          child: const Text('👑', style: TextStyle(fontSize: 16)),
-                                        ),
-                                        Positioned(
-                                          top: -5,
-                                          right: -4,
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                              RepaintBoundary(
+                                child: AnimatedBuilder(
+                                  animation: _crownGlowController,
+                                  builder: (context, child) {
+                                    final glowOpacity = isPro
+                                        ? 0.35
+                                        : (0.25 + (_crownGlowController.value * 0.35));
+                                    return InkWell(
+                                      onTap: () {
+                                        AppFeedback.tap();
+                                        if (isPro) {
+                                          PaywallScreen.showActiveSubscriptionSheet(context);
+                                        } else {
+                                          PaywallScreen.show(context);
+                                        }
+                                      },
+                                      borderRadius: BorderRadius.circular(13),
+                                      child: Stack(
+                                        clipBehavior: Clip.none,
+                                        children: [
+                                          Container(
+                                            width: 38,
+                                            height: 36,
                                             decoration: BoxDecoration(
-                                              gradient: isPro
-                                                  ? const LinearGradient(colors: [Color(0xFF10B981), Color(0xFF34D399)])
-                                                  : const LinearGradient(colors: [Color(0xFFF59E0B), Color(0xFFFDE047)]),
-                                              borderRadius: BorderRadius.circular(7),
-                                              border: Border.all(color: const Color(0xFF060A12), width: 1),
+                                              gradient: const LinearGradient(
+                                                colors: [Color(0xFF1E170A), Color(0xFF0A0E17)],
+                                                begin: Alignment.topLeft,
+                                                end: Alignment.bottomRight,
+                                              ),
+                                              borderRadius: BorderRadius.circular(13),
+                                              border: Border.all(
+                                                color: isPro
+                                                    ? const Color(0xFF34D399)
+                                                    : const Color(0xFFFBBF24).withOpacity(0.85),
+                                                width: 1.3,
+                                              ),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: (isPro
+                                                          ? const Color(0xFF10B981)
+                                                          : const Color(0xFFF59E0B))
+                                                      .withOpacity(glowOpacity),
+                                                  blurRadius: 10,
+                                                  spreadRadius: 0.5,
+                                                ),
+                                              ],
                                             ),
-                                            child: Text(
-                                              isPro ? '✓' : 'PRO',
-                                              style: const TextStyle(
-                                                color: Color(0xFF030712),
-                                                fontSize: 7.5,
-                                                fontWeight: FontWeight.w900,
+                                            alignment: Alignment.center,
+                                            child: const Text('👑', style: TextStyle(fontSize: 16)),
+                                          ),
+                                          Positioned(
+                                            top: -5,
+                                            right: -4,
+                                            child: Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                              decoration: BoxDecoration(
+                                                gradient: isPro
+                                                    ? const LinearGradient(colors: [Color(0xFF10B981), Color(0xFF34D399)])
+                                                    : const LinearGradient(colors: [Color(0xFFF59E0B), Color(0xFFFDE047)]),
+                                                borderRadius: BorderRadius.circular(7),
+                                                border: Border.all(color: const Color(0xFF060A12), width: 1),
+                                              ),
+                                              child: Text(
+                                                isPro ? '✓' : 'PRO',
+                                                style: const TextStyle(
+                                                  color: Color(0xFF030712),
+                                                  fontSize: 7.5,
+                                                  fontWeight: FontWeight.w900,
+                                                ),
                                               ),
                                             ),
                                           ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
                               ),
                               ],
                             ),

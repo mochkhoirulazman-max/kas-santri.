@@ -30,7 +30,8 @@ class _ImportSantriExcelScreenState extends State<ImportSantriExcelScreen> {
     AppFeedback.tap();
     setState(() => _isBusy = true);
     try {
-      final bytes = BulkSantriExcelService.instance.buildTemplateExcelBytes(
+      final bytes = await BulkSantriExcelService.instance
+          .buildTemplateExcelBytesAsync(
         namaPondok: provider.pengaturan.namaPondok,
       );
       final dir = await getTemporaryDirectory();
@@ -66,13 +67,16 @@ class _ImportSantriExcelScreenState extends State<ImportSantriExcelScreen> {
         allowedExtensions: ['xlsx'],
       );
       if (res == null || res.files.single.path == null) return;
+      if (mounted) setState(() => _isBusy = true);
       final file = File(res.files.single.path!);
       final bytes = await file.readAsBytes();
-      final parsed = BulkSantriExcelService.instance.parseAndValidateExcelBytes(
+      final parsed = await BulkSantriExcelService.instance
+          .parseAndValidateExcelBytesAsync(
         bytes: bytes,
         existingSantri: provider.allSantri,
         isProUser: provider.isProUser,
       );
+      if (!mounted) return;
       setState(() {
         _pickedFileName = p.basename(file.path);
         _parseResult = parsed;
@@ -87,6 +91,8 @@ class _ImportSantriExcelScreenState extends State<ImportSantriExcelScreen> {
           ),
         );
       }
+    } finally {
+      if (mounted) setState(() => _isBusy = false);
     }
   }
 

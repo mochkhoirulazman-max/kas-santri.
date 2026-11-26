@@ -96,7 +96,7 @@ class _StrukGambarDialogState extends State<StrukGambarDialog> {
     final txList = widget.status.transaksiHariIni;
     final pondok = widget.pengaturan.namaPondok;
     final logoPath = widget.pengaturan.logoPath;
-    final hasCustomLogo = logoPath != null && logoPath.isNotEmpty && File(logoPath).existsSync();
+    final hasCustomLogo = logoPath != null && logoPath.trim().isNotEmpty;
     final todayStr = DateFormatter.formatDisplayDate(DateTime.now());
 
     return Dialog(
@@ -132,7 +132,26 @@ class _StrukGambarDialogState extends State<StrukGambarDialog> {
                           ),
                           child: ClipOval(
                             child: hasCustomLogo
-                                ? Image.file(File(logoPath), fit: BoxFit.cover)
+                                ? Image(
+                                    image: ResizeImage(
+                                      FileImage(File(logoPath)),
+                                      width: 180,
+                                    ),
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => Container(
+                                      decoration: const BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: [Color(0xFF065F46), Color(0xFF0E7490)],
+                                        ),
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: const Icon(
+                                        Icons.mosque_rounded,
+                                        color: Color(0xFFFDE68A),
+                                        size: 24,
+                                      ),
+                                    ),
+                                  )
                                 : Container(
                                     decoration: const BoxDecoration(
                                       gradient: LinearGradient(

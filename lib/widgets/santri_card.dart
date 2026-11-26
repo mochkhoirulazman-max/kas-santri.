@@ -224,8 +224,24 @@ class SantriCard extends StatelessWidget {
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(14),
-                        child: santri.fotoPath != null && File(santri.fotoPath!).existsSync()
-                            ? Image.file(File(santri.fotoPath!), fit: BoxFit.cover)
+                        child: santri.fotoPath != null && santri.fotoPath!.trim().isNotEmpty
+                            ? Image(
+                                image: ResizeImage(
+                                  FileImage(File(santri.fotoPath!)),
+                                  width: 180,
+                                ),
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Center(
+                                  child: Text(
+                                    initials,
+                                    style: const TextStyle(
+                                      color: Color(0xFF04121A),
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                              )
                             : Center(
                                 child: Text(
                                   initials,
@@ -377,8 +393,24 @@ class SantriCard extends StatelessWidget {
                               ),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(10),
-                                child: santri.fotoPath != null && File(santri.fotoPath!).existsSync()
-                                    ? Image.file(File(santri.fotoPath!), fit: BoxFit.cover)
+                                child: santri.fotoPath != null && santri.fotoPath!.trim().isNotEmpty
+                                    ? Image(
+                                        image: ResizeImage(
+                                          FileImage(File(santri.fotoPath!)),
+                                          width: 180,
+                                        ),
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) => Center(
+                                          child: Text(
+                                            initials,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w900,
+                                              fontSize: 10.5,
+                                            ),
+                                          ),
+                                        ),
+                                      )
                                     : Center(
                                         child: Text(
                                           initials,

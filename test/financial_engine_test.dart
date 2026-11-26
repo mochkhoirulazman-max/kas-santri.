@@ -2151,5 +2151,144 @@ void main() {
       await db.close();
       DatabaseHelper.instance.setDatabaseForTesting(null);
     });
+
+    test('AG. Batch 2 v4.2: Optimasi 120 FPS (UndoStateNotifier Tanpa Rebuild Global & Isolate compute() untuk .KSBAK dan Excel)', () async {
+      sqfliteFfiInit();
+      final db = await databaseFactoryFfi.openDatabase(
+        inMemoryDatabasePath,
+        options: OpenDatabaseOptions(
+          version: 3,
+          onConfigure: (db) async => await db.execute('PRAGMA foreign_keys = ON'),
+          onCreate: (db, version) async =>
+              await DatabaseHelper.instance.createSchemaForTest(db),
+        ),
+      );
+      DatabaseHelper.instance.setDatabaseForTesting(db);
+      final helper = DatabaseHelper.instance;
+
+      final santri = Santri(
+        id: 'ag-s1',
+        namaLengkap: 'Santri Isolate 120FPS',
+        namaPanggilan: 'S120',
+        kamar: 'Kamar A1',
+        saldoTotal: 250000,
+        jatahHarian: 10000,
+      );
+      await helper.insertSantri(santri, sumberDompet: 'TUNAI');
+
+      // 1. Uji UndoStateNotifier di KasSantriProvider: dismissUndo & detak countdown TIDAK memicu notifyListeners global
+      final provider = KasSantriProvider();
+      await provider.loadAllData();
+
+      int globalProviderNotifies = 0;
+      int undoValueNotifies = 0;
+      provider.addListener(() {
+        globalProviderNotifies++;
+      });
+      provider.undoStateNotifier.addListener(() {
+        undoValueNotifies++;
+      });
+
+      await provider.catatPengambilan(
+        santri: santri,
+        nominal: 5000,
+        catatan: 'Jajan Sore',
+      );
+      expect(provider.canUndo, true);
+      expect(provider.undoStateNotifier.value, isNotNull);
+      expect(provider.undoStateNotifier.value!.countdown, 5);
+      final notifiesAfterCatat = globalProviderNotifies;
+
+      // Tunggu > 1.1 detik agar Timer.periodic berdetak minimal 1 kali
+      await Future<void>.delayed(const Duration(milliseconds: 1200));
+      expect(provider.undoCountdown, lessThan(5));
+      expect(provider.undoStateNotifier.value?.countdown, provider.undoCountdown);
+      // Detak timer 1 detik TIDAK BOLEH memanggil notifyListeners() pada KasSantriProvider!
+      expect(globalProviderNotifies, notifiesAfterCatat);
+      expect(undoValueNotifies, greaterThanOrEqualTo(2));
+
+      // dismissUndo juga hanya memperbarui undoStateNotifier tanpa rebuild global
+      provider.dismissUndo();
+      expect(provider.canUndo, false);
+      expect(provider.undoStateNotifier.value, isNull);
+      expect(globalProviderNotifies, notifiesAfterCatat);
+
+      // 2. Uji Enkripsi & Dekripsi .KSBAK via compute() di Background Isolate
+      final backupData = await helper.dumpBackupJson();
+      final ksbakBytes = await BackupService.encryptBackupToKsbak(
+        backupData: backupData,
+        password: 'PasswordPondok2026',
+      );
+      expect(BackupService.isEncryptedKsbakBytes(ksbakBytes), true);
+
+      final decryptedOk = await BackupService.decryptAndValidateKsbak(
+        bytes: ksbakBytes,
+        password: 'PasswordPondok2026',
+      );
+      expect(decryptedOk.isValid, true);
+      expect(decryptedOk.santriCount, 1);
+
+      final decryptedWrong = await BackupService.decryptAndValidateKsbak(
+        bytes: ksbakBytes,
+        password: 'SalahPassword',
+      );
+      expect(decryptedWrong.isValid, false);
+
+      // 3. Uji Pembuatan & Parsing Excel (.xlsx) via compute() di Background Isolate
+      final tplBytes = await BulkSantriExcelService.instance
+          .buildTemplateExcelBytesAsync(namaPondok: 'PP Al-Hikmah');
+      expect(tplBytes.length, greaterThan(100));
+      // Header ZIP/XLSX: PK (0x50, 0x4B)
+      expect(tplBytes[0], 0x50);
+      expect(tplBytes[1], 0x4B);
+
+      final parsedAsync = await BulkSantriExcelService.instance
+          .parseAndValidateExcelBytesAsync(
+        bytes: tplBytes,
+        existingSantri: const [],
+        isProUser: true,
+      );
+      expect(parsedAsync.validRows.length, 2);
+
+      final peng = await helper.getPengaturan();
+      final yayasanExcelBytes =
+          await YayasanExportService.instance.buildExcelYayasanBytes(
+        pengaturan: peng,
+        santriList: [santri],
+        mutasiRows: const [],
+        dompetRows: const [],
+        totalBrankasFisik: 245000,
+        kasLaciTunai: 245000,
+        rekeningBank: 0,
+        totalTunggakanPondok: 0,
+        opnameLogs: const [],
+        periodeLabel: 'Hari Ini',
+      );
+      expect(yayasanExcelBytes.length, greaterThan(100));
+      expect(yayasanExcelBytes[0], 0x50);
+      expect(yayasanExcelBytes[1], 0x4B);
+
+      final infakExcelBytes =
+          await YayasanExportService.instance.buildExcelBukuInfakBytes(
+        pengaturan: peng,
+        periodeBulan: '2026-11',
+        santriList: [santri],
+        infakList: const [],
+        serahTerimaList: const [],
+        saldoKantongInfak: const {
+          'tunai': 0,
+          'rekening': 0,
+          'total_uang': 0,
+          'beras_stok': 0.0,
+        },
+      );
+      expect(infakExcelBytes.length, greaterThan(100));
+      expect(infakExcelBytes[0], 0x50);
+      expect(infakExcelBytes[1], 0x4B);
+
+      provider.dispose();
+      await db.close();
+      DatabaseHelper.instance.setDatabaseForTesting(null);
+    });
   });
 }

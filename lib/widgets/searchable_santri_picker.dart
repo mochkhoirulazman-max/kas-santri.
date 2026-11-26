@@ -39,8 +39,10 @@ class SearchableSantriField extends StatelessWidget {
   Widget build(BuildContext context) {
     final cardOpacity = Provider.of<ThemeWallpaperProvider>(context).cardOpacity;
     final s = selectedSantri;
-    final hasFoto =
-        !isAllSelected && s != null && s.fotoPath != null && s.fotoPath!.isNotEmpty && File(s.fotoPath!).existsSync();
+    final hasFoto = !isAllSelected &&
+        s != null &&
+        s.fotoPath != null &&
+        s.fotoPath!.trim().isNotEmpty;
 
     return InkWell(
       onTap: () {
@@ -85,7 +87,23 @@ class SearchableSantriField extends StatelessWidget {
                         ),
                       )
                     : (hasFoto
-                        ? Image.file(File(s.fotoPath!), fit: BoxFit.cover)
+                        ? Image(
+                            image: ResizeImage(
+                              FileImage(File(s.fotoPath!)),
+                              width: 120,
+                            ),
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Center(
+                              child: Text(
+                                _initials(s.namaLengkap),
+                                style: TextStyle(
+                                  color: const Color(0xFF040914),
+                                  fontSize: compact ? 10 : 12,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                          )
                         : Center(
                             child: Text(
                               s != null ? _initials(s.namaLengkap) : '?',
@@ -502,9 +520,8 @@ class _SearchableSantriPickerState extends State<SearchableSantriPicker> {
 
                             final s = filtered[index - extraHeaderCount];
                             final isSelected = widget.selectedSantriId == s.id;
-                            final hasFoto = s.fotoPath != null &&
-                                s.fotoPath!.isNotEmpty &&
-                                File(s.fotoPath!).existsSync();
+                            final hasFoto =
+                                s.fotoPath != null && s.fotoPath!.trim().isNotEmpty;
                             return RepaintBoundary(
                               child: Container(
                                 margin: const EdgeInsets.only(bottom: 8),
@@ -533,24 +550,39 @@ class _SearchableSantriPickerState extends State<SearchableSantriPicker> {
                                     horizontal: 12,
                                     vertical: 4,
                                   ),
-                                  leading: CircleAvatar(
-                                    backgroundColor: const Color(0xFF0F272E),
-                                    backgroundImage: hasFoto
-                                        ? ResizeImage(
-                                            FileImage(File(s.fotoPath!)),
-                                            width: 120,
-                                          )
-                                        : null,
-                                    child: hasFoto
-                                        ? null
-                                        : Text(
-                                            _initials(s.namaLengkap),
-                                            style: const TextStyle(
-                                              color: Color(0xFF34D399),
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w900,
+                                  leading: ClipOval(
+                                    child: Container(
+                                      width: 40,
+                                      height: 40,
+                                      color: const Color(0xFF0F272E),
+                                      alignment: Alignment.center,
+                                      child: hasFoto
+                                          ? Image(
+                                              image: ResizeImage(
+                                                FileImage(File(s.fotoPath!)),
+                                                width: 120,
+                                              ),
+                                              width: 40,
+                                              height: 40,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (_, __, ___) => Text(
+                                                _initials(s.namaLengkap),
+                                                style: const TextStyle(
+                                                  color: Color(0xFF34D399),
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w900,
+                                                ),
+                                              ),
+                                            )
+                                          : Text(
+                                              _initials(s.namaLengkap),
+                                              style: const TextStyle(
+                                                color: Color(0xFF34D399),
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w900,
+                                              ),
                                             ),
-                                          ),
+                                    ),
                                   ),
                                   title: Row(
                                     children: [

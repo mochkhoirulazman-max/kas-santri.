@@ -94,8 +94,8 @@ class _KartuQrSantriDialogState extends State<KartuQrSantriDialog> {
     final s = widget.santri;
     final pondok = widget.pengaturan.namaPondok;
     final logoPath = widget.pengaturan.logoPath;
-    final hasCustomLogo = logoPath != null && logoPath.isNotEmpty && File(logoPath).existsSync();
-    final hasFoto = s.fotoPath != null && s.fotoPath!.isNotEmpty && File(s.fotoPath!).existsSync();
+    final hasCustomLogo = logoPath != null && logoPath.trim().isNotEmpty;
+    final hasFoto = s.fotoPath != null && s.fotoPath!.trim().isNotEmpty;
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -141,7 +141,26 @@ class _KartuQrSantriDialogState extends State<KartuQrSantriDialog> {
                           ),
                           child: ClipOval(
                             child: hasCustomLogo
-                                ? Image.file(File(logoPath), fit: BoxFit.cover)
+                                ? Image(
+                                    image: ResizeImage(
+                                      FileImage(File(logoPath)),
+                                      width: 180,
+                                    ),
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => Container(
+                                      decoration: const BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: [Color(0xFF065F46), Color(0xFF0E7490)],
+                                        ),
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: const Icon(
+                                        Icons.mosque_rounded,
+                                        color: Color(0xFFFDE68A),
+                                        size: 22,
+                                      ),
+                                    ),
+                                  )
                                 : Container(
                                     decoration: const BoxDecoration(
                                       gradient: LinearGradient(
@@ -222,7 +241,25 @@ class _KartuQrSantriDialogState extends State<KartuQrSantriDialog> {
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(14),
                             child: hasFoto
-                                ? Image.file(File(s.fotoPath!), fit: BoxFit.cover)
+                                ? Image(
+                                    image: ResizeImage(
+                                      FileImage(File(s.fotoPath!)),
+                                      width: 180,
+                                    ),
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => Center(
+                                      child: Text(
+                                        s.namaLengkap.isNotEmpty
+                                            ? s.namaLengkap[0].toUpperCase()
+                                            : 'S',
+                                        style: const TextStyle(
+                                          color: Color(0xFF34D399),
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                    ),
+                                  )
                                 : Center(
                                     child: Text(
                                       s.namaLengkap.isNotEmpty

@@ -27,6 +27,18 @@ import 'package:uuid/uuid.dart';
 import '../utils/date_formatter.dart';
 import '../utils/time_category_helper.dart';
 
+class UndoState {
+  final TransaksiHarian transaction;
+  final Santri santri;
+  final int countdown;
+
+  const UndoState({
+    required this.transaction,
+    required this.santri,
+    required this.countdown,
+  });
+}
+
 class KasSantriProvider extends ChangeNotifier {
   final DatabaseHelper _db = DatabaseHelper.instance;
 
@@ -237,7 +249,10 @@ class KasSantriProvider extends ChangeNotifier {
   int _rekapSoreMalam = 0;
   int get rekapSoreMalam => _rekapSoreMalam;
 
-  // 5-Detik Undo State
+  // 5-Detik Undo State (Terisolasi di ValueNotifier agar tidak memicu rebuild global setiap detik)
+  final ValueNotifier<UndoState?> undoStateNotifier =
+      ValueNotifier<UndoState?>(null);
+
   TransaksiHarian? _lastTransaction;
   TransaksiHarian? get lastTransaction => _lastTransaction;
 
@@ -754,22 +769,35 @@ class KasSantriProvider extends ChangeNotifier {
       waktuCategory: waktuCategory,
     );
 
-    // Set 5-second undo
+    // Set 5-second undo (isolasi ke ValueNotifier tanpa notifyListeners global per detik)
     _lastTransaction = tx;
     _lastSantri = santri;
     _undoCountdown = 5;
+    undoStateNotifier.value = UndoState(
+      transaction: tx,
+      santri: santri,
+      countdown: _undoCountdown,
+    );
 
     _undoTimer?.cancel();
     _undoTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_undoCountdown > 1) {
         _undoCountdown--;
-        notifyListeners();
+        final currentTx = _lastTransaction;
+        final currentSantri = _lastSantri;
+        if (currentTx != null && currentSantri != null) {
+          undoStateNotifier.value = UndoState(
+            transaction: currentTx,
+            santri: currentSantri,
+            countdown: _undoCountdown,
+          );
+        }
       } else {
         _undoCountdown = 0;
         _lastTransaction = null;
         _lastSantri = null;
         timer.cancel();
-        notifyListeners();
+        undoStateNotifier.value = null;
       }
     });
 
@@ -788,6 +816,7 @@ class KasSantriProvider extends ChangeNotifier {
     _lastTransaction = null;
     _lastSantri = null;
     _undoCountdown = 0;
+    undoStateNotifier.value = null;
 
     await markLocalDataChanged();
     await loadAllData();
@@ -798,7 +827,7 @@ class KasSantriProvider extends ChangeNotifier {
     _lastTransaction = null;
     _lastSantri = null;
     _undoCountdown = 0;
-    notifyListeners();
+    undoStateNotifier.value = null;
   }
 
   // ==================== TUNGGAKAN ====================
@@ -1038,8 +1067,45 @@ class KasSantriProvider extends ChangeNotifier {
     await loadAllData();
   }
 
+  Future<String?> _persistSantriPhotoIfNeeded(
+    String santriId,
+    String? sourceFotoPath,
+  ) async {
+    if (sourceFotoPath == null || sourceFotoPath.trim().isEmpty) {
+      return null;
+    }
+    final cleanPath = sourceFotoPath.trim();
+    try {
+      final src = File(cleanPath);
+      if (!await src.exists()) {
+        return cleanPath;
+      }
+      final appDir = await getApplicationDocumentsDirectory();
+      final profDir = Directory(p.join(appDir.path, 'profiles'));
+      if (p.isWithin(profDir.path, cleanPath)) {
+        return cleanPath;
+      }
+      if (!await profDir.exists()) {
+        await profDir.create(recursive: true);
+      }
+      final ext = p.extension(cleanPath).isNotEmpty
+          ? p.extension(cleanPath)
+          : '.jpg';
+      final safeId = santriId.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
+      final dest = p.join(
+        profDir.path,
+        'santri_${safeId}_${DateTime.now().millisecondsSinceEpoch}$ext',
+      );
+      await src.copy(dest);
+      return dest;
+    } catch (_) {
+      return cleanPath;
+    }
+  }
+
   Future<void> updateSantriFoto(String santriId, String? fotoPath) async {
-    await _db.updateSantriFoto(santriId, fotoPath);
+    final persistedPath = await _persistSantriPhotoIfNeeded(santriId, fotoPath);
+    await _db.updateSantriFoto(santriId, persistedPath);
     await markLocalDataChanged();
     await loadAllData();
   }
@@ -1065,15 +1131,22 @@ class KasSantriProvider extends ChangeNotifier {
   }
 
   Future<void> saveSantri(Santri santri, {bool isEdit = false, String sumberDompet = 'TUNAI'}) async {
+    final persistedFoto = await _persistSantriPhotoIfNeeded(
+      santri.id,
+      santri.fotoPath,
+    );
+    final normalizedSantri = persistedFoto != santri.fotoPath
+        ? santri.copyWith(fotoPath: persistedFoto)
+        : santri;
     if (isEdit) {
-      await _db.updateSantri(santri);
+      await _db.updateSantri(normalizedSantri);
       await _recordAudit(
         action: 'EDIT_SANTRI',
-        targetId: santri.id,
-        summary: 'Mengubah data santri ${santri.namaLengkap} (${santri.kamar}).',
+        targetId: normalizedSantri.id,
+        summary: 'Mengubah data santri ${normalizedSantri.namaLengkap} (${normalizedSantri.kamar}).',
       );
     } else {
-      await _db.insertSantri(santri, sumberDompet: sumberDompet);
+      await _db.insertSantri(normalizedSantri, sumberDompet: sumberDompet);
     }
     await markLocalDataChanged();
     await loadAllData();
@@ -1388,5 +1461,13 @@ class KasSantriProvider extends ChangeNotifier {
       await _db.updatePengaturan(updated);
       notifyListeners();
     }
+  }
+
+  @override
+  void dispose() {
+    _undoTimer?.cancel();
+    spotlightTourRequestNotifier.dispose();
+    undoStateNotifier.dispose();
+    super.dispose();
   }
 }

@@ -239,9 +239,8 @@ class KasSantriLogoMark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasCustom = customLogoPath != null &&
-        customLogoPath!.trim().isNotEmpty &&
-        File(customLogoPath!).existsSync();
+    final hasCustom =
+        customLogoPath != null && customLogoPath!.trim().isNotEmpty;
 
     final Widget inner = hasCustom
         ? Image(

@@ -70,10 +70,8 @@ class _SystemTabScreenState extends State<SystemTabScreen>
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) {
-          final hasFoto = !clearFoto &&
-              pickedFoto != null &&
-              pickedFoto!.isNotEmpty &&
-              File(pickedFoto!).existsSync();
+          final hasFoto =
+              !clearFoto && pickedFoto != null && pickedFoto!.trim().isNotEmpty;
           return AlertDialog(
             title: const Text(
               'Edit Profil Bendahara',
@@ -97,21 +95,39 @@ class _SystemTabScreenState extends State<SystemTabScreen>
                     },
                     child: Stack(
                       children: [
-                        CircleAvatar(
-                          radius: 34,
-                          backgroundColor: const Color(0xFF0A1D28),
-                          backgroundImage:
-                              hasFoto ? FileImage(File(pickedFoto!)) : null,
-                          child: hasFoto
-                              ? null
-                              : Text(
-                                  acc?.initials ?? 'BP',
-                                  style: const TextStyle(
-                                    color: Color(0xFF34D399),
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w900,
+                        ClipOval(
+                          child: Container(
+                            width: 68,
+                            height: 68,
+                            color: const Color(0xFF0A1D28),
+                            alignment: Alignment.center,
+                            child: hasFoto
+                                ? Image(
+                                    image: ResizeImage(
+                                      FileImage(File(pickedFoto!)),
+                                      width: 180,
+                                    ),
+                                    width: 68,
+                                    height: 68,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => Text(
+                                      acc?.initials ?? 'BP',
+                                      style: const TextStyle(
+                                        color: Color(0xFF34D399),
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                  )
+                                : Text(
+                                    acc?.initials ?? 'BP',
+                                    style: const TextStyle(
+                                      color: Color(0xFF34D399),
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w900,
+                                    ),
                                   ),
-                                ),
+                          ),
                         ),
                         Positioned(
                           bottom: 0,
@@ -285,8 +301,7 @@ class _SystemTabScreenState extends State<SystemTabScreen>
     final bottomSafe = MediaQuery.of(context).padding.bottom;
 
     final String? fotoPath = acc?.fotoPath;
-    final bool hasFoto =
-        fotoPath != null && fotoPath.isNotEmpty && File(fotoPath).existsSync();
+    final bool hasFoto = fotoPath != null && fotoPath.trim().isNotEmpty;
 
     final quickItems = <_QuickAccessSpec>[
       _QuickAccessSpec(
@@ -496,19 +511,37 @@ class _SystemTabScreenState extends State<SystemTabScreen>
                                 colors: [Color(0xFF34D399), Color(0xFF38BDF8), Color(0xFFD946EF)],
                               ),
                             ),
-                            child: CircleAvatar(
-                              backgroundColor: const Color(0xFF07101E),
-                              backgroundImage: hasFoto ? FileImage(File(fotoPath)) : null,
-                              child: hasFoto
-                                  ? null
-                                  : Text(
-                                      acc?.initials ?? 'BP',
-                                      style: const TextStyle(
-                                        color: Color(0xFF34D399),
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.w900,
+                            child: ClipOval(
+                              child: Container(
+                                color: const Color(0xFF07101E),
+                                alignment: Alignment.center,
+                                child: hasFoto
+                                    ? Image(
+                                        image: ResizeImage(
+                                          FileImage(File(fotoPath)),
+                                          width: 180,
+                                        ),
+                                        width: 61,
+                                        height: 61,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) => Text(
+                                          acc?.initials ?? 'BP',
+                                          style: const TextStyle(
+                                            color: Color(0xFF34D399),
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                        ),
+                                      )
+                                    : Text(
+                                        acc?.initials ?? 'BP',
+                                        style: const TextStyle(
+                                          color: Color(0xFF34D399),
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w900,
+                                        ),
                                       ),
-                                    ),
+                              ),
                             ),
                           ),
                           Positioned(

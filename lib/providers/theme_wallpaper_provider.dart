@@ -132,12 +132,7 @@ class ThemeWallpaperProvider extends ChangeNotifier {
 
   bool get hasValidCustomWallpaper {
     final path = _customWallpaperPath;
-    if (path == null || path.trim().isEmpty) return false;
-    try {
-      return File(path).existsSync();
-    } catch (_) {
-      return false;
-    }
+    return path != null && path.trim().isNotEmpty;
   }
 
   Future<void> init() async {

@@ -220,8 +220,28 @@ class _QuickEditSantriBottomSheetState extends State<QuickEditSantriBottomSheet>
                           ],
                         ),
                         child: ClipOval(
-                          child: _fotoPath != null && File(_fotoPath!).existsSync()
-                              ? Image.file(File(_fotoPath!), fit: BoxFit.cover)
+                          child: _fotoPath != null && _fotoPath!.trim().isNotEmpty
+                              ? Image(
+                                  image: ResizeImage(
+                                    FileImage(File(_fotoPath!)),
+                                    width: 180,
+                                  ),
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Container(
+                                    color: const Color(0xFF10B981).withOpacity(0.2),
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      s.namaPanggilan.isNotEmpty
+                                          ? s.namaPanggilan.substring(0, 1).toUpperCase()
+                                          : 'S',
+                                      style: const TextStyle(
+                                        color: Color(0xFF34D399),
+                                        fontSize: 28,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                  ),
+                                )
                               : Container(
                                   color: const Color(0xFF10B981).withOpacity(0.2),
                                   alignment: Alignment.center,

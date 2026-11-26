@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:excel/excel.dart';
+import 'package:flutter/foundation.dart' show compute;
 import 'package:uuid/uuid.dart';
 import '../config/app_config.dart';
 import '../models/santri.dart';
@@ -54,6 +55,20 @@ class BulkSantriExcelService {
   Uint8List buildTemplateExcelBytes({
     String namaPondok = 'Nama Pondok',
   }) {
+    return _buildTemplateExcelBytesIsolate(namaPondok);
+  }
+
+  /// Menghasilkan file `.xlsx` template di background isolate agar UI tetap 120 FPS.
+  Future<Uint8List> buildTemplateExcelBytesAsync({
+    String namaPondok = 'Nama Pondok',
+  }) {
+    return compute<String, Uint8List>(
+      _buildTemplateExcelBytesIsolate,
+      namaPondok,
+    );
+  }
+
+  static Uint8List _buildTemplateExcelBytesIsolate(String namaPondok) {
     final excel = Excel.createExcel();
     const sheetName = 'Template Santri';
     final defaultSheet = excel.getDefaultSheet();
@@ -187,6 +202,40 @@ class BulkSantriExcelService {
     required bool isProUser,
     int maxFreeQuota = AppConfig.maxFreeSantriQuota,
   }) {
+    return _parseAndValidateExcelBytesIsolate(<String, dynamic>{
+      'bytes': bytes,
+      'existingSantri': existingSantri,
+      'isProUser': isProUser,
+      'maxFreeQuota': maxFreeQuota,
+    });
+  }
+
+  /// Membaca, memvalidasi, dan mendeteksi duplikat `.xlsx` di background isolate
+  /// sehingga ratusan baris Excel tidak membekukan UI thread.
+  Future<BulkExcelParseResult> parseAndValidateExcelBytesAsync({
+    required Uint8List bytes,
+    required List<Santri> existingSantri,
+    required bool isProUser,
+    int maxFreeQuota = AppConfig.maxFreeSantriQuota,
+  }) {
+    return compute<Map<String, dynamic>, BulkExcelParseResult>(
+      _parseAndValidateExcelBytesIsolate,
+      <String, dynamic>{
+        'bytes': bytes,
+        'existingSantri': existingSantri,
+        'isProUser': isProUser,
+        'maxFreeQuota': maxFreeQuota,
+      },
+    );
+  }
+
+  static BulkExcelParseResult _parseAndValidateExcelBytesIsolate(
+    Map<String, dynamic> request,
+  ) {
+    final bytes = request['bytes'] as Uint8List;
+    final existingSantri = request['existingSantri'] as List<Santri>;
+    final isProUser = request['isProUser'] as bool;
+    final maxFreeQuota = request['maxFreeQuota'] as int;
     final excel = Excel.decodeBytes(bytes);
     if (excel.tables.isEmpty) {
       return const BulkExcelParseResult(
