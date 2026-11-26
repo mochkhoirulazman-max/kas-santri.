@@ -155,7 +155,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
 
     if (!mounted) return;
     final targetCtx = spec.targetKey.currentContext;
-    if (targetCtx != null) {
+    if (targetCtx != null && targetCtx.mounted) {
       try {
         await Scrollable.ensureVisible(
           targetCtx,

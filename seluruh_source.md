@@ -85,8 +85,8 @@ kas-santri/
 ├── lib/screens/setoran/buku_infak_view.dart (47.8 KB)
 ├── lib/screens/setoran/setoran_screen.dart (59.5 KB)
 ├── lib/screens/settings/audit_log_screen.dart (14.9 KB)
-├── lib/screens/settings/pin_settings_screen.dart (8 KB)
-├── lib/screens/settings/settings_screen.dart (79.4 KB)
+├── lib/screens/settings/pin_settings_screen.dart (8.1 KB)
+├── lib/screens/settings/settings_screen.dart (79.5 KB)
 ├── lib/screens/settings/system_tab_screen.dart (42.2 KB)
 ├── lib/screens/settings/tahun_ajaran_screen.dart (23.2 KB)
 ├── lib/screens/splash_screen.dart (5 KB)
@@ -120,7 +120,7 @@ kas-santri/
 ├── lib/widgets/guided_spotlight_tour.dart (14.3 KB)
 ├── lib/widgets/infak_edit_bottom_sheet.dart (21.9 KB)
 ├── lib/widgets/kartu_qr_santri_dialog.dart (17.3 KB)
-├── lib/widgets/legal_document_sheet.dart (12.2 KB)
+├── lib/widgets/legal_document_sheet.dart (12.3 KB)
 ├── lib/widgets/numpad_widget.dart (3.5 KB)
 ├── lib/widgets/panduan_aplikasi_sheet.dart (32.7 KB)
 ├── lib/widgets/quick_chips_widget.dart (2.9 KB)
@@ -198,23 +198,23 @@ kas-santri/
 | 47 | `lib/providers/theme_wallpaper_provider.dart` | 8447 | 263 |
 | 48 | `lib/screens/auth/login_screen.dart` | 27582 | 671 |
 | 49 | `lib/screens/home_fast_withdrawal_screen.dart` | 42213 | 907 |
-| 50 | `lib/screens/main_navigation_screen.dart` | 13390 | 391 |
+| 50 | `lib/screens/main_navigation_screen.dart` | 13411 | 391 |
 | 51 | `lib/screens/onboarding_screen.dart` | 26883 | 739 |
 | 52 | `lib/screens/paywall_screen.dart` | 75773 | 1762 |
 | 53 | `lib/screens/pin_lock_screen.dart` | 18750 | 462 |
 | 54 | `lib/screens/rekap/cash_opname_screen.dart` | 22405 | 578 |
 | 55 | `lib/screens/rekap/executive_dashboard_screen.dart` | 23907 | 598 |
 | 56 | `lib/screens/rekap/rekap_laporan_screen.dart` | 50768 | 1221 |
-| 57 | `lib/screens/rekap/smart_wa_reminder_screen.dart` | 19375 | 455 |
+| 57 | `lib/screens/rekap/smart_wa_reminder_screen.dart` | 19383 | 455 |
 | 58 | `lib/screens/santri/cetak_kartu_qr_screen.dart` | 18473 | 462 |
 | 59 | `lib/screens/santri/import_santri_excel_screen.dart` | 21646 | 534 |
 | 60 | `lib/screens/santri/qr_scanner_screen.dart` | 7057 | 202 |
 | 61 | `lib/screens/santri/santri_detail_screen.dart` | 61592 | 1466 |
-| 62 | `lib/screens/setoran/buku_infak_view.dart` | 48976 | 1191 |
+| 62 | `lib/screens/setoran/buku_infak_view.dart` | 48984 | 1191 |
 | 63 | `lib/screens/setoran/setoran_screen.dart` | 60877 | 1433 |
 | 64 | `lib/screens/settings/audit_log_screen.dart` | 15281 | 361 |
-| 65 | `lib/screens/settings/pin_settings_screen.dart` | 8240 | 241 |
-| 66 | `lib/screens/settings/settings_screen.dart` | 81356 | 1806 |
+| 65 | `lib/screens/settings/pin_settings_screen.dart` | 8266 | 242 |
+| 66 | `lib/screens/settings/settings_screen.dart` | 81380 | 1806 |
 | 67 | `lib/screens/settings/system_tab_screen.dart` | 43212 | 1068 |
 | 68 | `lib/screens/settings/tahun_ajaran_screen.dart` | 23731 | 597 |
 | 69 | `lib/screens/splash_screen.dart` | 5140 | 170 |
@@ -223,7 +223,7 @@ kas-santri/
 | 72 | `lib/services/auth_service.dart` | 6918 | 202 |
 | 73 | `lib/services/backup_service.dart` | 9177 | 283 |
 | 74 | `lib/services/bulk_santri_excel_service.dart` | 11084 | 343 |
-| 75 | `lib/services/customer_sync_service.dart` | 9384 | 286 |
+| 75 | `lib/services/customer_sync_service.dart` | 9420 | 287 |
 | 76 | `lib/services/executive_analytics_service.dart` | 22675 | 648 |
 | 77 | `lib/services/exports/yayasan_excel_exporter.dart` | 55830 | 1772 |
 | 78 | `lib/services/exports/yayasan_pdf_exporter.dart` | 35879 | 945 |
@@ -248,7 +248,7 @@ kas-santri/
 | 97 | `lib/widgets/guided_spotlight_tour.dart` | 14637 | 396 |
 | 98 | `lib/widgets/infak_edit_bottom_sheet.dart` | 22421 | 558 |
 | 99 | `lib/widgets/kartu_qr_santri_dialog.dart` | 17756 | 422 |
-| 100 | `lib/widgets/legal_document_sheet.dart` | 12508 | 271 |
+| 100 | `lib/widgets/legal_document_sheet.dart` | 12556 | 272 |
 | 101 | `lib/widgets/numpad_widget.dart` | 3613 | 131 |
 | 102 | `lib/widgets/panduan_aplikasi_sheet.dart` | 33452 | 834 |
 | 103 | `lib/widgets/quick_chips_widget.dart` | 2952 | 87 |
@@ -266,7 +266,7 @@ kas-santri/
 | 115 | `prd.md` | 24947 | 238 |
 | 116 | `pubspec.yaml` | 1295 | 67 |
 | 117 | `push_to_github.bat` | 597 | 15 |
-| 118 | `test/financial_engine_test.dart` | 94163 | 2426 |
+| 118 | `test/financial_engine_test.dart` | 94179 | 2426 |
 | 119 | `test/refrensi antarmuka.md` | 103639 | 1942 |
 | 120 | `test/widget_test.dart` | 730 | 27 |
 | 121 | `tool/generate_keypair.dart` | 5827 | 163 |
@@ -13717,7 +13717,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
 
     if (!mounted) return;
     final targetCtx = spec.targetKey.currentContext;
-    if (targetCtx != null) {
+    if (targetCtx != null && targetCtx.mounted) {
       try {
         await Scrollable.ensureVisible(
           targetCtx,
@@ -19736,7 +19736,7 @@ class _SmartWaReminderScreenState extends State<SmartWaReminderScreen> {
                                         );
                                         await Clipboard.setData(
                                             ClipboardData(text: msg));
-                                        if (mounted) {
+                                        if (context.mounted) {
                                           ScaffoldMessenger.of(context)
                                               .showSnackBar(
                                             const SnackBar(
@@ -23623,7 +23623,7 @@ class _BukuInfakViewState extends State<BukuInfakView> {
                           rawPhone: s.noWaWali,
                           message: msg,
                         );
-                        if (!ok && mounted) {
+                        if (!ok && context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text('Tidak dapat membuka WhatsApp di perangkat ini.'),
@@ -25549,6 +25549,7 @@ class _PinSettingsScreenState extends State<PinSettingsScreen> {
       }
     }
 
+    if (!mounted) return;
     final newPin = _newPinController.text.trim();
     final confirm = _confirmPinController.text.trim();
 
@@ -26772,7 +26773,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     if (val) {
                       final avail = await AuthService.instance.isBiometricsAvailable();
                       if (!avail) {
-                        if (mounted) {
+                        if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('Sensor biometrik tidak tersedia di perangkat ini.'), backgroundColor: Color(0xFFF59E0B)),
                           );
@@ -27061,7 +27062,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     setState(() => _isDriveBusy = true);
                                     try {
                                       await provider.connectGoogleDrive();
-                                      if (mounted) {
+                                      if (context.mounted) {
                                         AppFeedback.success();
                                         ScaffoldMessenger.of(context).showSnackBar(
                                           const SnackBar(
@@ -27133,7 +27134,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                         setState(() => _isDriveBusy = true);
                                         try {
                                           final dt = await provider.backupToGoogleDriveNow();
-                                          if (mounted) {
+                                          if (context.mounted) {
                                             AppFeedback.success();
                                             ScaffoldMessenger.of(context).showSnackBar(
                                               SnackBar(
@@ -31304,6 +31305,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_config.dart';
+import 'subscription_service.dart';
 
 class AppRemoteConfig {
   final String latestVersion;
@@ -41781,6 +41783,7 @@ class _KartuQrSantriDialogState extends State<KartuQrSantriDialog> {
 ```dart
 import 'package:flutter/material.dart';
 import '../config/app_config.dart';
+import '../services/subscription_service.dart';
 import '../utils/app_feedback.dart';
 
 class LegalDocumentSheet extends StatelessWidget {
@@ -51441,25 +51444,25 @@ void main() {
     test('AE. Tahap B v4.1 Final Polish: Gerbang Terpusat hasProAccess & Persistensi Onboarding/Walkthrough', () async {
       // 1. Verifikasi gerbang terpusat SubscriptionService.hasProAccess
       final sub = SubscriptionService.instance;
-      sub.updateAccessState(proActive: false, trialActive: false);
+      sub.updateAccessState(isProActive: false, isTrialActive: false);
       expect(sub.isProActive, false);
       expect(sub.isTrialActive, false);
       expect(sub.hasProAccess, false);
 
       // Saat Trial 14 Hari aktif, seluruh fitur PRO terbuka
-      sub.updateAccessState(proActive: false, trialActive: true);
+      sub.updateAccessState(isProActive: false, isTrialActive: true);
       expect(sub.isProActive, false);
       expect(sub.isTrialActive, true);
       expect(sub.hasProAccess, true);
 
       // Saat Langganan PRO aktif, seluruh fitur PRO terbuka
-      sub.updateAccessState(proActive: true, trialActive: false);
+      sub.updateAccessState(isProActive: true, isTrialActive: false);
       expect(sub.isProActive, true);
       expect(sub.isTrialActive, false);
       expect(sub.hasProAccess, true);
 
       // Reset ke Free
-      sub.updateAccessState(proActive: false, trialActive: false);
+      sub.updateAccessState(isProActive: false, isTrialActive: false);
       expect(sub.hasProAccess, false);
 
       // 2. Verifikasi penyimpanan status Onboarding & Spotlight Tour di SharedPreferences

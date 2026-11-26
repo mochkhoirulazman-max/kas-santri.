@@ -388,7 +388,7 @@ class _SmartWaReminderScreenState extends State<SmartWaReminderScreen> {
                                         );
                                         await Clipboard.setData(
                                             ClipboardData(text: msg));
-                                        if (mounted) {
+                                        if (context.mounted) {
                                           ScaffoldMessenger.of(context)
                                               .showSnackBar(
                                             const SnackBar(

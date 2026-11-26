@@ -1131,7 +1131,7 @@ class _BukuInfakViewState extends State<BukuInfakView> {
                           rawPhone: s.noWaWali,
                           message: msg,
                         );
-                        if (!ok && mounted) {
+                        if (!ok && context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text('Tidak dapat membuka WhatsApp di perangkat ini.'),

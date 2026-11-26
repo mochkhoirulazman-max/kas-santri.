@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../config/app_config.dart';
+import '../services/subscription_service.dart';
 import '../utils/app_feedback.dart';
 
 class LegalDocumentSheet extends StatelessWidget {

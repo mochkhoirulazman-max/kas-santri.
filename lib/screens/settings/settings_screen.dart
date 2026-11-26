@@ -1034,7 +1034,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     if (val) {
                       final avail = await AuthService.instance.isBiometricsAvailable();
                       if (!avail) {
-                        if (mounted) {
+                        if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('Sensor biometrik tidak tersedia di perangkat ini.'), backgroundColor: Color(0xFFF59E0B)),
                           );
@@ -1323,7 +1323,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     setState(() => _isDriveBusy = true);
                                     try {
                                       await provider.connectGoogleDrive();
-                                      if (mounted) {
+                                      if (context.mounted) {
                                         AppFeedback.success();
                                         ScaffoldMessenger.of(context).showSnackBar(
                                           const SnackBar(
@@ -1395,7 +1395,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                         setState(() => _isDriveBusy = true);
                                         try {
                                           final dt = await provider.backupToGoogleDriveNow();
-                                          if (mounted) {
+                                          if (context.mounted) {
                                             AppFeedback.success();
                                             ScaffoldMessenger.of(context).showSnackBar(
                                               SnackBar(

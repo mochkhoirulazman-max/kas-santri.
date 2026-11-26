@@ -57,6 +57,7 @@ class _PinSettingsScreenState extends State<PinSettingsScreen> {
       }
     }
 
+    if (!mounted) return;
     final newPin = _newPinController.text.trim();
     final confirm = _confirmPinController.text.trim();
 

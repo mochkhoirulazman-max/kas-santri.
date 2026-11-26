@@ -1913,25 +1913,25 @@ void main() {
     test('AE. Tahap B v4.1 Final Polish: Gerbang Terpusat hasProAccess & Persistensi Onboarding/Walkthrough', () async {
       // 1. Verifikasi gerbang terpusat SubscriptionService.hasProAccess
       final sub = SubscriptionService.instance;
-      sub.updateAccessState(proActive: false, trialActive: false);
+      sub.updateAccessState(isProActive: false, isTrialActive: false);
       expect(sub.isProActive, false);
       expect(sub.isTrialActive, false);
       expect(sub.hasProAccess, false);
 
       // Saat Trial 14 Hari aktif, seluruh fitur PRO terbuka
-      sub.updateAccessState(proActive: false, trialActive: true);
+      sub.updateAccessState(isProActive: false, isTrialActive: true);
       expect(sub.isProActive, false);
       expect(sub.isTrialActive, true);
       expect(sub.hasProAccess, true);
 
       // Saat Langganan PRO aktif, seluruh fitur PRO terbuka
-      sub.updateAccessState(proActive: true, trialActive: false);
+      sub.updateAccessState(isProActive: true, isTrialActive: false);
       expect(sub.isProActive, true);
       expect(sub.isTrialActive, false);
       expect(sub.hasProAccess, true);
 
       // Reset ke Free
-      sub.updateAccessState(proActive: false, trialActive: false);
+      sub.updateAccessState(isProActive: false, isTrialActive: false);
       expect(sub.hasProAccess, false);
 
       // 2. Verifikasi penyimpanan status Onboarding & Spotlight Tour di SharedPreferences
