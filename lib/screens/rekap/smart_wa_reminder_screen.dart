@@ -6,6 +6,7 @@ import '../../services/report_service.dart';
 import '../../services/smart_wa_reminder_service.dart';
 import '../../utils/app_feedback.dart';
 import '../../widgets/app_background_wrapper.dart';
+import '../../widgets/guided_spotlight_tour.dart';
 import '../paywall_screen.dart';
 
 class SmartWaReminderScreen extends StatefulWidget {
@@ -16,6 +17,7 @@ class SmartWaReminderScreen extends StatefulWidget {
 }
 
 class _SmartWaReminderScreenState extends State<SmartWaReminderScreen> {
+  final ScreenSpotlightController _spotCtrl = ScreenSpotlightController();
   ReminderCategory _selectedCategory = ReminderCategory.saldoKritis;
   Set<String> _sentToday = {};
 
@@ -212,10 +214,50 @@ class _SmartWaReminderScreenState extends State<SmartWaReminderScreen> {
           ReportService.normalizeWaPhone(item.santri.noWaWali).isNotEmpty;
     }).length;
 
-    return AppBackgroundWrapper(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(title: const Text('Pusat Pengingat Wali Santri')),
+    return ScreenSpotlightHost(
+      screenKey: 'tour_wa_reminder',
+      controller: _spotCtrl,
+      steps: const [
+        SpotlightStepSpec(
+          emoji: '🗂️',
+          title: '3 Antrean Prioritas Wali Santri',
+          description:
+              'Pisahkan santri yang Saldo Jajannya Kritis (<3 hari), Infak Jatuh Tempo, maupun yang memiliki Tunggakan/Talangan Kas Pondok.',
+          accent: Color(0xFFFB7185),
+        ),
+        SpotlightStepSpec(
+          emoji: '📲',
+          title: 'Kirim Antrean Berurutan Anti-Spam',
+          description:
+              'Tekan tombol hijau besar untuk langsung membuka WhatsApp wali satu per satu dengan bahasa santun tanpa risiko spam massal.',
+          accent: Color(0xFF34D399),
+        ),
+        SpotlightStepSpec(
+          emoji: '✅',
+          title: 'Tanda Sudah Terkirim Hari Ini',
+          description:
+              'Santri yang sudah dikirimi pesan hari ini otomatis ditandai agar pengurus tidak mengirim pengingat ganda ke wali yang sama.',
+          accent: Color(0xFF38BDF8),
+        ),
+      ],
+      child: AppBackgroundWrapper(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            title: const Text('Pusat Pengingat Wali Santri'),
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Center(
+                  child: SpotlightHelpButton(
+                    onTap: _spotCtrl.startTour,
+                    size: 32,
+                    accent: const Color(0xFFFBBF24),
+                  ),
+                ),
+              ),
+            ],
+          ),
         body: SafeArea(
           child: Column(
             children: [
@@ -418,6 +460,7 @@ class _SmartWaReminderScreenState extends State<SmartWaReminderScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 

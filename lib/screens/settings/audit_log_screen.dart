@@ -6,6 +6,7 @@ import '../../providers/kas_santri_provider.dart';
 import '../../utils/app_feedback.dart';
 import '../../utils/date_formatter.dart';
 import '../../widgets/app_background_wrapper.dart';
+import '../../widgets/guided_spotlight_tour.dart';
 import '../paywall_screen.dart';
 
 class AuditLogScreen extends StatefulWidget {
@@ -16,6 +17,7 @@ class AuditLogScreen extends StatefulWidget {
 }
 
 class _AuditLogScreenState extends State<AuditLogScreen> {
+  final ScreenSpotlightController _spotCtrl = ScreenSpotlightController();
   bool _loading = true;
   List<AuditLogEntry> _entries = const [];
   AuditLogVerificationResult? _verification;
@@ -125,22 +127,51 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
     final verif = _verification;
     final chainOk = verif?.isValid ?? true;
 
-    return AppBackgroundWrapper(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          title: const Text('Jejak Audit Keamanan'),
-          actions: [
-            IconButton(
-              tooltip: 'Verifikasi Ulang Rantai Audit',
-              onPressed: () {
-                AppFeedback.tap();
-                _loadAudit();
-              },
-              icon: const Icon(Icons.verified_user_outlined),
-            ),
-          ],
+    return ScreenSpotlightHost(
+      screenKey: 'tour_audit_log',
+      controller: _spotCtrl,
+      steps: const [
+        SpotlightStepSpec(
+          emoji: '🛡️',
+          title: 'Verifikasi Integritas Rantai Hash SHA-256',
+          description:
+              'Setiap aksi sensitif (Void, Edit, Hapus, Restore, Reset, Serah Terima Infak) dirantai dengan hash kriptografis sehingga manipulasi manual dapat langsung terdeteksi.',
+          accent: Color(0xFF34D399),
         ),
+        SpotlightStepSpec(
+          emoji: '🔎',
+          title: 'Saring Log Berdasarkan Jenis Aksi',
+          description:
+              'Gunakan filter di bagian atas untuk menelusuri riwayat pembatalan (Void), perubahan nominal transaksi, atau pemulihan cadangan secara read-only.',
+          accent: Color(0xFF38BDF8),
+        ),
+      ],
+      child: AppBackgroundWrapper(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            title: const Text('Jejak Audit Keamanan'),
+            actions: [
+              IconButton(
+                tooltip: 'Verifikasi Ulang Rantai Audit',
+                onPressed: () {
+                  AppFeedback.tap();
+                  _loadAudit();
+                },
+                icon: const Icon(Icons.verified_user_outlined),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Center(
+                  child: SpotlightHelpButton(
+                    onTap: _spotCtrl.startTour,
+                    size: 32,
+                    accent: const Color(0xFF34D399),
+                  ),
+                ),
+              ),
+            ],
+          ),
         body: Column(
           children: [
             Padding(
@@ -356,6 +387,7 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 }

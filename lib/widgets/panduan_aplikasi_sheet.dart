@@ -139,6 +139,98 @@ class PanduanAplikasiSheet {
                   ),
                   const SizedBox(height: 8),
 
+                  // Tombol Reset & Putar Ulang Semua Tutorial Sorotan di Semua Menu
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        AppFeedback.tap();
+                        final provider = Provider.of<KasSantriProvider>(
+                          rootContext,
+                          listen: false,
+                        );
+                        await TutorialService.instance.resetAllScreenTours();
+                        if (sheetCtx.mounted) {
+                          Navigator.pop(sheetCtx);
+                        }
+                        if (rootContext.mounted) {
+                          ScaffoldMessenger.of(rootContext).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Semua tutorial sorotan di-reset & mode otomatis aktif kembali.',
+                              ),
+                              backgroundColor: Color(0xFF0EA5E9),
+                            ),
+                          );
+                          Navigator.of(rootContext).popUntil((r) => r.isFirst);
+                          provider.triggerSpotlightTour();
+                        }
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF6EE7B7),
+                        side: BorderSide(
+                          color: const Color(0xFF34D399).withValues(alpha: 0.55),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      icon: const Icon(Icons.restart_alt_rounded, size: 17),
+                      label: const Text(
+                        '🔄 Reset & Putar Ulang Semua Tutorial Sorotan',
+                        style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Switch Preferensi Tutorial Otomatis Saat Pertama Buka Menu
+                  FutureBuilder<bool>(
+                    future: TutorialService.instance.isAutoTourEnabled(),
+                    builder: (context, snap) {
+                      var autoVal = snap.data ?? true;
+                      return StatefulBuilder(
+                        builder: (_, setInnerState) {
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.04),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: const Color(0xFF38BDF8).withValues(alpha: 0.25),
+                              ),
+                            ),
+                            child: SwitchListTile.adaptive(
+                              dense: true,
+                              contentPadding: EdgeInsets.zero,
+                              activeColor: const Color(0xFF34D399),
+                              title: const Text(
+                                'Panduan Sorotan Otomatis (Saat Pertama Buka Menu)',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              subtitle: const Text(
+                                'Jika dimatikan, ketuk ikon (?) di header menu kapan saja.',
+                                style: TextStyle(color: Colors.white60, fontSize: 10),
+                              ),
+                              value: autoVal,
+                              onChanged: (val) async {
+                                AppFeedback.tap();
+                                setInnerState(() => autoVal = val);
+                                await TutorialService.instance.setAutoTourEnabled(val);
+                              },
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+
                   // Tombol Buka Slide Pengenalan (5 Slide)
                   SizedBox(
                     width: double.infinity,

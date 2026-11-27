@@ -10,6 +10,7 @@ import '../../providers/kas_santri_provider.dart';
 import '../../services/qr_card_pdf_service.dart';
 import '../../utils/app_feedback.dart';
 import '../../widgets/app_background_wrapper.dart';
+import '../../widgets/guided_spotlight_tour.dart';
 import '../paywall_screen.dart';
 
 enum _QrPrintScope { semua, perKamar, pilihan }
@@ -22,6 +23,7 @@ class CetakKartuQrScreen extends StatefulWidget {
 }
 
 class _CetakKartuQrScreenState extends State<CetakKartuQrScreen> {
+  final ScreenSpotlightController _spotCtrl = ScreenSpotlightController();
   _QrPrintScope _scope = _QrPrintScope.semua;
   String? _selectedKamar;
   final Set<String> _manualIds = {};
@@ -238,10 +240,43 @@ class _CetakKartuQrScreenState extends State<CetakKartuQrScreen> {
           s.kamar.toLowerCase().contains(q);
     }).toList();
 
-    return AppBackgroundWrapper(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(title: const Text('Cetak Kartu QR Massal (A4)')),
+    return ScreenSpotlightHost(
+      screenKey: 'tour_cetak_qr',
+      controller: _spotCtrl,
+      steps: const [
+        SpotlightStepSpec(
+          emoji: '🪪',
+          title: 'Pilih Cakupan Santri yang Dicetak',
+          description:
+              'Anda dapat mencetak QR Card untuk Semua Santri Aktif, Per Kamar tertentu, atau memilih santri secara manual.',
+          accent: Color(0xFF34D399),
+        ),
+        SpotlightStepSpec(
+          emoji: '🖨️',
+          title: 'PDF A4 Siap Laminating (8 Kartu/Halaman)',
+          description:
+              'Aplikasi menyusun kartu ID QR dengan logo pondok & garis potong otomatis. Gunakan hasil cetakan untuk Scan QR Antrean 1 Detik di Beranda.',
+          accent: Color(0xFF38BDF8),
+        ),
+      ],
+      child: AppBackgroundWrapper(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            title: const Text('Cetak Kartu QR Massal (A4)'),
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Center(
+                  child: SpotlightHelpButton(
+                    onTap: _spotCtrl.startTour,
+                    size: 32,
+                    accent: const Color(0xFF34D399),
+                  ),
+                ),
+              ),
+            ],
+          ),
         body: SafeArea(
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
@@ -457,6 +492,7 @@ class _CetakKartuQrScreenState extends State<CetakKartuQrScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 }

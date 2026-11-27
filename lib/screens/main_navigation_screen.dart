@@ -50,18 +50,18 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
         targetKey: _spotHeaderCrownKey,
         tabIndex: 0,
         emoji: '👑',
-        title: 'Identitas Pondok & Mahkota PRO',
+        title: 'Identitas Pondok & Bantuan (?)',
         description:
-            'Ketuk mahkota 👑 untuk coba PRO Gratis 14 Hari atau upgrade paket. Ketuk logo di kiri untuk memasang logo resmi pondok Anda.',
+            'Ketuk logo kiri untuk memasang logo pondok, mahkota 👑 untuk coba PRO 14 Hari, atau ikon (?) kapan saja untuk memutar ulang tutorial layar ini.',
         accent: const Color(0xFFFBBF24),
       ),
       SpotlightStepSpec(
         targetKey: _spotVaultKey,
         tabIndex: 0,
         emoji: '🏦',
-        title: 'Brankas Titipan & Multi-Dompet',
+        title: 'Brankas Titipan & Tabungan Terpisah',
         description:
-            'Pantau total uang titipan seluruh santri, pemisahan Kas Laci Tunai vs Rekening Bank, pengeluaran hari ini, dan total tunggakan.',
+            'Pantau total kas titipan, Kas Laci Tunai vs Bank, 🚨 daftar tunggakan, serta akses cepat 🏦 Tabungan Terpisah yang tidak ikut terpotong jajan harian.',
         accent: const Color(0xFF34D399),
       ),
       SpotlightStepSpec(
@@ -70,16 +70,16 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
         emoji: '➕',
         title: 'Tombol + Santri Baru',
         description:
-            'Tambahkan data santri baru dengan ringkas (saldo awal Rp 0, lalu isi saldo lewat menu Setoran agar tercatat rapi di mutasi).',
+            'Tambahkan santri baru dari sini (saldo awal Rp 0). Selanjutnya isi saldo atau sambangan melalui menu Setoran agar tercatat otomatis di buku mutasi.',
         accent: const Color(0xFF6EE7B7),
       ),
       SpotlightStepSpec(
         targetKey: _spotSantriCardsKey,
         tabIndex: 0,
         emoji: '💸',
-        title: 'Kartu Santri 2 Kotak & Scan QR',
+        title: 'Kartu Santri 2 Kotak & Scan 📷 QR',
         description:
-            'Ketuk kartu santri untuk mencatat ambil uang harian 3 detik, ketuk 📷 QR untuk mode antrean, atau geser layar kanan/kiri untuk pindah menu.',
+            'Ketuk kartu santri untuk catat ambil jajan 3 detik, ketuk 📷 QR untuk scan cepat antrean, atau buka profil santri untuk edit data & riwayat mutasi.',
         accent: const Color(0xFF38BDF8),
       ),
       SpotlightStepSpec(
@@ -123,9 +123,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
   }
 
   Future<void> _checkFirstTimeWalkthrough() async {
-    final seen = await TutorialService.instance.hasSeenWalkthrough();
-    if (!seen && mounted) {
-      await Future.delayed(const Duration(milliseconds: 420));
+    final autoEnabled = await TutorialService.instance.isAutoTourEnabled();
+    final seenOld = await TutorialService.instance.hasSeenWalkthrough();
+    final seenHome = await TutorialService.instance.hasSeenScreenTour('tour_home');
+    if (autoEnabled && !seenOld && !seenHome && mounted) {
+      await Future.delayed(const Duration(milliseconds: 380));
       if (mounted) {
         await _startSpotlightTour();
       }
@@ -154,7 +156,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     }
 
     if (!mounted) return;
-    final targetCtx = spec.targetKey.currentContext;
+    final targetCtx = spec.targetKey?.currentContext;
     if (targetCtx != null && targetCtx.mounted) {
       try {
         await Scrollable.ensureVisible(
@@ -175,7 +177,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
 
   Future<void> _finishSpotlightTour() async {
     AppFeedback.tap();
-    await TutorialService.instance.markWalkthroughSeen();
+    await TutorialService.instance.markScreenTourSeen('tour_home');
     if (!mounted) return;
     setState(() {
       _isTourActive = false;
@@ -184,6 +186,26 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     if (_currentIndex != 0) {
       _goToPage(0);
     }
+  }
+
+  Future<void> _disableAllAutoToursFromHome() async {
+    AppFeedback.tap();
+    await TutorialService.instance.markScreenTourSeen('tour_home');
+    await TutorialService.instance.setAutoTourEnabled(false);
+    if (!mounted) return;
+    setState(() {
+      _isTourActive = false;
+      _tourStepIndex = 0;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Tutorial otomatis dimatikan. Ketuk ikon (?) kapan saja jika butuh panduan.',
+        ),
+        backgroundColor: Color(0xFF0EA5E9),
+        duration: Duration(seconds: 3),
+      ),
+    );
   }
 
   @override
@@ -244,6 +266,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
                 vaultSpotlightKey: _spotVaultKey,
                 addSantriSpotlightKey: _spotAddSantriKey,
                 cardsAreaSpotlightKey: _spotSantriCardsKey,
+                onShowHomeHelp: _startSpotlightTour,
                 onOpenBukuInfak: () {
                   setState(() => _setoranSubTab = 1);
                   _goToPage(1);
@@ -259,13 +282,15 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
               SetoranScreen(
                 activeSubTab: _setoranSubTab,
                 preselectedSantriId: _preselectedSetoranSantriId,
+                isActiveTab: _currentIndex == 1,
                 onSubTabChanged: (sub) => setState(() => _setoranSubTab = sub),
                 onSaved: () => _goToPage(0),
               ),
-              const RiwayatTransaksiScreen(),
-              const RekapLaporanScreen(),
+              RiwayatTransaksiScreen(isActiveTab: _currentIndex == 2),
+              RekapLaporanScreen(isActiveTab: _currentIndex == 3),
               SystemTabScreen(
                 headerSpotlightKey: _spotSystemHeaderKey,
+                isActiveTab: _currentIndex == 4,
               ),
             ],
           ),
@@ -336,6 +361,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
                   }
                 },
                 onSkip: _finishSpotlightTour,
+                onDisableAllAutoTours: _disableAllAutoToursFromHome,
               ),
             ),
         ],

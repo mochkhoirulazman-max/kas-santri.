@@ -11,6 +11,7 @@ import '../../services/executive_analytics_service.dart';
 import '../../utils/app_feedback.dart';
 import '../../utils/currency_formatter.dart';
 import '../../widgets/app_background_wrapper.dart';
+import '../../widgets/guided_spotlight_tour.dart';
 import '../paywall_screen.dart';
 
 class ExecutiveDashboardScreen extends StatefulWidget {
@@ -22,6 +23,7 @@ class ExecutiveDashboardScreen extends StatefulWidget {
 }
 
 class _ExecutiveDashboardScreenState extends State<ExecutiveDashboardScreen> {
+  final ScreenSpotlightController _spotCtrl = ScreenSpotlightController();
   bool _loading = true;
   bool _showMonthly = true;
   bool _exportingPdf = false;
@@ -210,19 +212,55 @@ class _ExecutiveDashboardScreenState extends State<ExecutiveDashboardScreen> {
     }
     final summary = _summary;
 
-    return AppBackgroundWrapper(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          title: const Text('Laporan Eksekutif Yayasan'),
-          actions: [
-            IconButton(
-              onPressed: _loadAnalytics,
-              icon: const Icon(Icons.refresh_rounded),
-              tooltip: 'Muat Ulang Analitik',
-            ),
-          ],
+    return ScreenSpotlightHost(
+      screenKey: 'tour_executive',
+      controller: _spotCtrl,
+      steps: const [
+        SpotlightStepSpec(
+          emoji: '🏛️',
+          title: 'Ringkasan Posisi Brankas & Kepatuhan',
+          description:
+              'Memantau posisi kas pondok secara menyeluruh (Tunai + Bank) serta persentase kepatuhan setoran infak santri bulan berjalan.',
+          accent: Color(0xFF34D399),
         ),
+        SpotlightStepSpec(
+          emoji: '📈',
+          title: 'Grafik Tren Arus Kas 7 Hari & 6 Bulan',
+          description:
+              'Beralih antara tampilan harian 7 hari terakhir dan bulanan 6 bulan terakhir untuk melihat ritme pemasukan vs penarikan santri.',
+          accent: Color(0xFF38BDF8),
+        ),
+        SpotlightStepSpec(
+          emoji: '📄',
+          title: 'Cetak PDF Resmi 1 Halaman Yayasan',
+          description:
+              'Unduh dan bagikan ringkasan eksekutif 1 halaman berformat rapi langsung untuk Pengasuh atau Ketua Yayasan.',
+          accent: Color(0xFFFBBF24),
+        ),
+      ],
+      child: AppBackgroundWrapper(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            title: const Text('Laporan Eksekutif Yayasan'),
+            actions: [
+              IconButton(
+                onPressed: _loadAnalytics,
+                icon: const Icon(Icons.refresh_rounded),
+                tooltip: 'Muat Ulang Analitik',
+              ),
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Center(
+                  child: SpotlightHelpButton(
+                    onTap: _spotCtrl.startTour,
+                    size: 32,
+                    accent: const Color(0xFF34D399),
+                  ),
+                ),
+              ),
+            ],
+          ),
         body: SafeArea(
           child: _loading || summary == null
               ? const Center(child: CircularProgressIndicator())
@@ -473,6 +511,7 @@ class _ExecutiveDashboardScreenState extends State<ExecutiveDashboardScreen> {
                 ),
         ),
       ),
+    ),
     );
   }
 

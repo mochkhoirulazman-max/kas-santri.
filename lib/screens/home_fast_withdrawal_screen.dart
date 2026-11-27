@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../config/app_config.dart';
 import '../providers/kas_santri_provider.dart';
 import '../widgets/app_background_wrapper.dart';
+import '../widgets/guided_spotlight_tour.dart';
 import '../widgets/stat_card.dart';
 import '../widgets/santri_card.dart';
 import '../widgets/fast_withdrawal_bottom_sheet.dart';
@@ -21,6 +22,7 @@ import 'tabungan/brankas_tabungan_screen.dart';
 class HomeFastWithdrawalScreen extends StatefulWidget {
   final VoidCallback? onOpenBukuInfak;
   final ValueChanged<String>? onOpenSetoranForSantri;
+  final VoidCallback? onShowHomeHelp;
   final GlobalKey? headerCrownSpotlightKey;
   final GlobalKey? vaultSpotlightKey;
   final GlobalKey? addSantriSpotlightKey;
@@ -30,6 +32,7 @@ class HomeFastWithdrawalScreen extends StatefulWidget {
     Key? key,
     this.onOpenBukuInfak,
     this.onOpenSetoranForSantri,
+    this.onShowHomeHelp,
     this.headerCrownSpotlightKey,
     this.vaultSpotlightKey,
     this.addSantriSpotlightKey,
@@ -386,6 +389,14 @@ class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen>
                                   },
                                 ),
                               ),
+                              if (widget.onShowHomeHelp != null) ...[
+                                const SizedBox(width: 6),
+                                SpotlightHelpButton(
+                                  onTap: widget.onShowHomeHelp!,
+                                  size: 34,
+                                  accent: const Color(0xFF38BDF8),
+                                ),
+                              ],
                               ],
                             ),
                           ],

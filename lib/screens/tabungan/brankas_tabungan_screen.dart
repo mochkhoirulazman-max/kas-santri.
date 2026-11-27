@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/guided_spotlight_tour.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../models/santri.dart';
@@ -25,6 +26,7 @@ class BrankasTabunganScreen extends StatefulWidget {
 }
 
 class _BrankasTabunganScreenState extends State<BrankasTabunganScreen> {
+  final ScreenSpotlightController _spotCtrl = ScreenSpotlightController();
   int _activeTab = 0; // 0 = Saldo Per Santri, 1 = Mutasi Tabungan
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
@@ -752,31 +754,67 @@ class _BrankasTabunganScreenState extends State<BrankasTabunganScreen> {
           (t.catatan ?? '').toLowerCase().contains(q);
     }).toList();
 
-    return AppBackgroundWrapper(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          backgroundColor: const Color(0xCC060F1E),
-          title: const Text(
-            '🏦 Brankas Tabungan Terpisah',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-          ),
-          actions: [
-            IconButton(
-              tooltip: hideBalance ? 'Tampilkan Saldo' : 'Sembunyikan Saldo',
-              icon: Icon(
-                hideBalance
-                    ? Icons.visibility_off_outlined
-                    : Icons.visibility_outlined,
-                color: Colors.white70,
-              ),
-              onPressed: () {
-                AppFeedback.tap();
-                provider.toggleHideBalance();
-              },
-            ),
-          ],
+    return ScreenSpotlightHost(
+      screenKey: 'tour_tabungan',
+      controller: _spotCtrl,
+      steps: const [
+        SpotlightStepSpec(
+          emoji: '🏦',
+          title: 'Brankas Tabungan Terpisah (Anti-Tercampur)',
+          description:
+              'Dana tabungan darurat, pulang/lebaran, atau kitab terpisah 100% dari saldo uang jajan harian sehingga tidak pernah ikut terpotong jajan anak.',
+          accent: Color(0xFF34D399),
         ),
+        SpotlightStepSpec(
+          emoji: '💰',
+          title: 'Setor, Tarik & Pindah Buku Instan',
+          description:
+              'Catat setor/tarik tabungan (Tunai atau Bank), atau transfer sisa uang jajan ke Brankas Tabungan (maupun sebaliknya) dalam satu ketukan.',
+          accent: Color(0xFF38BDF8),
+        ),
+        SpotlightStepSpec(
+          emoji: '📜',
+          title: 'Saldo Per Santri & Jejak Mutasi Khusus',
+          description:
+              'Gunakan tab Saldo Santri untuk daftar penabung aktif dan tab Mutasi Tabungan untuk mengecek/membatalkan (Void) mutasi tabungan dengan aman.',
+          accent: Color(0xFFFBBF24),
+        ),
+      ],
+      child: AppBackgroundWrapper(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            backgroundColor: const Color(0xCC060F1E),
+            title: const Text(
+              '🏦 Brankas Tabungan Terpisah',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+            ),
+            actions: [
+              IconButton(
+                tooltip: hideBalance ? 'Tampilkan Saldo' : 'Sembunyikan Saldo',
+                icon: Icon(
+                  hideBalance
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                  color: Colors.white70,
+                ),
+                onPressed: () {
+                  AppFeedback.tap();
+                  provider.toggleHideBalance();
+                },
+              ),
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Center(
+                  child: SpotlightHelpButton(
+                    onTap: _spotCtrl.startTour,
+                    size: 32,
+                    accent: const Color(0xFF34D399),
+                  ),
+                ),
+              ),
+            ],
+          ),
         body: SafeArea(
           child: Column(
             children: [
@@ -1114,6 +1152,7 @@ class _BrankasTabunganScreenState extends State<BrankasTabunganScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 

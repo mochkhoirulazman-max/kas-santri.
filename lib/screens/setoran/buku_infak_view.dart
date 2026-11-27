@@ -10,18 +10,28 @@ import '../../services/yayasan_export_service.dart';
 import '../../utils/app_feedback.dart';
 import '../../utils/currency_formatter.dart';
 import '../../utils/date_formatter.dart';
+import '../../widgets/guided_spotlight_tour.dart';
 import '../../widgets/infak_edit_bottom_sheet.dart';
 import '../../widgets/serah_terima_bottom_sheet.dart';
 import '../paywall_screen.dart';
 
 class BukuInfakView extends StatefulWidget {
-  const BukuInfakView({Key? key}) : super(key: key);
+  final bool isActiveTab;
+  final ScreenSpotlightController? spotlightController;
+
+  const BukuInfakView({
+    Key? key,
+    this.isActiveTab = true,
+    this.spotlightController,
+  }) : super(key: key);
 
   @override
   State<BukuInfakView> createState() => _BukuInfakViewState();
 }
 
 class _BukuInfakViewState extends State<BukuInfakView> {
+  final ScreenSpotlightController _fallbackSpotCtrl = ScreenSpotlightController();
+  final GlobalKey _spotInfakVaultKey = GlobalKey();
   String _selectedKategori = 'ALL'; // ALL, SANTRIYIN, SANTRIYAT, SANTRI_BARU
   String _selectedStatusFilter = 'ALL'; // ALL, BELUM, CICIL, JATUH_TEMPO, PULANG_PINDAH
   bool _isExporting = false;
@@ -140,17 +150,46 @@ class _BukuInfakViewState extends State<BukuInfakView> {
         ? totalBerasLiter.toInt().toString()
         : totalBerasLiter.toStringAsFixed(1);
 
-    return CustomScrollView(
-      slivers: [
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-          sliver: SliverToBoxAdapter(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // 1. Kartu Kas Infak Pondok & Gudang Beras + Serah Terima (Vibrant Emerald-Gold Glass)
-                Container(
-                  padding: const EdgeInsets.all(16),
+    return ScreenSpotlightHost(
+      screenKey: 'tour_buku_infak',
+      isActive: widget.isActiveTab,
+      controller: widget.spotlightController ?? _fallbackSpotCtrl,
+      steps: [
+        SpotlightStepSpec(
+          targetKey: _spotInfakVaultKey,
+          emoji: '🏛️',
+          title: 'Kas Infak Pondok & Gudang Beras',
+          description:
+              'Memantau total uang infak (Masak + Listrik + Pengganti Beras) dan stok fisik beras liter yang terkumpul tetapi belum diserahterimakan ke pengurus dapur.',
+          accent: const Color(0xFF34D399),
+        ),
+        const SpotlightStepSpec(
+          emoji: '🌾',
+          title: 'Filter Status Lunas, Cicil & Jatuh Tempo',
+          description:
+              'Gunakan tab filter dan kotak pencarian di bawah kartu untuk melihat santri yang belum setor, masih nyicil, jatuh tempo (H-3), atau sedang pulang/pindah.',
+          accent: Color(0xFFFBBF24),
+        ),
+        const SpotlightStepSpec(
+          emoji: '🤝',
+          title: 'Serah Terima Dapur & Edit Cepat',
+          description:
+              'Ketuk kartu santri untuk ubah rincian infak/bebas biaya, atau gunakan tombol Serah Terima di atas untuk mencatat penyerahan uang & beras ke pengelola dapur pondok.',
+          accent: Color(0xFF38BDF8),
+        ),
+      ],
+      child: CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+            sliver: SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // 1. Kartu Kas Infak Pondok & Gudang Beras + Serah Terima (Vibrant Emerald-Gold Glass)
+                  Container(
+                    key: _spotInfakVaultKey,
+                    padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
@@ -644,6 +683,7 @@ class _BukuInfakViewState extends State<BukuInfakView> {
             ),
           ),
       ],
+    ),
     );
   }
 

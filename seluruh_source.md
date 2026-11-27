@@ -7,7 +7,7 @@
 - **Versi Aplikasi:** v4.2.0+42 (Rekonsiliasi Akuntansi 100%, Eliminasi N+1 Query, Isolasi Undo Notifier, Modular Repository Architecture, Reconnect SantriDetailScreen, Kepatuhan Play Store & CI/CD 2-Job)
 - **Package ID Android (applicationId):** com.pondok.kassantri
 - **Konfigurasi Build CI/CD (Bagian 8 PRD):** AGP 9.3.1, Gradle 9.5.0, Kotlin 2.4.20, Compile/Target SDK 36, Min SDK 24, Java 17 (CI Runner JDK 21 Temurin)
-- **Total File Proyek:** 132 file (123 file kode sumber & konfigurasi teks + 9 aset biner)
+- **Total File Proyek:** 136 file (127 file kode sumber & konfigurasi teks + 9 aset biner)
 
 ## 2. Struktur Lengkap Direktori & File Proyek
 ```text
@@ -24,7 +24,7 @@ kas-santri/
 ├── admin_dashboard/index.html (24.4 KB)
 ├── admin_dashboard/storage.js (20.4 KB)
 ├── admin_dashboard/styles.css (8.7 KB)
-├── admin_dashboard/supabase_schema.sql (11.4 KB)
+├── admin_dashboard/supabase_schema.sql (15.5 KB)
 ├── analysis_options.yaml (0.6 KB)
 ├── android/app/build.gradle (2.4 KB)
 ├── android/app/proguard-rules.pro (2.8 KB)
@@ -49,52 +49,56 @@ kas-santri/
 ├── docs/privacy.html (4.8 KB)
 ├── docs/terms.html (4.6 KB)
 ├── lib/config/app_config.dart (2.2 KB)
-├── lib/database/database_helper.dart (14.2 KB)
-├── lib/database/repositories/backup_audit_repository.dart (18.8 KB)
+├── lib/database/database_helper.dart (16.5 KB)
+├── lib/database/repositories/backup_audit_repository.dart (19.6 KB)
 ├── lib/database/repositories/infak_repository.dart (13.1 KB)
 ├── lib/database/repositories/ledger_repository.dart (45.4 KB)
-├── lib/database/repositories/santri_repository.dart (7.9 KB)
-├── lib/database/schema_migrator.dart (19.8 KB)
+├── lib/database/repositories/santri_repository.dart (8.7 KB)
+├── lib/database/repositories/tabungan_repository.dart (14.7 KB)
+├── lib/database/schema_migrator.dart (21.1 KB)
 ├── lib/main.dart (1.3 KB)
 ├── lib/models/audit_log.dart (4 KB)
 ├── lib/models/bendahara_account.dart (2.9 KB)
 ├── lib/models/cash_opname_log.dart (2.1 KB)
 ├── lib/models/infak_santri.dart (7.2 KB)
 ├── lib/models/pengaturan.dart (8.5 KB)
-├── lib/models/santri.dart (6.5 KB)
+├── lib/models/santri.dart (6.7 KB)
 ├── lib/models/santri_status.dart (2.7 KB)
 ├── lib/models/serah_terima_infak.dart (2.7 KB)
 ├── lib/models/setoran.dart (2.6 KB)
 ├── lib/models/transaksi.dart (3 KB)
-├── lib/providers/kas_santri_provider.dart (47.6 KB)
+├── lib/models/transaksi_tabungan.dart (2.9 KB)
+├── lib/providers/kas_santri_provider.dart (51.4 KB)
 ├── lib/providers/theme_wallpaper_provider.dart (8.2 KB)
 ├── lib/screens/auth/login_screen.dart (26.9 KB)
-├── lib/screens/home_fast_withdrawal_screen.dart (41.2 KB)
-├── lib/screens/main_navigation_screen.dart (13.1 KB)
+├── lib/screens/home_fast_withdrawal_screen.dart (43.3 KB)
+├── lib/screens/main_navigation_screen.dart (14.2 KB)
 ├── lib/screens/onboarding_screen.dart (26.3 KB)
 ├── lib/screens/paywall_screen.dart (74 KB)
 ├── lib/screens/pin_lock_screen.dart (18.3 KB)
-├── lib/screens/rekap/cash_opname_screen.dart (21.9 KB)
-├── lib/screens/rekap/executive_dashboard_screen.dart (23.3 KB)
-├── lib/screens/rekap/rekap_laporan_screen.dart (49.6 KB)
-├── lib/screens/rekap/smart_wa_reminder_screen.dart (18.9 KB)
-├── lib/screens/santri/cetak_kartu_qr_screen.dart (18 KB)
-├── lib/screens/santri/import_santri_excel_screen.dart (21.1 KB)
+├── lib/screens/rekap/cash_opname_screen.dart (23.8 KB)
+├── lib/screens/rekap/executive_dashboard_screen.dart (24.9 KB)
+├── lib/screens/rekap/rekap_laporan_screen.dart (52.6 KB)
+├── lib/screens/rekap/smart_wa_reminder_screen.dart (20.5 KB)
+├── lib/screens/santri/cetak_kartu_qr_screen.dart (19.3 KB)
+├── lib/screens/santri/import_santri_excel_screen.dart (22.5 KB)
 ├── lib/screens/santri/qr_scanner_screen.dart (6.9 KB)
-├── lib/screens/santri/santri_detail_screen.dart (60.1 KB)
-├── lib/screens/setoran/buku_infak_view.dart (47.8 KB)
-├── lib/screens/setoran/setoran_screen.dart (59.5 KB)
-├── lib/screens/settings/audit_log_screen.dart (14.9 KB)
+├── lib/screens/santri/santri_detail_screen.dart (65.1 KB)
+├── lib/screens/setoran/buku_infak_view.dart (49.5 KB)
+├── lib/screens/setoran/setoran_screen.dart (62.4 KB)
+├── lib/screens/settings/audit_log_screen.dart (16.2 KB)
 ├── lib/screens/settings/pin_settings_screen.dart (8.1 KB)
-├── lib/screens/settings/settings_screen.dart (79.5 KB)
-├── lib/screens/settings/system_tab_screen.dart (42.2 KB)
-├── lib/screens/settings/tahun_ajaran_screen.dart (23.2 KB)
+├── lib/screens/settings/settings_screen.dart (94.6 KB)
+├── lib/screens/settings/system_tab_screen.dart (45 KB)
+├── lib/screens/settings/tahun_ajaran_screen.dart (24.8 KB)
 ├── lib/screens/splash_screen.dart (5 KB)
-├── lib/screens/transaksi/riwayat_transaksi_screen.dart (30.3 KB)
+├── lib/screens/tabungan/brankas_tabungan_screen.dart (56.9 KB)
+├── lib/screens/transaksi/riwayat_transaksi_screen.dart (32.5 KB)
 ├── lib/services/account_auth_service.dart (13.1 KB)
 ├── lib/services/auth_service.dart (6.8 KB)
-├── lib/services/backup_service.dart (9 KB)
+├── lib/services/backup_service.dart (9.2 KB)
 ├── lib/services/bulk_santri_excel_service.dart (10.8 KB)
+├── lib/services/cloud_backup_service.dart (9.6 KB)
 ├── lib/services/customer_sync_service.dart (9.2 KB)
 ├── lib/services/executive_analytics_service.dart (22.1 KB)
 ├── lib/services/exports/yayasan_excel_exporter.dart (54.5 KB)
@@ -106,7 +110,7 @@ kas-santri/
 ├── lib/services/security_guard_service.dart (9 KB)
 ├── lib/services/smart_wa_reminder_service.dart (6.8 KB)
 ├── lib/services/subscription_service.dart (15.7 KB)
-├── lib/services/tutorial_service.dart (1.6 KB)
+├── lib/services/tutorial_service.dart (3.3 KB)
 ├── lib/services/yayasan_export_service.dart (7.9 KB)
 ├── lib/utils/app_feedback.dart (0.8 KB)
 ├── lib/utils/currency_formatter.dart (2.7 KB)
@@ -115,14 +119,14 @@ kas-santri/
 ├── lib/utils/time_category_helper.dart (2.1 KB)
 ├── lib/widgets/app_background_wrapper.dart (8.9 KB)
 ├── lib/widgets/direct_dana_payment_sheet.dart (29.7 KB)
-├── lib/widgets/encrypted_backup_helper.dart (9.9 KB)
+├── lib/widgets/encrypted_backup_helper.dart (34.6 KB)
 ├── lib/widgets/fast_withdrawal_bottom_sheet.dart (32.5 KB)
-├── lib/widgets/guided_spotlight_tour.dart (14.3 KB)
+├── lib/widgets/guided_spotlight_tour.dart (22.4 KB)
 ├── lib/widgets/infak_edit_bottom_sheet.dart (21.9 KB)
 ├── lib/widgets/kartu_qr_santri_dialog.dart (17.3 KB)
 ├── lib/widgets/legal_document_sheet.dart (12.3 KB)
 ├── lib/widgets/numpad_widget.dart (3.5 KB)
-├── lib/widgets/panduan_aplikasi_sheet.dart (32.7 KB)
+├── lib/widgets/panduan_aplikasi_sheet.dart (37.1 KB)
 ├── lib/widgets/quick_chips_widget.dart (2.9 KB)
 ├── lib/widgets/quick_edit_santri_bottom_sheet.dart (31.1 KB)
 ├── lib/widgets/sambangan_receipt_dialog.dart (15.7 KB)
@@ -135,10 +139,10 @@ kas-santri/
 ├── lib/widgets/tarik_tunai_bottom_sheet.dart (15.6 KB)
 ├── lib/widgets/tunggakan_bottom_sheet.dart (16.7 KB)
 ├── lib/widgets/undo_snackbar.dart (8.5 KB)
-├── prd.md (24.4 KB)
+├── prd.md (28.9 KB)
 ├── pubspec.yaml (1.3 KB)
 ├── push_to_github.bat (0.6 KB)
-├── test/financial_engine_test.dart (92.3 KB)
+├── test/financial_engine_test.dart (100.2 KB)
 ├── test/refrensi antarmuka.md (101.2 KB)
 ├── test/widget_test.dart (0.7 KB)
 ├── tool/generate_keypair.dart (5.7 KB)
@@ -161,7 +165,7 @@ kas-santri/
 | 10 | `admin_dashboard/index.html` | 24968 | 515 |
 | 11 | `admin_dashboard/storage.js` | 20886 | 561 |
 | 12 | `admin_dashboard/styles.css` | 8928 | 483 |
-| 13 | `admin_dashboard/supabase_schema.sql` | 11658 | 298 |
+| 13 | `admin_dashboard/supabase_schema.sql` | 15834 | 431 |
 | 14 | `analysis_options.yaml` | 607 | 22 |
 | 15 | `android/app/build.gradle` | 2466 | 95 |
 | 16 | `android/app/proguard-rules.pro` | 2856 | 70 |
@@ -177,113 +181,117 @@ kas-santri/
 | 26 | `docs/privacy.html` | 4868 | 103 |
 | 27 | `docs/terms.html` | 4675 | 104 |
 | 28 | `lib/config/app_config.dart` | 2265 | 53 |
-| 29 | `lib/database/database_helper.dart` | 14568 | 454 |
-| 30 | `lib/database/repositories/backup_audit_repository.dart` | 19229 | 576 |
+| 29 | `lib/database/database_helper.dart` | 16846 | 531 |
+| 30 | `lib/database/repositories/backup_audit_repository.dart` | 20082 | 601 |
 | 31 | `lib/database/repositories/infak_repository.dart` | 13461 | 396 |
 | 32 | `lib/database/repositories/ledger_repository.dart` | 46502 | 1402 |
-| 33 | `lib/database/repositories/santri_repository.dart` | 8094 | 287 |
-| 34 | `lib/database/schema_migrator.dart` | 20262 | 665 |
-| 35 | `lib/main.dart` | 1281 | 44 |
-| 36 | `lib/models/audit_log.dart` | 4051 | 136 |
-| 37 | `lib/models/bendahara_account.dart` | 2988 | 104 |
-| 38 | `lib/models/cash_opname_log.dart` | 2172 | 72 |
-| 39 | `lib/models/infak_santri.dart` | 7385 | 216 |
-| 40 | `lib/models/pengaturan.dart` | 8745 | 217 |
-| 41 | `lib/models/santri.dart` | 6609 | 210 |
-| 42 | `lib/models/santri_status.dart` | 2725 | 90 |
-| 43 | `lib/models/serah_terima_infak.dart` | 2797 | 85 |
-| 44 | `lib/models/setoran.dart` | 2670 | 84 |
-| 45 | `lib/models/transaksi.dart` | 3109 | 90 |
-| 46 | `lib/providers/kas_santri_provider.dart` | 48694 | 1473 |
-| 47 | `lib/providers/theme_wallpaper_provider.dart` | 8447 | 263 |
-| 48 | `lib/screens/auth/login_screen.dart` | 27582 | 671 |
-| 49 | `lib/screens/home_fast_withdrawal_screen.dart` | 42213 | 907 |
-| 50 | `lib/screens/main_navigation_screen.dart` | 13411 | 391 |
-| 51 | `lib/screens/onboarding_screen.dart` | 26883 | 739 |
-| 52 | `lib/screens/paywall_screen.dart` | 75773 | 1762 |
-| 53 | `lib/screens/pin_lock_screen.dart` | 18750 | 462 |
-| 54 | `lib/screens/rekap/cash_opname_screen.dart` | 22405 | 578 |
-| 55 | `lib/screens/rekap/executive_dashboard_screen.dart` | 23907 | 598 |
-| 56 | `lib/screens/rekap/rekap_laporan_screen.dart` | 50768 | 1221 |
-| 57 | `lib/screens/rekap/smart_wa_reminder_screen.dart` | 19383 | 455 |
-| 58 | `lib/screens/santri/cetak_kartu_qr_screen.dart` | 18473 | 462 |
-| 59 | `lib/screens/santri/import_santri_excel_screen.dart` | 21646 | 534 |
-| 60 | `lib/screens/santri/qr_scanner_screen.dart` | 7057 | 202 |
-| 61 | `lib/screens/santri/santri_detail_screen.dart` | 61592 | 1466 |
-| 62 | `lib/screens/setoran/buku_infak_view.dart` | 48984 | 1191 |
-| 63 | `lib/screens/setoran/setoran_screen.dart` | 60877 | 1433 |
-| 64 | `lib/screens/settings/audit_log_screen.dart` | 15281 | 361 |
-| 65 | `lib/screens/settings/pin_settings_screen.dart` | 8266 | 242 |
-| 66 | `lib/screens/settings/settings_screen.dart` | 81380 | 1806 |
-| 67 | `lib/screens/settings/system_tab_screen.dart` | 43212 | 1068 |
-| 68 | `lib/screens/settings/tahun_ajaran_screen.dart` | 23731 | 597 |
-| 69 | `lib/screens/splash_screen.dart` | 5140 | 170 |
-| 70 | `lib/screens/transaksi/riwayat_transaksi_screen.dart` | 31050 | 649 |
-| 71 | `lib/services/account_auth_service.dart` | 13401 | 400 |
-| 72 | `lib/services/auth_service.dart` | 6918 | 202 |
-| 73 | `lib/services/backup_service.dart` | 9177 | 283 |
-| 74 | `lib/services/bulk_santri_excel_service.dart` | 11084 | 343 |
-| 75 | `lib/services/customer_sync_service.dart` | 9420 | 287 |
-| 76 | `lib/services/executive_analytics_service.dart` | 22675 | 648 |
-| 77 | `lib/services/exports/yayasan_excel_exporter.dart` | 55830 | 1772 |
-| 78 | `lib/services/exports/yayasan_pdf_exporter.dart` | 35879 | 945 |
-| 79 | `lib/services/google_drive_backup_service.dart` | 10890 | 327 |
-| 80 | `lib/services/license_service.dart` | 10921 | 359 |
-| 81 | `lib/services/qr_card_pdf_service.dart` | 13220 | 358 |
-| 82 | `lib/services/report_service.dart` | 20905 | 474 |
-| 83 | `lib/services/security_guard_service.dart` | 9213 | 287 |
-| 84 | `lib/services/smart_wa_reminder_service.dart` | 6996 | 180 |
-| 85 | `lib/services/subscription_service.dart` | 16029 | 527 |
-| 86 | `lib/services/tutorial_service.dart` | 1614 | 56 |
-| 87 | `lib/services/yayasan_export_service.dart` | 8077 | 250 |
-| 88 | `lib/utils/app_feedback.dart` | 769 | 35 |
-| 89 | `lib/utils/currency_formatter.dart` | 2729 | 76 |
-| 90 | `lib/utils/date_formatter.dart` | 3082 | 81 |
-| 91 | `lib/utils/theme.dart` | 3500 | 98 |
-| 92 | `lib/utils/time_category_helper.dart` | 2138 | 84 |
-| 93 | `lib/widgets/app_background_wrapper.dart` | 9069 | 292 |
-| 94 | `lib/widgets/direct_dana_payment_sheet.dart` | 30388 | 735 |
-| 95 | `lib/widgets/encrypted_backup_helper.dart` | 10169 | 293 |
-| 96 | `lib/widgets/fast_withdrawal_bottom_sheet.dart` | 33249 | 816 |
-| 97 | `lib/widgets/guided_spotlight_tour.dart` | 14637 | 396 |
-| 98 | `lib/widgets/infak_edit_bottom_sheet.dart` | 22421 | 558 |
-| 99 | `lib/widgets/kartu_qr_santri_dialog.dart` | 17756 | 422 |
-| 100 | `lib/widgets/legal_document_sheet.dart` | 12556 | 272 |
-| 101 | `lib/widgets/numpad_widget.dart` | 3613 | 131 |
-| 102 | `lib/widgets/panduan_aplikasi_sheet.dart` | 33452 | 834 |
-| 103 | `lib/widgets/quick_chips_widget.dart` | 2952 | 87 |
-| 104 | `lib/widgets/quick_edit_santri_bottom_sheet.dart` | 31894 | 781 |
-| 105 | `lib/widgets/sambangan_receipt_dialog.dart` | 16070 | 410 |
-| 106 | `lib/widgets/santri_card.dart` | 34376 | 802 |
-| 107 | `lib/widgets/searchable_santri_picker.dart` | 32152 | 725 |
-| 108 | `lib/widgets/serah_terima_bottom_sheet.dart` | 22699 | 538 |
-| 109 | `lib/widgets/stat_card.dart` | 20730 | 560 |
-| 110 | `lib/widgets/struk_gambar_dialog.dart` | 17228 | 425 |
-| 111 | `lib/widgets/tambah_santri_bottom_sheet.dart` | 23839 | 671 |
-| 112 | `lib/widgets/tarik_tunai_bottom_sheet.dart` | 15930 | 406 |
-| 113 | `lib/widgets/tunggakan_bottom_sheet.dart` | 17093 | 456 |
-| 114 | `lib/widgets/undo_snackbar.dart` | 8726 | 240 |
-| 115 | `prd.md` | 24947 | 238 |
-| 116 | `pubspec.yaml` | 1295 | 67 |
-| 117 | `push_to_github.bat` | 597 | 15 |
-| 118 | `test/financial_engine_test.dart` | 94473 | 2434 |
-| 119 | `test/refrensi antarmuka.md` | 103639 | 1942 |
-| 120 | `test/widget_test.dart` | 730 | 27 |
-| 121 | `tool/generate_keypair.dart` | 5827 | 163 |
-| 122 | `tool/pre_flight_check.bat` | 1225 | 42 |
-| 123 | `tool/pre_flight_check.sh` | 914 | 30 |
+| 33 | `lib/database/repositories/santri_repository.dart` | 8907 | 310 |
+| 34 | `lib/database/repositories/tabungan_repository.dart` | 15071 | 464 |
+| 35 | `lib/database/schema_migrator.dart` | 21560 | 706 |
+| 36 | `lib/main.dart` | 1281 | 44 |
+| 37 | `lib/models/audit_log.dart` | 4051 | 136 |
+| 38 | `lib/models/bendahara_account.dart` | 2988 | 104 |
+| 39 | `lib/models/cash_opname_log.dart` | 2172 | 72 |
+| 40 | `lib/models/infak_santri.dart` | 7385 | 216 |
+| 41 | `lib/models/pengaturan.dart` | 8745 | 217 |
+| 42 | `lib/models/santri.dart` | 6853 | 216 |
+| 43 | `lib/models/santri_status.dart` | 2725 | 90 |
+| 44 | `lib/models/serah_terima_infak.dart` | 2797 | 85 |
+| 45 | `lib/models/setoran.dart` | 2670 | 84 |
+| 46 | `lib/models/transaksi.dart` | 3109 | 90 |
+| 47 | `lib/models/transaksi_tabungan.dart` | 2975 | 97 |
+| 48 | `lib/providers/kas_santri_provider.dart` | 52631 | 1602 |
+| 49 | `lib/providers/theme_wallpaper_provider.dart` | 8447 | 263 |
+| 50 | `lib/screens/auth/login_screen.dart` | 27582 | 671 |
+| 51 | `lib/screens/home_fast_withdrawal_screen.dart` | 44312 | 951 |
+| 52 | `lib/screens/main_navigation_screen.dart` | 14583 | 417 |
+| 53 | `lib/screens/onboarding_screen.dart` | 26883 | 739 |
+| 54 | `lib/screens/paywall_screen.dart` | 75773 | 1762 |
+| 55 | `lib/screens/pin_lock_screen.dart` | 18750 | 462 |
+| 56 | `lib/screens/rekap/cash_opname_screen.dart` | 24358 | 624 |
+| 57 | `lib/screens/rekap/executive_dashboard_screen.dart` | 25489 | 637 |
+| 58 | `lib/screens/rekap/rekap_laporan_screen.dart` | 53901 | 1303 |
+| 59 | `lib/screens/rekap/smart_wa_reminder_screen.dart` | 21012 | 498 |
+| 60 | `lib/screens/santri/cetak_kartu_qr_screen.dart` | 19794 | 498 |
+| 61 | `lib/screens/santri/import_santri_excel_screen.dart` | 23002 | 570 |
+| 62 | `lib/screens/santri/qr_scanner_screen.dart` | 7057 | 202 |
+| 63 | `lib/screens/santri/santri_detail_screen.dart` | 66638 | 1573 |
+| 64 | `lib/screens/setoran/buku_infak_view.dart` | 50707 | 1231 |
+| 65 | `lib/screens/setoran/setoran_screen.dart` | 63902 | 1498 |
+| 66 | `lib/screens/settings/audit_log_screen.dart` | 16628 | 393 |
+| 67 | `lib/screens/settings/pin_settings_screen.dart` | 8266 | 242 |
+| 68 | `lib/screens/settings/settings_screen.dart` | 96837 | 2152 |
+| 69 | `lib/screens/settings/system_tab_screen.dart` | 46102 | 1140 |
+| 70 | `lib/screens/settings/tahun_ajaran_screen.dart` | 25374 | 640 |
+| 71 | `lib/screens/splash_screen.dart` | 5140 | 170 |
+| 72 | `lib/screens/tabungan/brankas_tabungan_screen.dart` | 58297 | 1403 |
+| 73 | `lib/screens/transaksi/riwayat_transaksi_screen.dart` | 33255 | 701 |
+| 74 | `lib/services/account_auth_service.dart` | 13401 | 400 |
+| 75 | `lib/services/auth_service.dart` | 6918 | 202 |
+| 76 | `lib/services/backup_service.dart` | 9403 | 288 |
+| 77 | `lib/services/bulk_santri_excel_service.dart` | 11084 | 343 |
+| 78 | `lib/services/cloud_backup_service.dart` | 9860 | 312 |
+| 79 | `lib/services/customer_sync_service.dart` | 9420 | 287 |
+| 80 | `lib/services/executive_analytics_service.dart` | 22675 | 648 |
+| 81 | `lib/services/exports/yayasan_excel_exporter.dart` | 55830 | 1772 |
+| 82 | `lib/services/exports/yayasan_pdf_exporter.dart` | 35879 | 945 |
+| 83 | `lib/services/google_drive_backup_service.dart` | 10890 | 327 |
+| 84 | `lib/services/license_service.dart` | 10921 | 359 |
+| 85 | `lib/services/qr_card_pdf_service.dart` | 13220 | 358 |
+| 86 | `lib/services/report_service.dart` | 20905 | 474 |
+| 87 | `lib/services/security_guard_service.dart` | 9213 | 287 |
+| 88 | `lib/services/smart_wa_reminder_service.dart` | 6996 | 180 |
+| 89 | `lib/services/subscription_service.dart` | 16029 | 527 |
+| 90 | `lib/services/tutorial_service.dart` | 3416 | 98 |
+| 91 | `lib/services/yayasan_export_service.dart` | 8077 | 250 |
+| 92 | `lib/utils/app_feedback.dart` | 769 | 35 |
+| 93 | `lib/utils/currency_formatter.dart` | 2729 | 76 |
+| 94 | `lib/utils/date_formatter.dart` | 3082 | 81 |
+| 95 | `lib/utils/theme.dart` | 3500 | 98 |
+| 96 | `lib/utils/time_category_helper.dart` | 2138 | 84 |
+| 97 | `lib/widgets/app_background_wrapper.dart` | 9069 | 292 |
+| 98 | `lib/widgets/direct_dana_payment_sheet.dart` | 30388 | 735 |
+| 99 | `lib/widgets/encrypted_backup_helper.dart` | 35439 | 1021 |
+| 100 | `lib/widgets/fast_withdrawal_bottom_sheet.dart` | 33249 | 816 |
+| 101 | `lib/widgets/guided_spotlight_tour.dart` | 22965 | 668 |
+| 102 | `lib/widgets/infak_edit_bottom_sheet.dart` | 22421 | 558 |
+| 103 | `lib/widgets/kartu_qr_santri_dialog.dart` | 17756 | 422 |
+| 104 | `lib/widgets/legal_document_sheet.dart` | 12556 | 272 |
+| 105 | `lib/widgets/numpad_widget.dart` | 3613 | 131 |
+| 106 | `lib/widgets/panduan_aplikasi_sheet.dart` | 38000 | 919 |
+| 107 | `lib/widgets/quick_chips_widget.dart` | 2952 | 87 |
+| 108 | `lib/widgets/quick_edit_santri_bottom_sheet.dart` | 31894 | 781 |
+| 109 | `lib/widgets/sambangan_receipt_dialog.dart` | 16070 | 410 |
+| 110 | `lib/widgets/santri_card.dart` | 34376 | 802 |
+| 111 | `lib/widgets/searchable_santri_picker.dart` | 32152 | 725 |
+| 112 | `lib/widgets/serah_terima_bottom_sheet.dart` | 22699 | 538 |
+| 113 | `lib/widgets/stat_card.dart` | 20730 | 560 |
+| 114 | `lib/widgets/struk_gambar_dialog.dart` | 17228 | 425 |
+| 115 | `lib/widgets/tambah_santri_bottom_sheet.dart` | 23839 | 671 |
+| 116 | `lib/widgets/tarik_tunai_bottom_sheet.dart` | 15930 | 406 |
+| 117 | `lib/widgets/tunggakan_bottom_sheet.dart` | 17093 | 456 |
+| 118 | `lib/widgets/undo_snackbar.dart` | 8726 | 240 |
+| 119 | `prd.md` | 29570 | 255 |
+| 120 | `pubspec.yaml` | 1295 | 67 |
+| 121 | `push_to_github.bat` | 597 | 15 |
+| 122 | `test/financial_engine_test.dart` | 102596 | 2639 |
+| 123 | `test/refrensi antarmuka.md` | 103639 | 1942 |
+| 124 | `test/widget_test.dart` | 730 | 27 |
+| 125 | `tool/generate_keypair.dart` | 5827 | 163 |
+| 126 | `tool/pre_flight_check.bat` | 1225 | 42 |
+| 127 | `tool/pre_flight_check.sh` | 914 | 30 |
 
 ---
 
 ## 4. Seluruh Kode Sumber Aplikasi (Lengkap 100%)
 
-### [1/123] `.flutter-version`
+### [1/127] `.flutter-version`
 
 ```text
 3.50.1
 ```
 
-### [2/123] `.githooks/pre-commit`
+### [2/127] `.githooks/pre-commit`
 
 ```text
 #!/bin/sh
@@ -311,7 +319,7 @@ echo "[Pre-Commit] Seluruh validasi pre-commit lolos!"
 exit 0
 ```
 
-### [3/123] `.githooks/pre-push`
+### [3/127] `.githooks/pre-push`
 
 ```text
 #!/bin/sh
@@ -330,7 +338,7 @@ fi
 exit 0
 ```
 
-### [4/123] `.github/workflows/flutter-apk.yml`
+### [4/127] `.github/workflows/flutter-apk.yml`
 
 ```yaml
 name: Kas Santri CI/CD Pipeline
@@ -548,7 +556,7 @@ jobs:
           retention-days: 14
 ```
 
-### [5/123] `.gitignore`
+### [5/127] `.gitignore`
 
 ```text
 # Miscellaneous
@@ -601,13 +609,13 @@ android/key.properties
 *.keystore
 ```
 
-### [6/123] `.java-version`
+### [6/127] `.java-version`
 
 ```text
 17
 ```
 
-### [7/123] `admin_dashboard/app.js`
+### [7/127] `admin_dashboard/app.js`
 
 ```javascript
 /**
@@ -1031,7 +1039,7 @@ android/key.properties
               <div>${c.tier === 'LIFETIME' ? 'Lifetime' : formatDateShort(c.expiry_date)}</div>
               <div style="font-size:10.5px; color:var(--text-muted);">${remText}</div>
             </td>
-            <td class="mono">v${escapeHtml(c.app_version || '4.2.0')}</td>
+            <td class="mono">v${escapeHtml(c.app_version || '4.3.0')}</td>
             <td><span class="badge ${badgeCls}">${eff}</span></td>
             <td>
               <div style="display:flex; flex-wrap:wrap; gap:5px;">
@@ -1075,7 +1083,7 @@ android/key.properties
 
   function renderRemoteConfigForm() {
     const cfg = state.remoteConfig || {};
-    $('rcLatestVersion').value = cfg.latest_version || '4.2.0';
+    $('rcLatestVersion').value = cfg.latest_version || '4.3.0';
     $('rcMinVersion').value = cfg.min_version || '3.0.0';
     $('rcTitle').value = cfg.announcement_title || '';
     $('rcBody').value = cfg.announcement_body || '';
@@ -1265,7 +1273,7 @@ android/key.properties
     $('custChannel').value = customer?.payment_channel || 'FREE';
     $('custTotalPaid').value = Number(customer?.total_paid_idr || 0);
     $('custExpiry').value = customer?.expiry_date ? String(customer.expiry_date).slice(0, 10) : '';
-    $('custVersion').value = customer?.app_version || '4.2.0';
+    $('custVersion').value = customer?.app_version || '4.3.0';
     $('custNotes').value = customer?.notes || '';
     $('customerModal').classList.remove('hidden');
   }
@@ -1539,7 +1547,7 @@ android/key.properties
 })();
 ```
 
-### [8/123] `admin_dashboard/CARA_PAKAI_ADMIN.md`
+### [8/127] `admin_dashboard/CARA_PAKAI_ADMIN.md`
 
 ````markdown
 # Panduan Singkat Admin Command Center Kas-Santri (v3.4)
@@ -1598,7 +1606,7 @@ Workflow `.github/workflows/flutter-apk.yml` otomatis menyuntikkan keduanya lewa
 3. Simpan **Private Seed Base64** hanya di brankas pribadi Anda, dan tempel ke kolom Private Seed setiap kali membuka Dashboard Admin.
 ````
 
-### [9/123] `admin_dashboard/ed25519.js`
+### [9/127] `admin_dashboard/ed25519.js`
 
 ```javascript
 /**
@@ -2109,7 +2117,7 @@ Workflow `.github/workflows/flutter-apk.yml` otomatis menyuntikkan keduanya lewa
 })(typeof window !== 'undefined' ? window : globalThis);
 ```
 
-### [10/123] `admin_dashboard/index.html`
+### [10/127] `admin_dashboard/index.html`
 
 ```html
 <!DOCTYPE html>
@@ -2118,7 +2126,7 @@ Workflow `.github/workflows/flutter-apk.yml` otomatis menyuntikkan keduanya lewa
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co; font-src 'self' data:; object-src 'none'; base-uri 'self';" />
-  <title>Kas-Santri Admin Command Center (v4.2)</title>
+  <title>Kas-Santri Admin Command Center (v4.3)</title>
   <link rel="stylesheet" href="styles.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" integrity="sha384-JUh163oCRItcbPme8pYnROHQMC6fNKTBWtRG3I3I0erJkzNgL7uxKlNwcrcFKeqF" crossorigin="anonymous" defer></script>
   <script src="ed25519.js" defer></script>
@@ -2629,7 +2637,7 @@ Workflow `.github/workflows/flutter-apk.yml` otomatis menyuntikkan keduanya lewa
 </html>
 ```
 
-### [11/123] `admin_dashboard/storage.js`
+### [11/127] `admin_dashboard/storage.js`
 
 ```javascript
 /**
@@ -2650,7 +2658,7 @@ Workflow `.github/workflows/flutter-apk.yml` otomatis menyuntikkan keduanya lewa
 
   const DEFAULT_REMOTE_CONFIG = {
     id: 1,
-    latest_version: '4.2.0',
+    latest_version: '4.3.0',
     min_version: '3.0.0',
     announcement_title: '',
     announcement_body: '',
@@ -2943,7 +2951,7 @@ Workflow `.github/workflows/flutter-apk.yml` otomatis menyuntikkan keduanya lewa
         expiry_date: customer.expiry_date || null,
         trial_started_at: customer.trial_started_at || null,
         last_seen_at: customer.last_seen_at || nowIso,
-        app_version: String(customer.app_version || '4.2.0').trim(),
+        app_version: String(customer.app_version || '4.3.0').trim(),
         total_paid_idr: Number(customer.total_paid_idr || 0),
         payment_channel: String(customer.payment_channel || 'FREE').toUpperCase(),
         is_revoked: Boolean(customer.is_revoked),
@@ -3046,7 +3054,7 @@ Workflow `.github/workflows/flutter-apk.yml` otomatis menyuntikkan keduanya lewa
     async saveRemoteConfig(cfg) {
       const payload = {
         id: 1,
-        latest_version: String(cfg.latest_version || '4.2.0').trim(),
+        latest_version: String(cfg.latest_version || '4.3.0').trim(),
         min_version: String(cfg.min_version || '3.0.0').trim(),
         announcement_title: String(cfg.announcement_title || '').trim(),
         announcement_body: String(cfg.announcement_body || '').trim(),
@@ -3082,7 +3090,7 @@ Workflow `.github/workflows/flutter-apk.yml` otomatis menyuntikkan keduanya lewa
           status: 'AKTIF',
           expiry_date: new Date(now + 280 * dayMs).toISOString(),
           last_seen_at: new Date(now - 2 * 3600000).toISOString(),
-          app_version: '4.2.0',
+          app_version: '4.3.0',
           total_paid_idr: 179000,
           payment_channel: 'DANA',
           is_revoked: false,
@@ -3098,7 +3106,7 @@ Workflow `.github/workflows/flutter-apk.yml` otomatis menyuntikkan keduanya lewa
           trial_started_at: new Date(now - 11 * dayMs).toISOString(),
           expiry_date: new Date(now + 3 * dayMs).toISOString(),
           last_seen_at: new Date(now - 5 * 3600000).toISOString(),
-          app_version: '4.2.0',
+          app_version: '4.3.0',
           total_paid_idr: 0,
           payment_channel: 'TRIAL',
           is_revoked: false,
@@ -3113,7 +3121,7 @@ Workflow `.github/workflows/flutter-apk.yml` otomatis menyuntikkan keduanya lewa
           status: 'AKTIF',
           expiry_date: null,
           last_seen_at: new Date(now - 12 * 3600000).toISOString(),
-          app_version: '4.2.0',
+          app_version: '4.3.0',
           total_paid_idr: 399000,
           payment_channel: 'DANA',
           is_revoked: false,
@@ -3195,7 +3203,7 @@ Workflow `.github/workflows/flutter-apk.yml` otomatis menyuntikkan keduanya lewa
 })(typeof window !== 'undefined' ? window : globalThis);
 ```
 
-### [12/123] `admin_dashboard/styles.css`
+### [12/127] `admin_dashboard/styles.css`
 
 ```css
 :root {
@@ -3683,7 +3691,7 @@ tr:hover td {
 }
 ```
 
-### [13/123] `admin_dashboard/supabase_schema.sql`
+### [13/127] `admin_dashboard/supabase_schema.sql`
 
 ```sql
 -- ============================================================================
@@ -3728,7 +3736,7 @@ create table if not exists public.app_customers (
   expiry_date timestamptz null,
   trial_started_at timestamptz null,
   last_seen_at timestamptz not null default now(),
-  app_version text not null default '4.2.0',
+  app_version text not null default '4.3.0',
   total_paid_idr bigint not null default 0,
   payment_channel text not null default 'FREE', -- FREE, TRIAL, DANA, PLAY_STORE
   is_revoked boolean not null default false,
@@ -3758,7 +3766,7 @@ create index if not exists idx_license_tx_device on public.license_transactions 
 -- 5. Tabel Remote Config & Pengumuman Update Aplikasi (Singleton id = 1)
 create table if not exists public.app_remote_config (
   id integer primary key default 1 check (id = 1),
-  latest_version text not null default '4.2.0',
+  latest_version text not null default '4.3.0',
   min_version text not null default '3.0.0',
   announcement_title text not null default '',
   announcement_body text not null default '',
@@ -3778,7 +3786,7 @@ insert into public.app_remote_config (
 )
 values (
   1,
-  '4.2.0',
+  '4.3.0',
   '3.0.0',
   '',
   '',
@@ -3850,7 +3858,7 @@ create or replace function public.sync_device_telemetry(
   p_no_wa text default '',
   p_tier text default 'FREE',
   p_expiry_date timestamptz default null,
-  p_app_version text default '4.2.0',
+  p_app_version text default '4.3.0',
   p_payment_channel text default 'FREE'
 )
 returns jsonb
@@ -3930,7 +3938,7 @@ begin
     p_expiry_date,
     case when v_tier = 'TRIAL_14D' then now() else null end,
     now(),
-    left(trim(coalesce(p_app_version, '4.2.0')), 32),
+    left(trim(coalesce(p_app_version, '4.3.0')), 32),
     v_channel,
     now()
   )
@@ -3976,6 +3984,139 @@ revoke all on function public.sync_device_telemetry(text, text, text, text, text
 grant execute on function public.sync_device_telemetry(text, text, text, text, text, timestamptz, text, text) to anon, authenticated;
 
 -- ============================================================================
+-- 6. TABEL & RPC CLOUD BACKUP ONLINE TERENKRIPSI (SUPABASE CLOUD VAULT v4.3)
+-- ============================================================================
+-- Payload WAJIB dienkripsi AES-256-GCM (.KSBAK) di perangkat sebelum diunggah.
+-- Server cloud tidak pernah menyimpan atau mengetahui password maupun isi data pondok.
+create table if not exists public.app_cloud_backups (
+  backup_key text primary key,
+  device_id text not null default '',
+  nama_pondok text not null default '',
+  payload_encrypted text not null,
+  app_version text not null default '4.3.0',
+  size_bytes integer not null default 0,
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_cloud_backups_updated on public.app_cloud_backups (updated_at desc);
+
+alter table public.app_cloud_backups enable row level security;
+drop policy if exists "app_cloud_backups_admin_all" on public.app_cloud_backups;
+create policy "app_cloud_backups_admin_all"
+  on public.app_cloud_backups
+  for all
+  to authenticated
+  using (public.is_kas_santri_admin())
+  with check (public.is_kas_santri_admin());
+
+create or replace function public.upsert_cloud_backup(
+  p_backup_key text,
+  p_device_id text default '',
+  p_nama_pondok text default '',
+  p_payload_encrypted text default '',
+  p_app_version text default '4.3.0'
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_key text := upper(regexp_replace(trim(coalesce(p_backup_key, '')), '[^A-Za-z0-9_-]', '', 'g'));
+  v_payload text := trim(coalesce(p_payload_encrypted, ''));
+  v_size integer := octet_length(v_payload);
+  v_row public.app_cloud_backups%rowtype;
+begin
+  if length(v_key) < 4 or length(v_key) > 48 then
+    raise exception 'Kode Backup Pondok wajib 4-48 karakter (huruf, angka, -, _).';
+  end if;
+  if v_size = 0 or v_size > 8000000 then
+    raise exception 'Payload backup terenkripsi tidak valid atau melebihi batas 8 MB.';
+  end if;
+
+  insert into public.app_cloud_backups (
+    backup_key,
+    device_id,
+    nama_pondok,
+    payload_encrypted,
+    app_version,
+    size_bytes,
+    updated_at
+  )
+  values (
+    v_key,
+    left(upper(trim(coalesce(p_device_id, ''))), 48),
+    left(trim(coalesce(p_nama_pondok, '')), 120),
+    v_payload,
+    left(trim(coalesce(p_app_version, '4.3.0')), 32),
+    v_size,
+    now()
+  )
+  on conflict (backup_key) do update set
+    device_id = excluded.device_id,
+    nama_pondok = excluded.nama_pondok,
+    payload_encrypted = excluded.payload_encrypted,
+    app_version = excluded.app_version,
+    size_bytes = excluded.size_bytes,
+    updated_at = now()
+  returning * into v_row;
+
+  return jsonb_build_object(
+    'ok', true,
+    'backup_key', v_row.backup_key,
+    'size_bytes', v_row.size_bytes,
+    'updated_at', v_row.updated_at
+  );
+end;
+$$;
+
+create or replace function public.fetch_cloud_backup(
+  p_backup_key text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_key text := upper(regexp_replace(trim(coalesce(p_backup_key, '')), '[^A-Za-z0-9_-]', '', 'g'));
+  v_row public.app_cloud_backups%rowtype;
+begin
+  if length(v_key) < 4 or length(v_key) > 48 then
+    raise exception 'Kode Backup Pondok wajib 4-48 karakter.';
+  end if;
+
+  select * into v_row
+  from public.app_cloud_backups
+  where backup_key = v_key
+  limit 1;
+
+  if v_row.backup_key is null then
+    return jsonb_build_object(
+      'found', false,
+      'backup_key', v_key
+    );
+  end if;
+
+  return jsonb_build_object(
+    'found', true,
+    'backup_key', v_row.backup_key,
+    'nama_pondok', v_row.nama_pondok,
+    'payload_encrypted', v_row.payload_encrypted,
+    'app_version', v_row.app_version,
+    'size_bytes', v_row.size_bytes,
+    'updated_at', v_row.updated_at
+  );
+end;
+$$;
+
+revoke all on function public.upsert_cloud_backup(text, text, text, text, text) from public;
+grant execute on function public.upsert_cloud_backup(text, text, text, text, text) to anon, authenticated;
+
+revoke all on function public.fetch_cloud_backup(text) from public;
+grant execute on function public.fetch_cloud_backup(text) to anon, authenticated;
+
+-- ============================================================================
 -- LANGKAH TERAKHIR WAJIB (DAFTARKAN AKUN ADMIN ANDA):
 -- 1. Buat user Admin di Supabase -> Authentication -> Users -> Add user (email & password).
 -- 2. Jalankan query ini dengan mengganti email admin Anda:
@@ -3986,7 +4127,7 @@ grant execute on function public.sync_device_telemetry(text, text, text, text, t
 -- ============================================================================
 ```
 
-### [14/123] `analysis_options.yaml`
+### [14/127] `analysis_options.yaml`
 
 ```yaml
 include: package:flutter_lints/flutter.yaml
@@ -4013,7 +4154,7 @@ linter:
     avoid_print: false
 ```
 
-### [15/123] `android/app/build.gradle`
+### [15/127] `android/app/build.gradle`
 
 ```groovy
 plugins {
@@ -4113,7 +4254,7 @@ dependencies {
 }
 ```
 
-### [16/123] `android/app/proguard-rules.pro`
+### [16/127] `android/app/proguard-rules.pro`
 
 ```text
 # ============================================================================
@@ -4188,7 +4329,7 @@ dependencies {
 -dontwarn org.slf4j.**
 ```
 
-### [17/123] `android/app/src/main/AndroidManifest.xml`
+### [17/127] `android/app/src/main/AndroidManifest.xml`
 
 ```xml
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
@@ -4230,7 +4371,7 @@ dependencies {
 </manifest>
 ```
 
-### [18/123] `android/app/src/main/kotlin/com/pondok/kassantri/MainActivity.kt`
+### [18/127] `android/app/src/main/kotlin/com/pondok/kassantri/MainActivity.kt`
 
 ```kotlin
 package com.pondok.kassantri
@@ -4341,7 +4482,7 @@ class MainActivity : FlutterFragmentActivity() {
 }
 ```
 
-### [19/123] `android/app/src/main/res/drawable/launch_background.xml`
+### [19/127] `android/app/src/main/res/drawable/launch_background.xml`
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -4350,7 +4491,7 @@ class MainActivity : FlutterFragmentActivity() {
 </layer-list>
 ```
 
-### [20/123] `android/app/src/main/res/values/styles.xml`
+### [20/127] `android/app/src/main/res/values/styles.xml`
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -4364,7 +4505,7 @@ class MainActivity : FlutterFragmentActivity() {
 </resources>
 ```
 
-### [21/123] `android/build.gradle`
+### [21/127] `android/build.gradle`
 
 ```groovy
 allprojects {
@@ -4394,7 +4535,7 @@ tasks.register("clean", Delete) {
 }
 ```
 
-### [22/123] `android/gradle.properties`
+### [22/127] `android/gradle.properties`
 
 ```properties
 org.gradle.jvmargs=-Xmx4G -XX:MaxMetaspaceSize=1G
@@ -4405,7 +4546,7 @@ kotlin.android.buildFeatures.agpVersionCheck=false
 android.suppressUnsupportedCompileSdk=36
 ```
 
-### [23/123] `android/gradle/wrapper/gradle-wrapper.properties`
+### [23/127] `android/gradle/wrapper/gradle-wrapper.properties`
 
 ```properties
 distributionBase=GRADLE_USER_HOME
@@ -4415,7 +4556,7 @@ zipStorePath=wrapper/dists
 distributionUrl=https\://services.gradle.org/distributions/gradle-9.5.0-all.zip
 ```
 
-### [24/123] `android/settings.gradle`
+### [24/127] `android/settings.gradle`
 
 ```groovy
 pluginManagement {
@@ -4451,7 +4592,7 @@ plugins {
 include ":app"
 ```
 
-### [25/123] `AUDIT_PLAN_V4_2.md`
+### [25/127] `AUDIT_PLAN_V4_2.md`
 
 ```markdown
 # LAPORAN AUDIT MENDALAM & CETAK BIRU UPGRADE KAS-SANTRI v4.2
@@ -4734,7 +4875,7 @@ Sebelum saya mengeksekusi **Batch 1**, mohon konfirmasi atau arahan Anda untuk 5
    - Apakah Anda ingin menghasilkan pasangan kunci Ed25519 baru khusus produksi sekarang (dengan menjalankan `tool/generate_keypair.dart` sehingga Public Key di APK berbeda dari kunci contoh RFC 8032), atau tetap mempertahankan kunci saat ini sambil menambahkan dukungan `--dart-define=KAS_SANTRI_ED25519_PUBKEY=...`?
 ```
 
-### [26/123] `docs/privacy.html`
+### [26/127] `docs/privacy.html`
 
 ```html
 <!DOCTYPE html>
@@ -4842,7 +4983,7 @@ Sebelum saya mengeksekusi **Batch 1**, mohon konfirmasi atau arahan Anda untuk 5
 </html>
 ```
 
-### [27/123] `docs/terms.html`
+### [27/127] `docs/terms.html`
 
 ```html
 <!DOCTYPE html>
@@ -4951,7 +5092,7 @@ Sebelum saya mengeksekusi **Batch 1**, mohon konfirmasi atau arahan Anda untuk 5
 </html>
 ```
 
-### [28/123] `lib/config/app_config.dart`
+### [28/127] `lib/config/app_config.dart`
 
 ```dart
 class AppConfig {
@@ -4993,7 +5134,7 @@ class AppConfig {
 
   /// Versi aplikasi & konfigurasi Supabase opsional (disuntik via --dart-define saat build).
   /// APK tetap berjalan 100% offline-first bila SUPABASE_URL & SUPABASE_ANON_KEY kosong.
-  static const String appVersion = '4.2.0';
+  static const String appVersion = '4.3.0';
   static const String supabaseUrl = String.fromEnvironment(
     'SUPABASE_URL',
     defaultValue: '',
@@ -5009,7 +5150,7 @@ class AppConfig {
 }
 ```
 
-### [29/123] `lib/database/database_helper.dart`
+### [29/127] `lib/database/database_helper.dart`
 
 ```dart
 import 'package:path/path.dart' as p;
@@ -5022,11 +5163,13 @@ import '../models/santri.dart';
 import '../models/serah_terima_infak.dart';
 import '../models/setoran.dart';
 import '../models/transaksi.dart';
+import '../models/transaksi_tabungan.dart';
 import '../utils/time_category_helper.dart';
 import 'repositories/backup_audit_repository.dart';
 import 'repositories/infak_repository.dart';
 import 'repositories/ledger_repository.dart';
 import 'repositories/santri_repository.dart';
+import 'repositories/tabungan_repository.dart';
 import 'schema_migrator.dart';
 
 /// Facade utama basis data SQLite Kas-Santri v4.2 yang mendelegasikan operasi ke
@@ -5041,6 +5184,7 @@ class DatabaseHelper {
   late final SantriRepository santriRepo = SantriRepository(() => database);
   late final LedgerRepository ledgerRepo = LedgerRepository(() => database);
   late final InfakRepository infakRepo = InfakRepository(() => database);
+  late final TabunganRepository tabunganRepo = TabunganRepository(() => database);
   late final BackupAuditRepository backupAuditRepo = BackupAuditRepository(
     () => database,
     migrator,
@@ -5058,7 +5202,7 @@ class DatabaseHelper {
     _database = db;
   }
 
-  Future<void> createSchemaForTesting(Database db) => migrator.createDB(db, 4);
+  Future<void> createSchemaForTesting(Database db) => migrator.createDB(db, 5);
 
   Future<void> createSchemaForTest(Database db) => createSchemaForTesting(db);
 
@@ -5075,7 +5219,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 4,
+      version: 5,
       onConfigure: migrator.configureDatabase,
       onCreate: migrator.createDB,
       onUpgrade: migrator.upgradeDB,
@@ -5426,6 +5570,80 @@ class DatabaseHelper {
   Future<Map<String, dynamic>> getSaldoKantongInfak() =>
       infakRepo.getSaldoKantongInfak();
 
+  // ==================== BRANKAS TABUNGAN TERPISAH (KANTONG 4) ====================
+
+  Future<Map<String, int>> getSaldoBrankasTabungan() =>
+      tabunganRepo.getSaldoBrankasTabungan();
+
+  Future<TransaksiTabungan> setorTabungan({
+    required String santriId,
+    required int nominal,
+    String sumberDompet = 'TUNAI',
+    String? catatan,
+    DateTime? customTimestamp,
+  }) =>
+      tabunganRepo.setorTabungan(
+        santriId: santriId,
+        nominal: nominal,
+        sumberDompet: sumberDompet,
+        catatan: catatan,
+        customTimestamp: customTimestamp,
+      );
+
+  Future<TransaksiTabungan> tarikTabungan({
+    required String santriId,
+    required int nominal,
+    String sumberDompet = 'TUNAI',
+    String? catatan,
+    DateTime? customTimestamp,
+  }) =>
+      tabunganRepo.tarikTabungan(
+        santriId: santriId,
+        nominal: nominal,
+        sumberDompet: sumberDompet,
+        catatan: catatan,
+        customTimestamp: customTimestamp,
+      );
+
+  Future<TransaksiTabungan> transferJajanKeTabungan({
+    required String santriId,
+    required int nominal,
+    String sumberDompet = 'TUNAI',
+    String? catatan,
+    DateTime? customTimestamp,
+  }) =>
+      tabunganRepo.transferJajanKeTabungan(
+        santriId: santriId,
+        nominal: nominal,
+        sumberDompet: sumberDompet,
+        catatan: catatan,
+        customTimestamp: customTimestamp,
+      );
+
+  Future<TransaksiTabungan> transferTabunganKeJajan({
+    required String santriId,
+    required int nominal,
+    String sumberDompet = 'TUNAI',
+    String? catatan,
+    DateTime? customTimestamp,
+  }) =>
+      tabunganRepo.transferTabunganKeJajan(
+        santriId: santriId,
+        nominal: nominal,
+        sumberDompet: sumberDompet,
+        catatan: catatan,
+        customTimestamp: customTimestamp,
+      );
+
+  Future<void> voidTransaksiTabungan(String txId) =>
+      tabunganRepo.voidTransaksiTabungan(txId);
+
+  Future<List<TransaksiTabungan>> getTransaksiTabungan({
+    String? santriId,
+    int limit = 120,
+  }) =>
+      tabunganRepo.getTransaksiTabungan(santriId: santriId, limit: limit);
+
   // ==================== BACKUP, SEED & AUDIT LOG ====================
 
   Future<Map<String, dynamic>> dumpBackupJson() =>
@@ -5468,7 +5686,7 @@ class DatabaseHelper {
 }
 ```
 
-### [30/123] `lib/database/repositories/backup_audit_repository.dart`
+### [30/127] `lib/database/repositories/backup_audit_repository.dart`
 
 ```dart
 import 'package:sqflite/sqflite.dart';
@@ -5498,6 +5716,10 @@ class BackupAuditRepository {
     final cashOpnameList = await db.query('cash_opname_logs');
     final infakSantriList = await db.query('infak_santri');
     final serahTerimaInfakList = await db.query('serah_terima_infak');
+    List<Map<String, Object?>> tabunganList = const [];
+    try {
+      tabunganList = await db.query('transaksi_tabungan');
+    } catch (_) {}
     List<Map<String, Object?>> auditLogList = const [];
     try {
       auditLogList = await db.query(
@@ -5518,6 +5740,7 @@ class BackupAuditRepository {
       'cash_opname_logs': cashOpnameList,
       'infak_santri': infakSantriList,
       'serah_terima_infak': serahTerimaInfakList,
+      'transaksi_tabungan': tabunganList,
       'audit_log': auditLogList,
       'pengaturan_aplikasi': pengaturanList,
     };
@@ -5580,6 +5803,9 @@ class BackupAuditRepository {
       final int origHasUsedTrial =
           (origPeng?['has_used_trial'] as num?)?.toInt() ?? 0;
 
+      try {
+        await txn.delete('transaksi_tabungan');
+      } catch (_) {}
       await txn.delete('infak_santri');
       await txn.delete('serah_terima_infak');
       await txn.delete('tunggakan_log');
@@ -5684,6 +5910,20 @@ class BackupAuditRepository {
         }
       }
 
+      if (data['transaksi_tabungan'] is List) {
+        final tabCols = await _getTableColumns(txn, 'transaksi_tabungan');
+        if (tabCols.isNotEmpty) {
+          for (var row in (data['transaksi_tabungan'] as List)) {
+            final map = Map<String, dynamic>.from(row as Map);
+            await txn.insert(
+              'transaksi_tabungan',
+              _filterRowColumns(map, tabCols),
+              conflictAlgorithm: ConflictAlgorithm.replace,
+            );
+          }
+        }
+      }
+
       if (verifiedAuditEntries.isNotEmpty) {
         await txn.delete('audit_log');
         final auditCols = await _getTableColumns(txn, 'audit_log');
@@ -5734,6 +5974,9 @@ class BackupAuditRepository {
   ) async {
     final db = await _getDb();
     await db.transaction((txn) async {
+      try {
+        await txn.delete('transaksi_tabungan');
+      } catch (_) {}
       await txn.delete('infak_santri');
       await txn.delete('serah_terima_infak');
       await txn.delete('tunggakan_log');
@@ -6049,7 +6292,7 @@ class BackupAuditRepository {
 }
 ```
 
-### [31/123] `lib/database/repositories/infak_repository.dart`
+### [31/127] `lib/database/repositories/infak_repository.dart`
 
 ```dart
 import 'package:sqflite/sqflite.dart';
@@ -6450,7 +6693,7 @@ class InfakRepository {
 }
 ```
 
-### [32/123] `lib/database/repositories/ledger_repository.dart`
+### [32/127] `lib/database/repositories/ledger_repository.dart`
 
 ```dart
 import 'package:sqflite/sqflite.dart';
@@ -7857,13 +8100,14 @@ class LedgerRepository {
 }
 ```
 
-### [33/123] `lib/database/repositories/santri_repository.dart`
+### [33/127] `lib/database/repositories/santri_repository.dart`
 
 ```dart
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 import '../../models/pengaturan.dart';
 import '../../models/santri.dart';
+import '../../models/transaksi_tabungan.dart';
 import '../../utils/date_formatter.dart';
 
 class SantriRepository {
@@ -7931,6 +8175,21 @@ class SantriRepository {
           'referensi_id': santri.id,
           'catatan': 'Saldo Awal ${santri.namaLengkap}',
           'tanggal_lokal': DateFormatter.toLocalDateString(now),
+          'created_at': now.toIso8601String(),
+        });
+      }
+      if (santri.saldoTabungan > 0) {
+        final now = DateTime.now();
+        await txn.insert('transaksi_tabungan', {
+          'id': const Uuid().v4(),
+          'santri_id': santri.id,
+          'tipe': TransaksiTabungan.tipeSetor,
+          'nominal': santri.saldoTabungan,
+          'sumber_dompet': dompet,
+          'saldo_tabungan_setelah': santri.saldoTabungan,
+          'tanggal_lokal': DateFormatter.toLocalDateString(now),
+          'catatan': 'Saldo Awal Tabungan ${santri.namaLengkap}',
+          'is_void': 0,
           'created_at': now.toIso8601String(),
         });
       }
@@ -8022,6 +8281,13 @@ class SantriRepository {
           });
         }
       }
+      try {
+        await txn.delete(
+          'transaksi_tabungan',
+          where: 'santri_id = ?',
+          whereArgs: [santriId],
+        );
+      } catch (_) {}
       await txn.delete(
         'infak_santri',
         where: 'santri_id = ?',
@@ -8149,7 +8415,476 @@ class SantriRepository {
 }
 ```
 
-### [34/123] `lib/database/schema_migrator.dart`
+### [34/127] `lib/database/repositories/tabungan_repository.dart`
+
+```dart
+import 'package:sqflite/sqflite.dart';
+import 'package:uuid/uuid.dart';
+import '../../models/santri.dart';
+import '../../models/transaksi_tabungan.dart';
+import '../../utils/currency_formatter.dart';
+import '../../utils/date_formatter.dart';
+import 'santri_repository.dart';
+
+/// Repository modular untuk mengelola Brankas Tabungan Terpisah (Kantong Kas ke-4)
+/// yang terisolasi penuh dari saldo uang jajan harian dan mendukung transfer dua arah
+/// serta rekonsiliasi saldo tunai/rekening melalui agregasi SQL.
+class TabunganRepository {
+  final Future<Database> Function() _getDb;
+
+  const TabunganRepository(this._getDb);
+
+  Future<Map<String, int>> getSaldoBrankasTabungan() async {
+    final db = await _getDb();
+    try {
+      final agg = await db.rawQuery('''
+        SELECT
+          COALESCE(SUM(CASE
+            WHEN UPPER(TRIM(sumber_dompet)) NOT IN ('REKENING', 'BANK', 'TRANSFER') THEN
+              CASE
+                WHEN tipe IN ('${TransaksiTabungan.tipeSetor}', '${TransaksiTabungan.tipeTransferDariJajan}') THEN nominal
+                WHEN tipe IN ('${TransaksiTabungan.tipeTarik}', '${TransaksiTabungan.tipeTransferKeJajan}') THEN -nominal
+                ELSE 0
+              END
+            ELSE 0
+          END), 0) AS tunai,
+          COALESCE(SUM(CASE
+            WHEN UPPER(TRIM(sumber_dompet)) IN ('REKENING', 'BANK', 'TRANSFER') THEN
+              CASE
+                WHEN tipe IN ('${TransaksiTabungan.tipeSetor}', '${TransaksiTabungan.tipeTransferDariJajan}') THEN nominal
+                WHEN tipe IN ('${TransaksiTabungan.tipeTarik}', '${TransaksiTabungan.tipeTransferKeJajan}') THEN -nominal
+                ELSE 0
+              END
+            ELSE 0
+          END), 0) AS rekening
+        FROM transaksi_tabungan
+        WHERE is_void = 0
+      ''');
+
+      final row = agg.isNotEmpty ? agg.first : const <String, Object?>{};
+      final tunai = (row['tunai'] as num?)?.toInt() ?? 0;
+      final rekening = (row['rekening'] as num?)?.toInt() ?? 0;
+      return {
+        'tunai': tunai,
+        'rekening': rekening,
+        'total': tunai + rekening,
+      };
+    } catch (_) {
+      return {'tunai': 0, 'rekening': 0, 'total': 0};
+    }
+  }
+
+  Future<TransaksiTabungan> setorTabungan({
+    required String santriId,
+    required int nominal,
+    String sumberDompet = 'TUNAI',
+    String? catatan,
+    DateTime? customTimestamp,
+  }) async {
+    if (nominal <= 0) {
+      throw ArgumentError('Nominal setoran tabungan harus lebih dari Rp 0.');
+    }
+    final db = await _getDb();
+    final dompet = SantriRepository.normalizeDompet(sumberDompet);
+    final now = customTimestamp ?? DateTime.now();
+    final tglLokal = DateFormatter.toLocalDateString(now);
+
+    late TransaksiTabungan created;
+    await db.transaction((txn) async {
+      final santriMaps = await txn.query(
+        'santri',
+        where: 'id = ?',
+        whereArgs: [santriId],
+      );
+      if (santriMaps.isEmpty) {
+        throw Exception('Santri tidak ditemukan');
+      }
+      final santri = Santri.fromMap(santriMaps.first);
+      final newTabungan = santri.saldoTabungan + nominal;
+
+      await txn.update(
+        'santri',
+        {'saldo_tabungan': newTabungan},
+        where: 'id = ?',
+        whereArgs: [santriId],
+      );
+
+      created = TransaksiTabungan(
+        id: const Uuid().v4(),
+        santriId: santriId,
+        tipe: TransaksiTabungan.tipeSetor,
+        nominal: nominal,
+        sumberDompet: dompet,
+        saldoTabunganSetelah: newTabungan,
+        tanggalLokal: tglLokal,
+        catatan: catatan?.trim().isNotEmpty == true
+            ? catatan!.trim()
+            : 'Setor Tabungan Terpisah',
+        isVoided: false,
+        createdAt: now,
+        namaSantri: santri.namaLengkap,
+        kamarSantri: santri.kamar,
+      );
+      await txn.insert('transaksi_tabungan', created.toMap());
+    });
+    return created;
+  }
+
+  Future<TransaksiTabungan> tarikTabungan({
+    required String santriId,
+    required int nominal,
+    String sumberDompet = 'TUNAI',
+    String? catatan,
+    DateTime? customTimestamp,
+  }) async {
+    if (nominal <= 0) {
+      throw ArgumentError('Nominal penarikan tabungan harus lebih dari Rp 0.');
+    }
+    final db = await _getDb();
+    final dompet = SantriRepository.normalizeDompet(sumberDompet);
+    final now = customTimestamp ?? DateTime.now();
+    final tglLokal = DateFormatter.toLocalDateString(now);
+
+    late TransaksiTabungan created;
+    await db.transaction((txn) async {
+      final santriMaps = await txn.query(
+        'santri',
+        where: 'id = ?',
+        whereArgs: [santriId],
+      );
+      if (santriMaps.isEmpty) {
+        throw Exception('Santri tidak ditemukan');
+      }
+      final santri = Santri.fromMap(santriMaps.first);
+      if (nominal > santri.saldoTabungan) {
+        throw Exception(
+          'Saldo tabungan ${santri.namaLengkap} (${CurrencyFormatter.format(santri.saldoTabungan)}) tidak mencukupi untuk penarikan ${CurrencyFormatter.format(nominal)}.',
+        );
+      }
+      final newTabungan = santri.saldoTabungan - nominal;
+
+      await txn.update(
+        'santri',
+        {'saldo_tabungan': newTabungan},
+        where: 'id = ?',
+        whereArgs: [santriId],
+      );
+
+      created = TransaksiTabungan(
+        id: const Uuid().v4(),
+        santriId: santriId,
+        tipe: TransaksiTabungan.tipeTarik,
+        nominal: nominal,
+        sumberDompet: dompet,
+        saldoTabunganSetelah: newTabungan,
+        tanggalLokal: tglLokal,
+        catatan: catatan?.trim().isNotEmpty == true
+            ? catatan!.trim()
+            : 'Tarik Tabungan Santri',
+        isVoided: false,
+        createdAt: now,
+        namaSantri: santri.namaLengkap,
+        kamarSantri: santri.kamar,
+      );
+      await txn.insert('transaksi_tabungan', created.toMap());
+    });
+    return created;
+  }
+
+  Future<TransaksiTabungan> transferJajanKeTabungan({
+    required String santriId,
+    required int nominal,
+    String sumberDompet = 'TUNAI',
+    String? catatan,
+    DateTime? customTimestamp,
+  }) async {
+    if (nominal <= 0) {
+      throw ArgumentError('Nominal pemindahan harus lebih dari Rp 0.');
+    }
+    final db = await _getDb();
+    final dompet = SantriRepository.normalizeDompet(sumberDompet);
+    final now = customTimestamp ?? DateTime.now();
+    final tglLokal = DateFormatter.toLocalDateString(now);
+
+    late TransaksiTabungan created;
+    await db.transaction((txn) async {
+      final santriMaps = await txn.query(
+        'santri',
+        where: 'id = ?',
+        whereArgs: [santriId],
+      );
+      if (santriMaps.isEmpty) {
+        throw Exception('Santri tidak ditemukan');
+      }
+      final santri = Santri.fromMap(santriMaps.first);
+      if (nominal > santri.saldoTotal) {
+        throw Exception(
+          'Saldo uang jajan ${santri.namaLengkap} (${CurrencyFormatter.format(santri.saldoTotal)}) tidak mencukupi.',
+        );
+      }
+
+      final newSaldoJajan = santri.saldoTotal - nominal;
+      final newSaldoTabungan = santri.saldoTabungan + nominal;
+      final txTabunganId = const Uuid().v4();
+      final noteText = catatan?.trim().isNotEmpty == true
+          ? catatan!.trim()
+          : 'Pindah Saldo Jajan ke Tabungan';
+
+      await txn.update(
+        'santri',
+        {
+          'saldo_total': newSaldoJajan,
+          'saldo_tabungan': newSaldoTabungan,
+        },
+        where: 'id = ?',
+        whereArgs: [santriId],
+      );
+
+      await txn.insert('mutasi_dompet', {
+        'id': const Uuid().v4(),
+        'jenis_dompet': dompet,
+        'tipe': 'KELUAR',
+        'nominal': nominal,
+        'referensi_id': txTabunganId,
+        'catatan': 'Pindah ke Brankas Tabungan (${santri.namaLengkap})',
+        'tanggal_lokal': tglLokal,
+        'created_at': now.toIso8601String(),
+      });
+
+      created = TransaksiTabungan(
+        id: txTabunganId,
+        santriId: santriId,
+        tipe: TransaksiTabungan.tipeTransferDariJajan,
+        nominal: nominal,
+        sumberDompet: dompet,
+        saldoTabunganSetelah: newSaldoTabungan,
+        tanggalLokal: tglLokal,
+        catatan: noteText,
+        isVoided: false,
+        createdAt: now,
+        namaSantri: santri.namaLengkap,
+        kamarSantri: santri.kamar,
+      );
+      await txn.insert('transaksi_tabungan', created.toMap());
+    });
+    return created;
+  }
+
+  Future<TransaksiTabungan> transferTabunganKeJajan({
+    required String santriId,
+    required int nominal,
+    String sumberDompet = 'TUNAI',
+    String? catatan,
+    DateTime? customTimestamp,
+  }) async {
+    if (nominal <= 0) {
+      throw ArgumentError('Nominal pemindahan harus lebih dari Rp 0.');
+    }
+    final db = await _getDb();
+    final dompet = SantriRepository.normalizeDompet(sumberDompet);
+    final now = customTimestamp ?? DateTime.now();
+    final tglLokal = DateFormatter.toLocalDateString(now);
+
+    late TransaksiTabungan created;
+    await db.transaction((txn) async {
+      final santriMaps = await txn.query(
+        'santri',
+        where: 'id = ?',
+        whereArgs: [santriId],
+      );
+      if (santriMaps.isEmpty) {
+        throw Exception('Santri tidak ditemukan');
+      }
+      final santri = Santri.fromMap(santriMaps.first);
+      if (nominal > santri.saldoTabungan) {
+        throw Exception(
+          'Saldo tabungan ${santri.namaLengkap} (${CurrencyFormatter.format(santri.saldoTabungan)}) tidak mencukupi.',
+        );
+      }
+
+      final newSaldoJajan = santri.saldoTotal + nominal;
+      final newSaldoTabungan = santri.saldoTabungan - nominal;
+      final txTabunganId = const Uuid().v4();
+      final noteText = catatan?.trim().isNotEmpty == true
+          ? catatan!.trim()
+          : 'Pindah Tabungan ke Saldo Jajan';
+
+      await txn.update(
+        'santri',
+        {
+          'saldo_total': newSaldoJajan,
+          'saldo_tabungan': newSaldoTabungan,
+        },
+        where: 'id = ?',
+        whereArgs: [santriId],
+      );
+
+      await txn.insert('mutasi_dompet', {
+        'id': const Uuid().v4(),
+        'jenis_dompet': dompet,
+        'tipe': 'MASUK',
+        'nominal': nominal,
+        'referensi_id': txTabunganId,
+        'catatan': 'Masuk dari Brankas Tabungan (${santri.namaLengkap})',
+        'tanggal_lokal': tglLokal,
+        'created_at': now.toIso8601String(),
+      });
+
+      created = TransaksiTabungan(
+        id: txTabunganId,
+        santriId: santriId,
+        tipe: TransaksiTabungan.tipeTransferKeJajan,
+        nominal: nominal,
+        sumberDompet: dompet,
+        saldoTabunganSetelah: newSaldoTabungan,
+        tanggalLokal: tglLokal,
+        catatan: noteText,
+        isVoided: false,
+        createdAt: now,
+        namaSantri: santri.namaLengkap,
+        kamarSantri: santri.kamar,
+      );
+      await txn.insert('transaksi_tabungan', created.toMap());
+    });
+    return created;
+  }
+
+  Future<void> voidTransaksiTabungan(String txId) async {
+    final db = await _getDb();
+    await db.transaction((txn) async {
+      final rows = await txn.query(
+        'transaksi_tabungan',
+        where: 'id = ?',
+        whereArgs: [txId],
+      );
+      if (rows.isEmpty) return;
+      final tx = TransaksiTabungan.fromMap(rows.first);
+      if (tx.isVoided) return;
+
+      final santriMaps = await txn.query(
+        'santri',
+        where: 'id = ?',
+        whereArgs: [tx.santriId],
+      );
+      if (santriMaps.isEmpty) {
+        await txn.update(
+          'transaksi_tabungan',
+          {'is_void': 1},
+          where: 'id = ?',
+          whereArgs: [txId],
+        );
+        return;
+      }
+
+      final santri = Santri.fromMap(santriMaps.first);
+      final dompet = SantriRepository.normalizeDompet(tx.sumberDompet);
+      final now = DateTime.now();
+      final tglNow = DateFormatter.toLocalDateString(now);
+
+      int newSaldoTabungan = santri.saldoTabungan;
+      int newSaldoJajan = santri.saldoTotal;
+
+      switch (tx.tipe) {
+        case TransaksiTabungan.tipeSetor:
+          if (santri.saldoTabungan < tx.nominal) {
+            throw Exception(
+              'Sebagian saldo tabungan ${santri.namaLengkap} sudah ditarik. Batalkan penarikan terlebih dahulu agar saldo tidak negatif.',
+            );
+          }
+          newSaldoTabungan -= tx.nominal;
+          break;
+        case TransaksiTabungan.tipeTarik:
+          newSaldoTabungan += tx.nominal;
+          break;
+        case TransaksiTabungan.tipeTransferDariJajan:
+          if (santri.saldoTabungan < tx.nominal) {
+            throw Exception(
+              'Saldo tabungan ${santri.namaLengkap} saat ini lebih kecil dari nominal transfer yang akan dibatalkan.',
+            );
+          }
+          newSaldoTabungan -= tx.nominal;
+          newSaldoJajan += tx.nominal;
+          await txn.insert('mutasi_dompet', {
+            'id': const Uuid().v4(),
+            'jenis_dompet': dompet,
+            'tipe': 'MASUK',
+            'nominal': tx.nominal,
+            'referensi_id': tx.id,
+            'catatan':
+                'Void Transfer Jajan -> Tabungan (${santri.namaLengkap})',
+            'tanggal_lokal': tglNow,
+            'created_at': now.toIso8601String(),
+          });
+          break;
+        case TransaksiTabungan.tipeTransferKeJajan:
+          if (santri.saldoTotal < tx.nominal) {
+            throw Exception(
+              'Saldo uang jajan ${santri.namaLengkap} saat ini lebih kecil dari nominal transfer yang akan dibatalkan.',
+            );
+          }
+          newSaldoTabungan += tx.nominal;
+          newSaldoJajan -= tx.nominal;
+          await txn.insert('mutasi_dompet', {
+            'id': const Uuid().v4(),
+            'jenis_dompet': dompet,
+            'tipe': 'KELUAR',
+            'nominal': tx.nominal,
+            'referensi_id': tx.id,
+            'catatan':
+                'Void Transfer Tabungan -> Jajan (${santri.namaLengkap})',
+            'tanggal_lokal': tglNow,
+            'created_at': now.toIso8601String(),
+          });
+          break;
+      }
+
+      await txn.update(
+        'santri',
+        {
+          'saldo_tabungan': newSaldoTabungan,
+          'saldo_total': newSaldoJajan,
+        },
+        where: 'id = ?',
+        whereArgs: [tx.santriId],
+      );
+
+      await txn.update(
+        'transaksi_tabungan',
+        {'is_void': 1},
+        where: 'id = ?',
+        whereArgs: [txId],
+      );
+    });
+  }
+
+  Future<List<TransaksiTabungan>> getTransaksiTabungan({
+    String? santriId,
+    int limit = 120,
+  }) async {
+    final db = await _getDb();
+    try {
+      final where =
+          (santriId != null && santriId.isNotEmpty) ? 'WHERE t.santri_id = ?' : '';
+      final args = (santriId != null && santriId.isNotEmpty)
+          ? <Object?>[santriId, limit]
+          : <Object?>[limit];
+      final rows = await db.rawQuery('''
+        SELECT t.*, s.nama_lengkap AS nama_santri, s.kamar AS kamar_santri
+        FROM transaksi_tabungan t
+        LEFT JOIN santri s ON t.santri_id = s.id
+        $where
+        ORDER BY t.created_at DESC, t.rowid DESC
+        LIMIT ?
+      ''', args);
+      return rows.map((r) => TransaksiTabungan.fromMap(r)).toList();
+    } catch (_) {
+      return const [];
+    }
+  }
+}
+```
+
+### [35/127] `lib/database/schema_migrator.dart`
 
 ```dart
 import 'package:sqflite/sqflite.dart';
@@ -8212,6 +8947,12 @@ class SchemaMigrator {
       db,
       'santri',
       "status_santri TEXT NOT NULL DEFAULT 'AKTIF'",
+      existingColumns: santriCols,
+    );
+    await addColumnIfNotExists(
+      db,
+      'santri',
+      'saldo_tabungan INTEGER NOT NULL DEFAULT 0',
       existingColumns: santriCols,
     );
 
@@ -8343,6 +9084,7 @@ class SchemaMigrator {
 
     await createV3InfakTablesAndIndexes(db);
     await createV33AuditTableAndIndex(db);
+    await createV43TabunganTableAndIndex(db);
 
     try {
       await db.execute(
@@ -8424,6 +9166,29 @@ class SchemaMigrator {
     try {
       await db.execute(
         'CREATE INDEX IF NOT EXISTS idx_audit_log_created ON audit_log (created_at);',
+      );
+    } catch (_) {}
+  }
+
+  Future<void> createV43TabunganTableAndIndex(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS transaksi_tabungan (
+        id TEXT PRIMARY KEY,
+        santri_id TEXT NOT NULL,
+        tipe TEXT NOT NULL,
+        nominal INTEGER NOT NULL,
+        sumber_dompet TEXT NOT NULL DEFAULT 'TUNAI',
+        saldo_tabungan_setelah INTEGER NOT NULL DEFAULT 0,
+        tanggal_lokal TEXT NOT NULL,
+        catatan TEXT,
+        is_void INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (santri_id) REFERENCES santri (id) ON DELETE CASCADE
+      )
+    ''');
+    try {
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_tx_tabungan_santri ON transaksi_tabungan (santri_id, tanggal_lokal, is_void);',
       );
     } catch (_) {}
   }
@@ -8621,6 +9386,15 @@ class SchemaMigrator {
     if (oldVersion < 4) {
       await createV33AuditTableAndIndex(db);
     }
+
+    if (oldVersion < 5) {
+      await addColumnIfNotExists(
+        db,
+        'santri',
+        'saldo_tabungan INTEGER NOT NULL DEFAULT 0',
+      );
+      await createV43TabunganTableAndIndex(db);
+    }
   }
 
   Future<void> createDB(Database db, int version) async {
@@ -8634,6 +9408,7 @@ class SchemaMigrator {
         kamar TEXT NOT NULL,
         no_wa_wali TEXT,
         saldo_total INTEGER NOT NULL DEFAULT 0,
+        saldo_tabungan INTEGER NOT NULL DEFAULT 0,
         jatah_harian INTEGER NOT NULL DEFAULT 10000,
         setoran_awal INTEGER NOT NULL DEFAULT 300000,
         tunggakan INTEGER NOT NULL DEFAULT 0,
@@ -8756,6 +9531,7 @@ class SchemaMigrator {
 
     await createV3InfakTablesAndIndexes(db);
     await createV33AuditTableAndIndex(db);
+    await createV43TabunganTableAndIndex(db);
 
     await db.execute(
       'CREATE INDEX idx_tx_santri_tgl ON transaksi_harian (santri_id, tanggal_lokal, is_void);',
@@ -8819,7 +9595,7 @@ class SchemaMigrator {
 }
 ```
 
-### [35/123] `lib/main.dart`
+### [36/127] `lib/main.dart`
 
 ```dart
 import 'package:flutter/material.dart';
@@ -8868,7 +9644,7 @@ class KasSantriApp extends StatelessWidget {
 }
 ```
 
-### [36/123] `lib/models/audit_log.dart`
+### [37/127] `lib/models/audit_log.dart`
 
 ```dart
 import 'dart:convert';
@@ -9009,7 +9785,7 @@ class AuditLogEntry {
 }
 ```
 
-### [37/123] `lib/models/bendahara_account.dart`
+### [38/127] `lib/models/bendahara_account.dart`
 
 ```dart
 class BendaharaAccount {
@@ -9118,7 +9894,7 @@ class BendaharaAccount {
 }
 ```
 
-### [38/123] `lib/models/cash_opname_log.dart`
+### [39/127] `lib/models/cash_opname_log.dart`
 
 ```dart
 import 'dart:convert';
@@ -9195,7 +9971,7 @@ class CashOpnameLog {
 }
 ```
 
-### [39/123] `lib/models/infak_santri.dart`
+### [40/127] `lib/models/infak_santri.dart`
 
 ```dart
 typedef InfakSantri = InfakSantriModel;
@@ -9416,7 +10192,7 @@ class InfakSantriModel {
 }
 ```
 
-### [40/123] `lib/models/pengaturan.dart`
+### [41/127] `lib/models/pengaturan.dart`
 
 ```dart
 enum ModeSisaHarian { ketat, akumulasi }
@@ -9638,7 +10414,7 @@ class PengaturanAplikasi {
 }
 ```
 
-### [41/123] `lib/models/santri.dart`
+### [42/127] `lib/models/santri.dart`
 
 ```dart
 typedef SantriModel = Santri;
@@ -9661,6 +10437,7 @@ class Santri {
   final String kamar;
   final String? noWaWali;
   final int saldoTotal;
+  final int saldoTabungan;
   final int jatahHarian;
   final int setoranAwal;
   final int tunggakan;
@@ -9714,6 +10491,7 @@ class Santri {
     required this.kamar,
     this.noWaWali,
     this.saldoTotal = 0,
+    this.saldoTabungan = 0,
     this.jatahHarian = 10000,
     this.setoranAwal = 300000,
     this.tunggakan = 0,
@@ -9777,6 +10555,7 @@ class Santri {
     String? kamar,
     String? noWaWali,
     int? saldoTotal,
+    int? saldoTabungan,
     int? jatahHarian,
     int? setoranAwal,
     int? tunggakan,
@@ -9795,6 +10574,7 @@ class Santri {
       kamar: kamar ?? this.kamar,
       noWaWali: noWaWali ?? this.noWaWali,
       saldoTotal: saldoTotal ?? this.saldoTotal,
+      saldoTabungan: saldoTabungan ?? this.saldoTabungan,
       jatahHarian: jatahHarian ?? this.jatahHarian,
       setoranAwal: setoranAwal ?? this.setoranAwal,
       tunggakan: tunggakan ?? this.tunggakan,
@@ -9816,6 +10596,7 @@ class Santri {
       'kamar': kamar,
       'no_wa_wali': noWaWali,
       'saldo_total': saldoTotal,
+      'saldo_tabungan': saldoTabungan,
       'jatah_harian': jatahHarian,
       'setoran_awal': setoranAwal,
       'tunggakan': tunggakan,
@@ -9838,6 +10619,7 @@ class Santri {
       kamar: map['kamar'] as String? ?? '',
       noWaWali: map['no_wa_wali'] as String?,
       saldoTotal: (map['saldo_total'] as num?)?.toInt() ?? 0,
+      saldoTabungan: (map['saldo_tabungan'] as num?)?.toInt() ?? 0,
       jatahHarian: (map['jatah_harian'] as num?)?.toInt() ?? 10000,
       setoranAwal: (map['setoran_awal'] as num?)?.toInt() ?? 300000,
       tunggakan: (map['tunggakan'] as num?)?.toInt() ?? 0,
@@ -9853,7 +10635,7 @@ class Santri {
 }
 ```
 
-### [42/123] `lib/models/santri_status.dart`
+### [43/127] `lib/models/santri_status.dart`
 
 ```dart
 import 'santri.dart';
@@ -9948,7 +10730,7 @@ class SantriStatusHariIni {
 }
 ```
 
-### [43/123] `lib/models/serah_terima_infak.dart`
+### [44/127] `lib/models/serah_terima_infak.dart`
 
 ```dart
 typedef SerahTerimaInfak = SerahTerimaInfakModel;
@@ -10038,7 +10820,7 @@ class SerahTerimaInfakModel {
 }
 ```
 
-### [44/123] `lib/models/setoran.dart`
+### [45/127] `lib/models/setoran.dart`
 
 ```dart
 enum TipeSetoran { awalBulan, susulanTopUp, sambanganSplit }
@@ -10127,7 +10909,7 @@ class SetoranBulanan {
 }
 ```
 
-### [45/123] `lib/models/transaksi.dart`
+### [46/127] `lib/models/transaksi.dart`
 
 ```dart
 import '../utils/time_category_helper.dart';
@@ -10222,7 +11004,109 @@ class TransaksiHarian {
 }
 ```
 
-### [46/123] `lib/providers/kas_santri_provider.dart`
+### [47/127] `lib/models/transaksi_tabungan.dart`
+
+```dart
+class TransaksiTabungan {
+  static const String tipeSetor = 'SETOR_TABUNGAN';
+  static const String tipeTarik = 'TARIK_TABUNGAN';
+  static const String tipeTransferDariJajan = 'TRANSFER_DARI_JAJAN';
+  static const String tipeTransferKeJajan = 'TRANSFER_KE_JAJAN';
+
+  final String id;
+  final String santriId;
+  final String tipe;
+  final int nominal;
+  final String sumberDompet;
+  final int saldoTabunganSetelah;
+  final String tanggalLokal;
+  final String? catatan;
+  final bool isVoided;
+  final DateTime createdAt;
+
+  // Kolom opsional hasil JOIN untuk tampilan daftar mutasi
+  final String? namaSantri;
+  final String? kamarSantri;
+
+  const TransaksiTabungan({
+    required this.id,
+    required this.santriId,
+    required this.tipe,
+    required this.nominal,
+    this.sumberDompet = 'TUNAI',
+    this.saldoTabunganSetelah = 0,
+    required this.tanggalLokal,
+    this.catatan,
+    this.isVoided = false,
+    required this.createdAt,
+    this.namaSantri,
+    this.kamarSantri,
+  });
+
+  bool get isMasuk =>
+      tipe == tipeSetor || tipe == tipeTransferDariJajan;
+
+  bool get isTransfer =>
+      tipe == tipeTransferDariJajan || tipe == tipeTransferKeJajan;
+
+  String get tipeLabel {
+    switch (tipe) {
+      case tipeSetor:
+        return 'Setor Tabungan';
+      case tipeTarik:
+        return 'Tarik Tabungan';
+      case tipeTransferDariJajan:
+        return 'Pindah Jajan → Tabungan';
+      case tipeTransferKeJajan:
+        return 'Pindah Tabungan → Jajan';
+      default:
+        return tipe;
+    }
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'santri_id': santriId,
+      'tipe': tipe,
+      'nominal': nominal,
+      'sumber_dompet': sumberDompet,
+      'saldo_tabungan_setelah': saldoTabunganSetelah,
+      'tanggal_lokal': tanggalLokal,
+      'catatan': catatan,
+      'is_void': isVoided ? 1 : 0,
+      'created_at': createdAt.toIso8601String(),
+    };
+  }
+
+  factory TransaksiTabungan.fromMap(Map<String, dynamic> map) {
+    final dompetRaw = (map['sumber_dompet'] as String? ?? 'TUNAI').toUpperCase();
+    final normalizedDompet =
+        (dompetRaw == 'REKENING' || dompetRaw == 'BANK' || dompetRaw == 'TRANSFER')
+            ? 'REKENING'
+            : 'TUNAI';
+    return TransaksiTabungan(
+      id: map['id'] as String,
+      santriId: map['santri_id'] as String,
+      tipe: map['tipe'] as String? ?? tipeSetor,
+      nominal: (map['nominal'] as num?)?.toInt() ?? 0,
+      sumberDompet: normalizedDompet,
+      saldoTabunganSetelah:
+          (map['saldo_tabungan_setelah'] as num?)?.toInt() ?? 0,
+      tanggalLokal: map['tanggal_lokal'] as String? ?? '',
+      catatan: map['catatan'] as String?,
+      isVoided: (map['is_void'] as num?)?.toInt() == 1,
+      createdAt: map['created_at'] != null
+          ? DateTime.tryParse(map['created_at'].toString()) ?? DateTime.now()
+          : DateTime.now(),
+      namaSantri: map['nama_santri'] as String?,
+      kamarSantri: map['kamar_santri'] as String?,
+    );
+  }
+}
+```
+
+### [48/127] `lib/providers/kas_santri_provider.dart`
 
 ```dart
 import 'dart:async';
@@ -10235,6 +11119,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/bendahara_account.dart';
 import '../models/setoran.dart';
 import '../models/transaksi.dart';
+import '../models/transaksi_tabungan.dart';
 import '../models/pengaturan.dart';
 import '../models/santri_status.dart';
 import '../models/cash_opname_log.dart';
@@ -10446,8 +11331,25 @@ class KasSantriProvider extends ChangeNotifier {
   double _stokBerasFisikLiter = 0.0;
   double get stokBerasFisikLiter => _stokBerasFisikLiter;
 
-  /// Target total uang tunai fisik di laci bendahara (Kantong Jajan + Kantong Infak Tunai)
-  int get targetUangFisikDiLaci => _kasLaciTunai + _kasInfakTunai;
+  // Kantong 4 v4.3: Brankas Tabungan Terpisah Santri
+  int _totalBrankasTabungan = 0;
+  int get totalBrankasTabungan => _totalBrankasTabungan;
+
+  int _tabunganTunai = 0;
+  int get tabunganTunai => _tabunganTunai;
+
+  int _tabunganRekening = 0;
+  int get tabunganRekening => _tabunganRekening;
+
+  List<TransaksiTabungan> _transaksiTabunganList = [];
+  List<TransaksiTabungan> get transaksiTabunganList => _transaksiTabunganList;
+
+  int get countPenabungAktif =>
+      _allSantri.where((s) => s.statusAktif && s.saldoTabungan > 0).length;
+
+  /// Target total uang tunai fisik di laci bendahara (Kantong Jajan + Infak Tunai + Tabungan Tunai)
+  int get targetUangFisikDiLaci =>
+      _kasLaciTunai + _kasInfakTunai + _tabunganTunai;
 
   // Cash Opname PRO Logs
   List<CashOpnameLog> _opnameLogs = [];
@@ -10862,6 +11764,12 @@ class KasSantriProvider extends ChangeNotifier {
     _stokBerasFisikLiter = (kantongInfak['beras_stok'] as num?)?.toDouble() ?? 0.0;
     _infakPeriodeList = await _db.getInfakByPeriode(_selectedInfakPeriode);
     _serahTerimaList = await _db.getSerahTerimaInfak();
+
+    final tabunganDompet = await _db.getSaldoBrankasTabungan();
+    _tabunganTunai = tabunganDompet['tunai'] ?? 0;
+    _tabunganRekening = tabunganDompet['rekening'] ?? 0;
+    _totalBrankasTabungan = tabunganDompet['total'] ?? 0;
+    _transaksiTabunganList = await _db.getTransaksiTabungan(limit: 120);
 
     _opnameLogs = await _db.getCashOpnameLogs(limit: 15);
     _totalPengeluaranHariIni = await _db.getTotalPengeluaranHariIni(todayStr);
@@ -11393,8 +12301,8 @@ class KasSantriProvider extends ChangeNotifier {
     await _recordAudit(
       action: 'HAPUS_SANTRI',
       targetId: santriId,
-      summary: refundedSaldo > 0
-          ? 'Menghapus permanen santri $targetName (ID: $santriId) dengan pengembalian saldo Rp$refundedSaldo dari $sumberDompet.'
+      summary: (refundedSaldo > 0 || (targetSantri?.saldoTabungan ?? 0) > 0)
+          ? 'Menghapus permanen santri $targetName (ID: $santriId) dengan pengembalian saldo jajan Rp$refundedSaldo ($sumberDompet) & tabungan Rp${targetSantri?.saldoTabungan ?? 0}.'
           : 'Menghapus permanen data santri $targetName (ID: $santriId).',
     );
     await markLocalDataChanged();
@@ -11405,6 +12313,111 @@ class KasSantriProvider extends ChangeNotifier {
 
   Future<void> tambahSantriBaru(Santri santri, {String sumberDompet = 'TUNAI'}) async {
     await _db.insertSantri(santri, sumberDompet: sumberDompet);
+    await markLocalDataChanged();
+    await loadAllData();
+  }
+
+  // ==================== BRANKAS TABUNGAN TERPISAH (KANTONG 4) ====================
+
+  Future<TransaksiTabungan> setorTabungan({
+    required String santriId,
+    required int nominal,
+    String sumberDompet = 'TUNAI',
+    String? catatan,
+  }) async {
+    final tx = await _db.setorTabungan(
+      santriId: santriId,
+      nominal: nominal,
+      sumberDompet: sumberDompet,
+      catatan: catatan,
+    );
+    await _recordAudit(
+      action: 'SETOR_TABUNGAN',
+      targetId: santriId,
+      summary:
+          'Setor tabungan terpisah Rp$nominal ($sumberDompet) untuk ${tx.namaSantri ?? santriId}.',
+    );
+    await markLocalDataChanged();
+    await loadAllData();
+    return tx;
+  }
+
+  Future<TransaksiTabungan> tarikTabungan({
+    required String santriId,
+    required int nominal,
+    String sumberDompet = 'TUNAI',
+    String? catatan,
+  }) async {
+    final tx = await _db.tarikTabungan(
+      santriId: santriId,
+      nominal: nominal,
+      sumberDompet: sumberDompet,
+      catatan: catatan,
+    );
+    await _recordAudit(
+      action: 'TARIK_TABUNGAN',
+      targetId: santriId,
+      summary:
+          'Tarik tabungan terpisah Rp$nominal ($sumberDompet) untuk ${tx.namaSantri ?? santriId}.',
+    );
+    await markLocalDataChanged();
+    await loadAllData();
+    return tx;
+  }
+
+  Future<TransaksiTabungan> transferJajanKeTabungan({
+    required String santriId,
+    required int nominal,
+    String sumberDompet = 'TUNAI',
+    String? catatan,
+  }) async {
+    final tx = await _db.transferJajanKeTabungan(
+      santriId: santriId,
+      nominal: nominal,
+      sumberDompet: sumberDompet,
+      catatan: catatan,
+    );
+    await _recordAudit(
+      action: 'TRANSFER_JAJAN_KE_TABUNGAN',
+      targetId: santriId,
+      summary:
+          'Pindah saldo jajan Rp$nominal -> Brankas Tabungan ($sumberDompet) untuk ${tx.namaSantri ?? santriId}.',
+    );
+    await markLocalDataChanged();
+    await loadAllData();
+    return tx;
+  }
+
+  Future<TransaksiTabungan> transferTabunganKeJajan({
+    required String santriId,
+    required int nominal,
+    String sumberDompet = 'TUNAI',
+    String? catatan,
+  }) async {
+    final tx = await _db.transferTabunganKeJajan(
+      santriId: santriId,
+      nominal: nominal,
+      sumberDompet: sumberDompet,
+      catatan: catatan,
+    );
+    await _recordAudit(
+      action: 'TRANSFER_TABUNGAN_KE_JAJAN',
+      targetId: santriId,
+      summary:
+          'Pindah saldo Brankas Tabungan Rp$nominal -> Saldo Jajan ($sumberDompet) untuk ${tx.namaSantri ?? santriId}.',
+    );
+    await markLocalDataChanged();
+    await loadAllData();
+    return tx;
+  }
+
+  Future<void> voidTransaksiTabungan(String txId) async {
+    await _db.voidTransaksiTabungan(txId);
+    await _recordAudit(
+      action: 'VOID_TABUNGAN',
+      targetId: txId,
+      summary: 'Membatalkan (Void) mutasi tabungan $txId.',
+    );
     await markLocalDataChanged();
     await loadAllData();
   }
@@ -11700,7 +12713,7 @@ class KasSantriProvider extends ChangeNotifier {
 }
 ```
 
-### [47/123] `lib/providers/theme_wallpaper_provider.dart`
+### [49/127] `lib/providers/theme_wallpaper_provider.dart`
 
 ```dart
 import 'dart:io';
@@ -11968,7 +12981,7 @@ class ThemeWallpaperProvider extends ChangeNotifier {
 }
 ```
 
-### [48/123] `lib/screens/auth/login_screen.dart`
+### [50/127] `lib/screens/auth/login_screen.dart`
 
 ```dart
 import 'package:flutter/material.dart';
@@ -12644,7 +13657,7 @@ class _LoginScreenState extends State<LoginScreen> {
 }
 ```
 
-### [49/123] `lib/screens/home_fast_withdrawal_screen.dart`
+### [51/127] `lib/screens/home_fast_withdrawal_screen.dart`
 
 ```dart
 import 'dart:async';
@@ -12656,6 +13669,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../config/app_config.dart';
 import '../providers/kas_santri_provider.dart';
 import '../widgets/app_background_wrapper.dart';
+import '../widgets/guided_spotlight_tour.dart';
 import '../widgets/stat_card.dart';
 import '../widgets/santri_card.dart';
 import '../widgets/fast_withdrawal_bottom_sheet.dart';
@@ -12665,10 +13679,12 @@ import '../widgets/tarik_tunai_bottom_sheet.dart';
 import '../utils/app_feedback.dart';
 import 'paywall_screen.dart';
 import 'santri/qr_scanner_screen.dart';
+import 'tabungan/brankas_tabungan_screen.dart';
 
 class HomeFastWithdrawalScreen extends StatefulWidget {
   final VoidCallback? onOpenBukuInfak;
   final ValueChanged<String>? onOpenSetoranForSantri;
+  final VoidCallback? onShowHomeHelp;
   final GlobalKey? headerCrownSpotlightKey;
   final GlobalKey? vaultSpotlightKey;
   final GlobalKey? addSantriSpotlightKey;
@@ -12678,6 +13694,7 @@ class HomeFastWithdrawalScreen extends StatefulWidget {
     Key? key,
     this.onOpenBukuInfak,
     this.onOpenSetoranForSantri,
+    this.onShowHomeHelp,
     this.headerCrownSpotlightKey,
     this.vaultSpotlightKey,
     this.addSantriSpotlightKey,
@@ -13034,6 +14051,14 @@ class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen>
                                   },
                                 ),
                               ),
+                              if (widget.onShowHomeHelp != null) ...[
+                                const SizedBox(width: 6),
+                                SpotlightHelpButton(
+                                  onTap: widget.onShowHomeHelp!,
+                                  size: 34,
+                                  accent: const Color(0xFF38BDF8),
+                                ),
+                              ],
                               ],
                             ),
                           ],
@@ -13385,6 +14410,38 @@ class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen>
                           ),
                         ),
                       ),
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: InkWell(
+                        onTap: () {
+                          AppFeedback.tap();
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const BrankasTabunganScreen(),
+                            ),
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(20),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0C4A6E).withOpacity(0.60),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: const Color(0xFF2DD4BF).withOpacity(0.80)),
+                          ),
+                          alignment: Alignment.center,
+                          child: const Text(
+                            '🏦 Tabungan',
+                            style: TextStyle(
+                              color: Color(0xFF5EEAD4),
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                     _buildFilterPill(
                       isPro ? '⚠️ Saldo Kritis (<3 Hr)' : '⚠️ Saldo Kritis (<3 Hr) 👑',
                       'KRITIS',
@@ -13556,7 +14613,7 @@ class _HomeFastWithdrawalScreenState extends State<HomeFastWithdrawalScreen>
 }
 ```
 
-### [50/123] `lib/screens/main_navigation_screen.dart`
+### [52/127] `lib/screens/main_navigation_screen.dart`
 
 ```dart
 import 'dart:ui';
@@ -13611,18 +14668,18 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
         targetKey: _spotHeaderCrownKey,
         tabIndex: 0,
         emoji: '👑',
-        title: 'Identitas Pondok & Mahkota PRO',
+        title: 'Identitas Pondok & Bantuan (?)',
         description:
-            'Ketuk mahkota 👑 untuk coba PRO Gratis 14 Hari atau upgrade paket. Ketuk logo di kiri untuk memasang logo resmi pondok Anda.',
+            'Ketuk logo kiri untuk memasang logo pondok, mahkota 👑 untuk coba PRO 14 Hari, atau ikon (?) kapan saja untuk memutar ulang tutorial layar ini.',
         accent: const Color(0xFFFBBF24),
       ),
       SpotlightStepSpec(
         targetKey: _spotVaultKey,
         tabIndex: 0,
         emoji: '🏦',
-        title: 'Brankas Titipan & Multi-Dompet',
+        title: 'Brankas Titipan & Tabungan Terpisah',
         description:
-            'Pantau total uang titipan seluruh santri, pemisahan Kas Laci Tunai vs Rekening Bank, pengeluaran hari ini, dan total tunggakan.',
+            'Pantau total kas titipan, Kas Laci Tunai vs Bank, 🚨 daftar tunggakan, serta akses cepat 🏦 Tabungan Terpisah yang tidak ikut terpotong jajan harian.',
         accent: const Color(0xFF34D399),
       ),
       SpotlightStepSpec(
@@ -13631,16 +14688,16 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
         emoji: '➕',
         title: 'Tombol + Santri Baru',
         description:
-            'Tambahkan data santri baru dengan ringkas (saldo awal Rp 0, lalu isi saldo lewat menu Setoran agar tercatat rapi di mutasi).',
+            'Tambahkan santri baru dari sini (saldo awal Rp 0). Selanjutnya isi saldo atau sambangan melalui menu Setoran agar tercatat otomatis di buku mutasi.',
         accent: const Color(0xFF6EE7B7),
       ),
       SpotlightStepSpec(
         targetKey: _spotSantriCardsKey,
         tabIndex: 0,
         emoji: '💸',
-        title: 'Kartu Santri 2 Kotak & Scan QR',
+        title: 'Kartu Santri 2 Kotak & Scan 📷 QR',
         description:
-            'Ketuk kartu santri untuk mencatat ambil uang harian 3 detik, ketuk 📷 QR untuk mode antrean, atau geser layar kanan/kiri untuk pindah menu.',
+            'Ketuk kartu santri untuk catat ambil jajan 3 detik, ketuk 📷 QR untuk scan cepat antrean, atau buka profil santri untuk edit data & riwayat mutasi.',
         accent: const Color(0xFF38BDF8),
       ),
       SpotlightStepSpec(
@@ -13684,9 +14741,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
   }
 
   Future<void> _checkFirstTimeWalkthrough() async {
-    final seen = await TutorialService.instance.hasSeenWalkthrough();
-    if (!seen && mounted) {
-      await Future.delayed(const Duration(milliseconds: 420));
+    final autoEnabled = await TutorialService.instance.isAutoTourEnabled();
+    final seenOld = await TutorialService.instance.hasSeenWalkthrough();
+    final seenHome = await TutorialService.instance.hasSeenScreenTour('tour_home');
+    if (autoEnabled && !seenOld && !seenHome && mounted) {
+      await Future.delayed(const Duration(milliseconds: 380));
       if (mounted) {
         await _startSpotlightTour();
       }
@@ -13715,7 +14774,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     }
 
     if (!mounted) return;
-    final targetCtx = spec.targetKey.currentContext;
+    final targetCtx = spec.targetKey?.currentContext;
     if (targetCtx != null && targetCtx.mounted) {
       try {
         await Scrollable.ensureVisible(
@@ -13736,7 +14795,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
 
   Future<void> _finishSpotlightTour() async {
     AppFeedback.tap();
-    await TutorialService.instance.markWalkthroughSeen();
+    await TutorialService.instance.markScreenTourSeen('tour_home');
     if (!mounted) return;
     setState(() {
       _isTourActive = false;
@@ -13745,6 +14804,26 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     if (_currentIndex != 0) {
       _goToPage(0);
     }
+  }
+
+  Future<void> _disableAllAutoToursFromHome() async {
+    AppFeedback.tap();
+    await TutorialService.instance.markScreenTourSeen('tour_home');
+    await TutorialService.instance.setAutoTourEnabled(false);
+    if (!mounted) return;
+    setState(() {
+      _isTourActive = false;
+      _tourStepIndex = 0;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Tutorial otomatis dimatikan. Ketuk ikon (?) kapan saja jika butuh panduan.',
+        ),
+        backgroundColor: Color(0xFF0EA5E9),
+        duration: Duration(seconds: 3),
+      ),
+    );
   }
 
   @override
@@ -13805,6 +14884,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
                 vaultSpotlightKey: _spotVaultKey,
                 addSantriSpotlightKey: _spotAddSantriKey,
                 cardsAreaSpotlightKey: _spotSantriCardsKey,
+                onShowHomeHelp: _startSpotlightTour,
                 onOpenBukuInfak: () {
                   setState(() => _setoranSubTab = 1);
                   _goToPage(1);
@@ -13820,13 +14900,15 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
               SetoranScreen(
                 activeSubTab: _setoranSubTab,
                 preselectedSantriId: _preselectedSetoranSantriId,
+                isActiveTab: _currentIndex == 1,
                 onSubTabChanged: (sub) => setState(() => _setoranSubTab = sub),
                 onSaved: () => _goToPage(0),
               ),
-              const RiwayatTransaksiScreen(),
-              const RekapLaporanScreen(),
+              RiwayatTransaksiScreen(isActiveTab: _currentIndex == 2),
+              RekapLaporanScreen(isActiveTab: _currentIndex == 3),
               SystemTabScreen(
                 headerSpotlightKey: _spotSystemHeaderKey,
+                isActiveTab: _currentIndex == 4,
               ),
             ],
           ),
@@ -13897,6 +14979,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
                   }
                 },
                 onSkip: _finishSpotlightTour,
+                onDisableAllAutoTours: _disableAllAutoToursFromHome,
               ),
             ),
         ],
@@ -13952,7 +15035,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
 }
 ```
 
-### [51/123] `lib/screens/onboarding_screen.dart`
+### [53/127] `lib/screens/onboarding_screen.dart`
 
 ```dart
 import 'package:flutter/material.dart';
@@ -14696,7 +15779,7 @@ class _OnboardingSlideSpec {
 }
 ```
 
-### [52/123] `lib/screens/paywall_screen.dart`
+### [54/127] `lib/screens/paywall_screen.dart`
 
 ```dart
 import 'package:flutter/foundation.dart' show kDebugMode;
@@ -16463,7 +17546,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
 }
 ```
 
-### [53/123] `lib/screens/pin_lock_screen.dart`
+### [55/127] `lib/screens/pin_lock_screen.dart`
 
 ```dart
 import 'package:flutter/material.dart';
@@ -16930,10 +18013,11 @@ class _PinLockScreenState extends State<PinLockScreen> {
 }
 ```
 
-### [54/123] `lib/screens/rekap/cash_opname_screen.dart`
+### [56/127] `lib/screens/rekap/cash_opname_screen.dart`
 
 ```dart
 import 'package:flutter/material.dart';
+import '../../widgets/guided_spotlight_tour.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../providers/kas_santri_provider.dart';
@@ -16965,6 +18049,7 @@ class CashOpnameScreen extends StatefulWidget {
 }
 
 class _CashOpnameScreenState extends State<CashOpnameScreen> {
+  final ScreenSpotlightController _spotCtrl = ScreenSpotlightController();
   static const List<int> _denominations = [
     100000,
     50000,
@@ -17079,6 +18164,7 @@ class _CashOpnameScreenState extends State<CashOpnameScreen> {
     final provider = Provider.of<KasSantriProvider>(context);
     final kasJajanTunai = provider.kasLaciTunai;
     final kasInfakTunai = provider.kasInfakTunai;
+    final tabunganTunai = provider.tabunganTunai;
     final kasSistem = provider.targetUangFisikDiLaci;
     final totalFisik = _totalFisik;
     final selisih = totalFisik - kasSistem;
@@ -17101,31 +18187,67 @@ class _CashOpnameScreenState extends State<CashOpnameScreen> {
       statusText = 'Lebih +${CurrencyFormatter.format(selisih)}';
     }
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      appBar: AppBar(
-        backgroundColor: const Color(0xCC060F1E),
-        title: const Row(
-          children: [
-            Flexible(
-              child: Text(
-                'Cash Opname Fisik',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-                overflow: TextOverflow.ellipsis,
+    return ScreenSpotlightHost(
+      screenKey: 'tour_opname',
+      controller: _spotCtrl,
+      steps: const [
+        SpotlightStepSpec(
+          emoji: '💵',
+          title: 'Target Laci 3 Kantong Tunai',
+          description:
+              'Sistem menjumlahkan uang tunai fisik yang seharusnya ada di laci dari Kas Jajan Tunai + Kas Infak Tunai + Tabungan Tunai Santri.',
+          accent: Color(0xFF38BDF8),
+        ),
+        SpotlightStepSpec(
+          emoji: '🧮',
+          title: 'Hitung Lembar & Koin Rupiah',
+          description:
+              'Masukkan jumlah lembar pecahan Rp 100.000 hingga koin Rp 100. Selisih (Cocok ✓ / Kurang / Lebih) dihitung otomatis secara real-time.',
+          accent: Color(0xFF34D399),
+        ),
+        SpotlightStepSpec(
+          emoji: '📝',
+          title: 'Simpan Berita Acara Opname Harian',
+          description:
+              'Ketuk Simpan Hasil Cash Opname agar laporan audit harian tersimpan dan muncul status Terverifikasi Fisik ✓ di menu Rekap.',
+          accent: Color(0xFFFBBF24),
+        ),
+      ],
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: const Color(0xCC060F1E),
+          title: const Row(
+            children: [
+              Flexible(
+                child: Text(
+                  'Cash Opname Fisik',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              SizedBox(width: 6),
+              Text('👑', style: TextStyle(fontSize: 15)),
+            ],
+          ),
+          actions: [
+            TextButton.icon(
+              onPressed: _resetAll,
+              icon: const Icon(Icons.refresh, size: 16, color: Color(0xFF7DD3FC)),
+              label: const Text('Reset 0', style: TextStyle(color: Color(0xFF7DD3FC), fontSize: 11.5, fontWeight: FontWeight.w800)),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Center(
+                child: SpotlightHelpButton(
+                  onTap: _spotCtrl.startTour,
+                  size: 32,
+                  accent: const Color(0xFF38BDF8),
+                ),
               ),
             ),
-            SizedBox(width: 6),
-            Text('👑', style: TextStyle(fontSize: 15)),
           ],
         ),
-        actions: [
-          TextButton.icon(
-            onPressed: _resetAll,
-            icon: const Icon(Icons.refresh, size: 16, color: Color(0xFF7DD3FC)),
-            label: const Text('Reset 0', style: TextStyle(color: Color(0xFF7DD3FC), fontSize: 11.5, fontWeight: FontWeight.w800)),
-          ),
-        ],
-      ),
       body: SafeArea(
         child: ListView(
           padding: EdgeInsets.fromLTRB(16, 8, 16, MediaQuery.of(context).padding.bottom + 24),
@@ -17219,6 +18341,12 @@ class _CashOpnameScreenState extends State<CashOpnameScreen> {
                           'Kas Infak Tunai (Belum Disetor ke Yayasan)',
                           CurrencyFormatter.format(kasInfakTunai),
                           const Color(0xFFFDE68A),
+                        ),
+                        const SizedBox(height: 4),
+                        _opnameBreakdownRow(
+                          'Brankas Tabungan Tunai Santri (Kantong 4)',
+                          CurrencyFormatter.format(tabunganTunai),
+                          const Color(0xFFA7F3D0),
                         ),
                         const Divider(color: Colors.white12, height: 12),
                         _opnameBreakdownRow(
@@ -17474,6 +18602,7 @@ class _CashOpnameScreenState extends State<CashOpnameScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 
@@ -17513,7 +18642,7 @@ class _CashOpnameScreenState extends State<CashOpnameScreen> {
 }
 ```
 
-### [55/123] `lib/screens/rekap/executive_dashboard_screen.dart`
+### [57/127] `lib/screens/rekap/executive_dashboard_screen.dart`
 
 ```dart
 import 'dart:io';
@@ -17529,6 +18658,7 @@ import '../../services/executive_analytics_service.dart';
 import '../../utils/app_feedback.dart';
 import '../../utils/currency_formatter.dart';
 import '../../widgets/app_background_wrapper.dart';
+import '../../widgets/guided_spotlight_tour.dart';
 import '../paywall_screen.dart';
 
 class ExecutiveDashboardScreen extends StatefulWidget {
@@ -17540,6 +18670,7 @@ class ExecutiveDashboardScreen extends StatefulWidget {
 }
 
 class _ExecutiveDashboardScreenState extends State<ExecutiveDashboardScreen> {
+  final ScreenSpotlightController _spotCtrl = ScreenSpotlightController();
   bool _loading = true;
   bool _showMonthly = true;
   bool _exportingPdf = false;
@@ -17728,19 +18859,55 @@ class _ExecutiveDashboardScreenState extends State<ExecutiveDashboardScreen> {
     }
     final summary = _summary;
 
-    return AppBackgroundWrapper(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          title: const Text('Laporan Eksekutif Yayasan'),
-          actions: [
-            IconButton(
-              onPressed: _loadAnalytics,
-              icon: const Icon(Icons.refresh_rounded),
-              tooltip: 'Muat Ulang Analitik',
-            ),
-          ],
+    return ScreenSpotlightHost(
+      screenKey: 'tour_executive',
+      controller: _spotCtrl,
+      steps: const [
+        SpotlightStepSpec(
+          emoji: '🏛️',
+          title: 'Ringkasan Posisi Brankas & Kepatuhan',
+          description:
+              'Memantau posisi kas pondok secara menyeluruh (Tunai + Bank) serta persentase kepatuhan setoran infak santri bulan berjalan.',
+          accent: Color(0xFF34D399),
         ),
+        SpotlightStepSpec(
+          emoji: '📈',
+          title: 'Grafik Tren Arus Kas 7 Hari & 6 Bulan',
+          description:
+              'Beralih antara tampilan harian 7 hari terakhir dan bulanan 6 bulan terakhir untuk melihat ritme pemasukan vs penarikan santri.',
+          accent: Color(0xFF38BDF8),
+        ),
+        SpotlightStepSpec(
+          emoji: '📄',
+          title: 'Cetak PDF Resmi 1 Halaman Yayasan',
+          description:
+              'Unduh dan bagikan ringkasan eksekutif 1 halaman berformat rapi langsung untuk Pengasuh atau Ketua Yayasan.',
+          accent: Color(0xFFFBBF24),
+        ),
+      ],
+      child: AppBackgroundWrapper(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            title: const Text('Laporan Eksekutif Yayasan'),
+            actions: [
+              IconButton(
+                onPressed: _loadAnalytics,
+                icon: const Icon(Icons.refresh_rounded),
+                tooltip: 'Muat Ulang Analitik',
+              ),
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Center(
+                  child: SpotlightHelpButton(
+                    onTap: _spotCtrl.startTour,
+                    size: 32,
+                    accent: const Color(0xFF34D399),
+                  ),
+                ),
+              ),
+            ],
+          ),
         body: SafeArea(
           child: _loading || summary == null
               ? const Center(child: CircularProgressIndicator())
@@ -17991,6 +19158,7 @@ class _ExecutiveDashboardScreenState extends State<ExecutiveDashboardScreen> {
                 ),
         ),
       ),
+    ),
     );
   }
 
@@ -18116,7 +19284,7 @@ class _CashflowBarChart extends StatelessWidget {
 }
 ```
 
-### [56/123] `lib/screens/rekap/rekap_laporan_screen.dart`
+### [58/127] `lib/screens/rekap/rekap_laporan_screen.dart`
 
 ```dart
 import 'package:flutter/material.dart';
@@ -18131,6 +19299,7 @@ import '../../utils/time_category_helper.dart';
 import '../../utils/app_feedback.dart';
 import '../../services/report_service.dart';
 import '../../services/yayasan_export_service.dart';
+import '../../widgets/guided_spotlight_tour.dart';
 import '../../widgets/searchable_santri_picker.dart';
 import '../../widgets/struk_gambar_dialog.dart';
 import '../paywall_screen.dart';
@@ -18140,7 +19309,12 @@ import 'executive_dashboard_screen.dart';
 import 'smart_wa_reminder_screen.dart';
 
 class RekapLaporanScreen extends StatefulWidget {
-  const RekapLaporanScreen({Key? key}) : super(key: key);
+  final bool isActiveTab;
+
+  const RekapLaporanScreen({
+    Key? key,
+    this.isActiveTab = true,
+  }) : super(key: key);
 
   @override
   State<RekapLaporanScreen> createState() => _RekapLaporanScreenState();
@@ -18148,6 +19322,10 @@ class RekapLaporanScreen extends StatefulWidget {
 
 class _RekapLaporanScreenState extends State<RekapLaporanScreen>
     with AutomaticKeepAliveClientMixin {
+  final ScreenSpotlightController _spotCtrl = ScreenSpotlightController();
+  final GlobalKey _spotShortcutsKey = GlobalKey();
+  final GlobalKey _spotOpnameKey = GlobalKey();
+  final GlobalKey _spotYayasanKey = GlobalKey();
   String? _selectedSantriId;
   ExportPeriod _exportPeriod = ExportPeriod.bulanIni;
   DateTime? _customStart;
@@ -18395,13 +19573,82 @@ Salam hormat & ta'dzim,
       opnameBadgeText = 'Selisih ${CurrencyFormatter.format(opnameToday.selisih)}';
     }
 
-    return SafeArea(
-      bottom: false,
-      child: ListView(
-        padding: EdgeInsets.fromLTRB(16, 12, 16, 115 + bottomSafe),
-        children: [
-          // 0. Pintasan Eksekutif & Pengingat WA Cerdas v4.0 (PRO)
-          Row(
+    return ScreenSpotlightHost(
+      screenKey: 'tour_rekap',
+      isActive: widget.isActiveTab,
+      controller: _spotCtrl,
+      steps: [
+        SpotlightStepSpec(
+          targetKey: _spotShortcutsKey,
+          emoji: '📊',
+          title: 'Analitik Eksekutif & Antrean WA Cerdas',
+          description:
+              'Buka Laporan Eksekutif Yayasan 1 halaman atau Antrean Pengingat WA Cerdas (Saldo Kritis, Infak Jatuh Tempo & Tunggakan) dalam satu ketukan.',
+          accent: const Color(0xFF34D399),
+        ),
+        SpotlightStepSpec(
+          targetKey: _spotOpnameKey,
+          emoji: '💵',
+          title: 'Audit Kas Harian & Cash Opname Laci',
+          description:
+              'Cocokkan fisik uang tunai di laci pondok terhadap target 3 kantong tunai (Kas Jajan + Infak Tunai + Tabungan Tunai) setiap malam.',
+          accent: const Color(0xFF38BDF8),
+        ),
+        SpotlightStepSpec(
+          targetKey: _spotYayasanKey,
+          emoji: '📄',
+          title: 'Laporan PDF/Excel & Kirim WA Wali Santri',
+          description:
+              'Unduh laporan resmi berkop pondok (PDF & Excel Multi-Sheet) atau pratinjau & kirim ringkasan harian santun langsung ke WhatsApp Wali Santri.',
+          accent: const Color(0xFFFBBF24),
+        ),
+      ],
+      child: SafeArea(
+        bottom: false,
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(16, 12, 16, 115 + bottomSafe),
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'PUSAT REKAP & AUDITING',
+                          style: TextStyle(
+                            color: Color(0xFF34D399),
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.1,
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Laporan, Opname & WA Wali',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SpotlightHelpButton(
+                    onTap: _spotCtrl.startTour,
+                    size: 34,
+                    accent: const Color(0xFF34D399),
+                  ),
+                ],
+              ),
+            ),
+
+            // 0. Pintasan Eksekutif & Pengingat WA Cerdas v4.0 (PRO)
+            Row(
+              key: _spotShortcutsKey,
             children: [
               Expanded(
                 child: InkWell(
@@ -18516,6 +19763,7 @@ Salam hormat & ta'dzim,
 
           // 1. Audit Kas Harian Card (Vibrant Cyan -> Blue Glass)
           Container(
+            key: _spotOpnameKey,
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -18748,6 +19996,7 @@ Salam hormat & ta'dzim,
 
         // 1B. Ekspor Laporan Resmi Yayasan (Royal Gold -> Amber / Emerald Glass)
         Container(
+          key: _spotYayasanKey,
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -19168,6 +20417,7 @@ Salam hormat & ta'dzim,
         _buildSaldoKritisCard(provider, cardOpacity),
       ],
     ),
+    ),
     );
   }
 
@@ -19342,7 +20592,7 @@ Salam hormat & ta'dzim,
 }
 ```
 
-### [57/123] `lib/screens/rekap/smart_wa_reminder_screen.dart`
+### [59/127] `lib/screens/rekap/smart_wa_reminder_screen.dart`
 
 ```dart
 import 'package:flutter/material.dart';
@@ -19353,6 +20603,7 @@ import '../../services/report_service.dart';
 import '../../services/smart_wa_reminder_service.dart';
 import '../../utils/app_feedback.dart';
 import '../../widgets/app_background_wrapper.dart';
+import '../../widgets/guided_spotlight_tour.dart';
 import '../paywall_screen.dart';
 
 class SmartWaReminderScreen extends StatefulWidget {
@@ -19363,6 +20614,7 @@ class SmartWaReminderScreen extends StatefulWidget {
 }
 
 class _SmartWaReminderScreenState extends State<SmartWaReminderScreen> {
+  final ScreenSpotlightController _spotCtrl = ScreenSpotlightController();
   ReminderCategory _selectedCategory = ReminderCategory.saldoKritis;
   Set<String> _sentToday = {};
 
@@ -19559,10 +20811,50 @@ class _SmartWaReminderScreenState extends State<SmartWaReminderScreen> {
           ReportService.normalizeWaPhone(item.santri.noWaWali).isNotEmpty;
     }).length;
 
-    return AppBackgroundWrapper(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(title: const Text('Pusat Pengingat Wali Santri')),
+    return ScreenSpotlightHost(
+      screenKey: 'tour_wa_reminder',
+      controller: _spotCtrl,
+      steps: const [
+        SpotlightStepSpec(
+          emoji: '🗂️',
+          title: '3 Antrean Prioritas Wali Santri',
+          description:
+              'Pisahkan santri yang Saldo Jajannya Kritis (<3 hari), Infak Jatuh Tempo, maupun yang memiliki Tunggakan/Talangan Kas Pondok.',
+          accent: Color(0xFFFB7185),
+        ),
+        SpotlightStepSpec(
+          emoji: '📲',
+          title: 'Kirim Antrean Berurutan Anti-Spam',
+          description:
+              'Tekan tombol hijau besar untuk langsung membuka WhatsApp wali satu per satu dengan bahasa santun tanpa risiko spam massal.',
+          accent: Color(0xFF34D399),
+        ),
+        SpotlightStepSpec(
+          emoji: '✅',
+          title: 'Tanda Sudah Terkirim Hari Ini',
+          description:
+              'Santri yang sudah dikirimi pesan hari ini otomatis ditandai agar pengurus tidak mengirim pengingat ganda ke wali yang sama.',
+          accent: Color(0xFF38BDF8),
+        ),
+      ],
+      child: AppBackgroundWrapper(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            title: const Text('Pusat Pengingat Wali Santri'),
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Center(
+                  child: SpotlightHelpButton(
+                    onTap: _spotCtrl.startTour,
+                    size: 32,
+                    accent: const Color(0xFFFBBF24),
+                  ),
+                ),
+              ),
+            ],
+          ),
         body: SafeArea(
           child: Column(
             children: [
@@ -19765,6 +21057,7 @@ class _SmartWaReminderScreenState extends State<SmartWaReminderScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 
@@ -19802,7 +21095,7 @@ class _SmartWaReminderScreenState extends State<SmartWaReminderScreen> {
 }
 ```
 
-### [58/123] `lib/screens/santri/cetak_kartu_qr_screen.dart`
+### [60/127] `lib/screens/santri/cetak_kartu_qr_screen.dart`
 
 ```dart
 import 'dart:io';
@@ -19817,6 +21110,7 @@ import '../../providers/kas_santri_provider.dart';
 import '../../services/qr_card_pdf_service.dart';
 import '../../utils/app_feedback.dart';
 import '../../widgets/app_background_wrapper.dart';
+import '../../widgets/guided_spotlight_tour.dart';
 import '../paywall_screen.dart';
 
 enum _QrPrintScope { semua, perKamar, pilihan }
@@ -19829,6 +21123,7 @@ class CetakKartuQrScreen extends StatefulWidget {
 }
 
 class _CetakKartuQrScreenState extends State<CetakKartuQrScreen> {
+  final ScreenSpotlightController _spotCtrl = ScreenSpotlightController();
   _QrPrintScope _scope = _QrPrintScope.semua;
   String? _selectedKamar;
   final Set<String> _manualIds = {};
@@ -20045,10 +21340,43 @@ class _CetakKartuQrScreenState extends State<CetakKartuQrScreen> {
           s.kamar.toLowerCase().contains(q);
     }).toList();
 
-    return AppBackgroundWrapper(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(title: const Text('Cetak Kartu QR Massal (A4)')),
+    return ScreenSpotlightHost(
+      screenKey: 'tour_cetak_qr',
+      controller: _spotCtrl,
+      steps: const [
+        SpotlightStepSpec(
+          emoji: '🪪',
+          title: 'Pilih Cakupan Santri yang Dicetak',
+          description:
+              'Anda dapat mencetak QR Card untuk Semua Santri Aktif, Per Kamar tertentu, atau memilih santri secara manual.',
+          accent: Color(0xFF34D399),
+        ),
+        SpotlightStepSpec(
+          emoji: '🖨️',
+          title: 'PDF A4 Siap Laminating (8 Kartu/Halaman)',
+          description:
+              'Aplikasi menyusun kartu ID QR dengan logo pondok & garis potong otomatis. Gunakan hasil cetakan untuk Scan QR Antrean 1 Detik di Beranda.',
+          accent: Color(0xFF38BDF8),
+        ),
+      ],
+      child: AppBackgroundWrapper(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            title: const Text('Cetak Kartu QR Massal (A4)'),
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Center(
+                  child: SpotlightHelpButton(
+                    onTap: _spotCtrl.startTour,
+                    size: 32,
+                    accent: const Color(0xFF34D399),
+                  ),
+                ),
+              ),
+            ],
+          ),
         body: SafeArea(
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
@@ -20264,12 +21592,13 @@ class _CetakKartuQrScreenState extends State<CetakKartuQrScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 }
 ```
 
-### [59/123] `lib/screens/santri/import_santri_excel_screen.dart`
+### [61/127] `lib/screens/santri/import_santri_excel_screen.dart`
 
 ```dart
 import 'dart:io';
@@ -20284,6 +21613,7 @@ import '../../services/bulk_santri_excel_service.dart';
 import '../../utils/app_feedback.dart';
 import '../../utils/currency_formatter.dart';
 import '../../widgets/app_background_wrapper.dart';
+import '../../widgets/guided_spotlight_tour.dart';
 import '../paywall_screen.dart';
 
 class ImportSantriExcelScreen extends StatefulWidget {
@@ -20295,6 +21625,7 @@ class ImportSantriExcelScreen extends StatefulWidget {
 }
 
 class _ImportSantriExcelScreenState extends State<ImportSantriExcelScreen> {
+  final ScreenSpotlightController _spotCtrl = ScreenSpotlightController();
   String _sumberDompet = 'TUNAI';
   bool _isBusy = false;
   BulkExcelParseResult? _parseResult;
@@ -20465,10 +21796,43 @@ class _ImportSantriExcelScreenState extends State<ImportSantriExcelScreen> {
     }
     final parsed = _parseResult;
 
-    return AppBackgroundWrapper(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(title: const Text('Import Santri Massal (.xlsx)')),
+    return ScreenSpotlightHost(
+      screenKey: 'tour_import_excel',
+      controller: _spotCtrl,
+      steps: const [
+        SpotlightStepSpec(
+          emoji: '📑',
+          title: 'Unduh & Isi Template Excel (.xlsx)',
+          description:
+              'Unduh dulu template resmi agar nama kolom sesuai sistem. Cocok untuk memasukkan 100–500 santri baru sekaligus tanpa mengetik satu per satu.',
+          accent: Color(0xFF34D399),
+        ),
+        SpotlightStepSpec(
+          emoji: '🔍',
+          title: 'Pratinjau Validasi Sebelum Impor',
+          description:
+              'Unggah file .xlsx lalu periksa jumlah baris valid, deteksi duplikat, dan tentukan dompet sumber saldo awal (Tunai / Rekening) sebelum konfirmasi.',
+          accent: Color(0xFF38BDF8),
+        ),
+      ],
+      child: AppBackgroundWrapper(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            title: const Text('Import Santri Massal (.xlsx)'),
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Center(
+                  child: SpotlightHelpButton(
+                    onTap: _spotCtrl.startTour,
+                    size: 32,
+                    accent: const Color(0xFF34D399),
+                  ),
+                ),
+              ),
+            ],
+          ),
         body: SafeArea(
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
@@ -20774,6 +22138,7 @@ class _ImportSantriExcelScreenState extends State<ImportSantriExcelScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 
@@ -20808,7 +22173,7 @@ class _ImportSantriExcelScreenState extends State<ImportSantriExcelScreen> {
 }
 ```
 
-### [60/123] `lib/screens/santri/qr_scanner_screen.dart`
+### [62/127] `lib/screens/santri/qr_scanner_screen.dart`
 
 ```dart
 import 'package:flutter/material.dart';
@@ -21015,11 +22380,12 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
 }
 ```
 
-### [61/123] `lib/screens/santri/santri_detail_screen.dart`
+### [63/127] `lib/screens/santri/santri_detail_screen.dart`
 
 ```dart
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../../widgets/guided_spotlight_tour.dart';
 import 'package:provider/provider.dart';
 import '../../database/database_helper.dart';
 import '../../models/santri_status.dart';
@@ -21036,6 +22402,7 @@ import '../../widgets/quick_edit_santri_bottom_sheet.dart';
 import '../../widgets/tunggakan_bottom_sheet.dart';
 import '../paywall_screen.dart';
 import '../setoran/setoran_screen.dart';
+import '../tabungan/brankas_tabungan_screen.dart';
 
 class SantriDetailScreen extends StatefulWidget {
   final String santriId;
@@ -21048,6 +22415,7 @@ class SantriDetailScreen extends StatefulWidget {
 }
 
 class _SantriDetailScreenState extends State<SantriDetailScreen> {
+  final ScreenSpotlightController _spotCtrl = ScreenSpotlightController();
   String _filterPeriode = 'SEMUA'; // 'SEMUA', 'HARI_INI', '7_HARI', 'BULAN_INI'
   List<TransaksiHarian> _mutasiList = [];
   bool _isLoadingMutasi = true;
@@ -21521,42 +22889,78 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> {
     final hasFoto =
         santri.fotoPath != null && santri.fotoPath!.trim().isNotEmpty;
 
-    return AppBackgroundWrapper(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          title: Text(
-            santri.namaLengkap,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-          ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.edit_outlined, color: Color(0xFF67E8F9)),
-              tooltip: 'Edit Data & Foto Santri',
-              onPressed: santri.id.isEmpty
-                  ? null
-                  : () async {
-                      AppFeedback.tap();
-                      await QuickEditSantriBottomSheet.show(context, santri);
-                      await _loadMutasi();
-                    },
-            ),
-            IconButton(
-              icon: const Icon(
-                Icons.delete_outline_rounded,
-                color: Color(0xFFFB7185),
-              ),
-              tooltip: 'Arsipkan / Hapus Santri',
-              onPressed: santri.id.isEmpty
-                  ? null
-                  : () {
-                      AppFeedback.tap();
-                      _confirmDelete(context, santri);
-                    },
-            ),
-          ],
+    return ScreenSpotlightHost(
+      screenKey: 'tour_santri_detail',
+      controller: _spotCtrl,
+      steps: const [
+        SpotlightStepSpec(
+          emoji: '🪪',
+          title: 'Profil, Saldo Jajan & Brankas Tabungan',
+          description:
+              'Menampilkan sisa saldo uang jajan harian, posisi 🏦 Brankas Tabungan Terpisah (yang tidak ikut terpotong jajan), jatah harian, dan status infak.',
+          accent: Color(0xFF34D399),
         ),
+        SpotlightStepSpec(
+          emoji: '✏️',
+          title: 'Ubah Data Santri, Jatah & Potong Besok',
+          description:
+              'Ketuk ikon pensil di kanan atas untuk mengedit data profil, foto, kamar, atau jatah harian santri. Aksi cepat Setor, Jajan, & Tabungan juga tersedia.',
+          accent: Color(0xFF38BDF8),
+        ),
+        SpotlightStepSpec(
+          emoji: '📜',
+          title: 'Riwayat Mutasi Lengkap per Santri',
+          description:
+              'Gulir ke bawah untuk menelusuri seluruh histori pemasukan, pengambilan harian, dan catatan infak khusus santri ini.',
+          accent: Color(0xFFFBBF24),
+        ),
+      ],
+      child: AppBackgroundWrapper(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            title: Text(
+              santri.namaLengkap,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.edit_outlined, color: Color(0xFF67E8F9)),
+                tooltip: 'Edit Data & Foto Santri',
+                onPressed: santri.id.isEmpty
+                    ? null
+                    : () async {
+                        AppFeedback.tap();
+                        await QuickEditSantriBottomSheet.show(context, santri);
+                        await _loadMutasi();
+                      },
+              ),
+              IconButton(
+                icon: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: Color(0xFFFB7185),
+                ),
+                tooltip: 'Arsipkan / Hapus Santri',
+                onPressed: santri.id.isEmpty
+                    ? null
+                    : () {
+                        AppFeedback.tap();
+                        _confirmDelete(context, santri);
+                      },
+              ),
+              Padding(
+                padding: const EdgeInsets.only(right: 10),
+                child: Center(
+                  child: SpotlightHelpButton(
+                    onTap: _spotCtrl.startTour,
+                    size: 32,
+                    accent: const Color(0xFF34D399),
+                  ),
+                ),
+              ),
+            ],
+          ),
         body: SafeArea(
           child: RefreshIndicator(
             color: const Color(0xFF34D399),
@@ -21839,6 +23243,73 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> {
                           ),
                         ),
                       ],
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 9,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF062C2B).withValues(alpha: 0.62),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: const Color(0xFF2DD4BF).withValues(alpha: 0.45),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Text('🏦', style: TextStyle(fontSize: 16)),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Brankas Tabungan Terpisah',
+                                    style: TextStyle(
+                                      color: Color(0xFF99F6E4),
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                  Text(
+                                    CurrencyFormatter.format(santri.saldoTabungan),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: santri.id.isEmpty
+                                  ? null
+                                  : () async {
+                                      AppFeedback.tap();
+                                      await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => BrankasTabunganScreen(
+                                            initialSantriId: santri.id,
+                                          ),
+                                        ),
+                                      );
+                                      await _loadMutasi();
+                                    },
+                              child: const Text(
+                                'Kelola →',
+                                style: TextStyle(
+                                  color: Color(0xFF5EEAD4),
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -22262,6 +23733,7 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 
@@ -22486,7 +23958,7 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> {
 }
 ```
 
-### [62/123] `lib/screens/setoran/buku_infak_view.dart`
+### [64/127] `lib/screens/setoran/buku_infak_view.dart`
 
 ```dart
 import 'package:flutter/material.dart';
@@ -22501,18 +23973,28 @@ import '../../services/yayasan_export_service.dart';
 import '../../utils/app_feedback.dart';
 import '../../utils/currency_formatter.dart';
 import '../../utils/date_formatter.dart';
+import '../../widgets/guided_spotlight_tour.dart';
 import '../../widgets/infak_edit_bottom_sheet.dart';
 import '../../widgets/serah_terima_bottom_sheet.dart';
 import '../paywall_screen.dart';
 
 class BukuInfakView extends StatefulWidget {
-  const BukuInfakView({Key? key}) : super(key: key);
+  final bool isActiveTab;
+  final ScreenSpotlightController? spotlightController;
+
+  const BukuInfakView({
+    Key? key,
+    this.isActiveTab = true,
+    this.spotlightController,
+  }) : super(key: key);
 
   @override
   State<BukuInfakView> createState() => _BukuInfakViewState();
 }
 
 class _BukuInfakViewState extends State<BukuInfakView> {
+  final ScreenSpotlightController _fallbackSpotCtrl = ScreenSpotlightController();
+  final GlobalKey _spotInfakVaultKey = GlobalKey();
   String _selectedKategori = 'ALL'; // ALL, SANTRIYIN, SANTRIYAT, SANTRI_BARU
   String _selectedStatusFilter = 'ALL'; // ALL, BELUM, CICIL, JATUH_TEMPO, PULANG_PINDAH
   bool _isExporting = false;
@@ -22631,17 +24113,46 @@ class _BukuInfakViewState extends State<BukuInfakView> {
         ? totalBerasLiter.toInt().toString()
         : totalBerasLiter.toStringAsFixed(1);
 
-    return CustomScrollView(
-      slivers: [
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-          sliver: SliverToBoxAdapter(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // 1. Kartu Kas Infak Pondok & Gudang Beras + Serah Terima (Vibrant Emerald-Gold Glass)
-                Container(
-                  padding: const EdgeInsets.all(16),
+    return ScreenSpotlightHost(
+      screenKey: 'tour_buku_infak',
+      isActive: widget.isActiveTab,
+      controller: widget.spotlightController ?? _fallbackSpotCtrl,
+      steps: [
+        SpotlightStepSpec(
+          targetKey: _spotInfakVaultKey,
+          emoji: '🏛️',
+          title: 'Kas Infak Pondok & Gudang Beras',
+          description:
+              'Memantau total uang infak (Masak + Listrik + Pengganti Beras) dan stok fisik beras liter yang terkumpul tetapi belum diserahterimakan ke pengurus dapur.',
+          accent: const Color(0xFF34D399),
+        ),
+        const SpotlightStepSpec(
+          emoji: '🌾',
+          title: 'Filter Status Lunas, Cicil & Jatuh Tempo',
+          description:
+              'Gunakan tab filter dan kotak pencarian di bawah kartu untuk melihat santri yang belum setor, masih nyicil, jatuh tempo (H-3), atau sedang pulang/pindah.',
+          accent: Color(0xFFFBBF24),
+        ),
+        const SpotlightStepSpec(
+          emoji: '🤝',
+          title: 'Serah Terima Dapur & Edit Cepat',
+          description:
+              'Ketuk kartu santri untuk ubah rincian infak/bebas biaya, atau gunakan tombol Serah Terima di atas untuk mencatat penyerahan uang & beras ke pengelola dapur pondok.',
+          accent: Color(0xFF38BDF8),
+        ),
+      ],
+      child: CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+            sliver: SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // 1. Kartu Kas Infak Pondok & Gudang Beras + Serah Terima (Vibrant Emerald-Gold Glass)
+                  Container(
+                    key: _spotInfakVaultKey,
+                    padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
@@ -23135,6 +24646,7 @@ class _BukuInfakViewState extends State<BukuInfakView> {
             ),
           ),
       ],
+    ),
     );
   }
 
@@ -23682,7 +25194,7 @@ class _BukuInfakViewState extends State<BukuInfakView> {
 }
 ```
 
-### [63/123] `lib/screens/setoran/setoran_screen.dart`
+### [65/127] `lib/screens/setoran/setoran_screen.dart`
 
 ```dart
 import 'package:flutter/material.dart';
@@ -23695,6 +25207,7 @@ import '../../providers/theme_wallpaper_provider.dart';
 import '../../utils/app_feedback.dart';
 import '../../utils/currency_formatter.dart';
 import '../../utils/date_formatter.dart';
+import '../../widgets/guided_spotlight_tour.dart';
 import '../../widgets/sambangan_receipt_dialog.dart';
 import '../../widgets/searchable_santri_picker.dart';
 import '../paywall_screen.dart';
@@ -23705,6 +25218,7 @@ class SetoranScreen extends StatefulWidget {
   final int activeSubTab;
   final ValueChanged<int>? onSubTabChanged;
   final String? preselectedSantriId;
+  final bool isActiveTab;
 
   const SetoranScreen({
     Key? key,
@@ -23712,6 +25226,7 @@ class SetoranScreen extends StatefulWidget {
     this.activeSubTab = 0,
     this.onSubTabChanged,
     this.preselectedSantriId,
+    this.isActiveTab = true,
   }) : super(key: key);
 
   @override
@@ -23722,6 +25237,11 @@ class _SetoranScreenState extends State<SetoranScreen>
     with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
+  final ScreenSpotlightController _setoranSpotCtrl = ScreenSpotlightController();
+  final ScreenSpotlightController _infakSpotCtrl = ScreenSpotlightController();
+  final GlobalKey _spotSubTabKey = GlobalKey();
+  final GlobalKey _spotFormCardKey = GlobalKey();
+  final GlobalKey _spotPickerKey = GlobalKey();
   String? _selectedSantriId;
   TipeSetoran _tipeSetoran = TipeSetoran.sambanganSplit;
   bool _potongTunggakan = true;
@@ -24053,52 +25573,107 @@ class _SetoranScreenState extends State<SetoranScreen>
       targetBerasUang: provider.pengaturan.defaultInfakBerasUang,
     );
 
-    return SafeArea(
-      bottom: false,
-      child: Column(
-        children: [
-          // Top Sub-Tab Switcher: [ 💸 Setoran & Sambangan ] | [ 🌾 Buku Infak ]
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    const Color(0xFF072534).withValues(alpha: (0.88 * cardOpacity).clamp(0.48, 0.92)),
-                    const Color(0xFF101936).withValues(alpha: (0.88 * cardOpacity).clamp(0.48, 0.92)),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(
-                  color: const Color(0xFF38BDF8).withValues(alpha: 0.35),
-                ),
-              ),
+    return ScreenSpotlightHost(
+      screenKey: 'tour_setoran',
+      isActive: widget.isActiveTab && widget.activeSubTab == 0,
+      controller: _setoranSpotCtrl,
+      steps: [
+        SpotlightStepSpec(
+          targetKey: _spotSubTabKey,
+          emoji: '📥',
+          title: 'Setoran Uang Saku & Buku Infak',
+          description:
+              'Gunakan tab atas untuk berpindah antara form Setoran/Sambangan wali santri dan pemantauan Buku Infak (Masak, Listrik & Beras).',
+          accent: const Color(0xFF38BDF8),
+        ),
+        SpotlightStepSpec(
+          targetKey: _spotFormCardKey,
+          emoji: '🎁',
+          title: 'Smart Split Sambangan vs Top-Up Biasa',
+          description:
+              'Pilih Sambangan bila wali menyetor uang sekaligus untuk Infak + Jajan agar otomatis dipecah tanpa tercampur, atau Top-Up Biasa untuk menambah saldo jajan saja.',
+          accent: const Color(0xFFFBBF24),
+        ),
+        SpotlightStepSpec(
+          targetKey: _spotPickerKey,
+          emoji: '🧾',
+          title: 'Pilih Santri & Sumber Dana (Tunai / Bank)',
+          description:
+              'Pilih santri tujuan dan tentukan apakah uang diterima ke Kas Laci Tunai atau Rekening Bank agar pencatatan opname fisik laci selalu cocok.',
+          accent: const Color(0xFF34D399),
+        ),
+      ],
+      child: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            // Top Sub-Tab Switcher: [ 💸 Setoran & Sambangan ] | [ 🌾 Buku Infak ] + (?)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
               child: Row(
                 children: [
-                  _buildSubTabPill(
-                    label: '💸 Setoran & Sambangan',
-                    selected: widget.activeSubTab == 0,
-                    onTap: () => widget.onSubTabChanged?.call(0),
+                  Expanded(
+                    child: Container(
+                      key: _spotSubTabKey,
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            const Color(0xFF072534).withValues(alpha: (0.88 * cardOpacity).clamp(0.48, 0.92)),
+                            const Color(0xFF101936).withValues(alpha: (0.88 * cardOpacity).clamp(0.48, 0.92)),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: const Color(0xFF38BDF8).withValues(alpha: 0.35),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          _buildSubTabPill(
+                            label: '💸 Setoran & Sambangan',
+                            selected: widget.activeSubTab == 0,
+                            onTap: () => widget.onSubTabChanged?.call(0),
+                          ),
+                          _buildSubTabPill(
+                            label: '🌾 Buku Infak',
+                            selected: widget.activeSubTab == 1,
+                            onTap: () => widget.onSubTabChanged?.call(1),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  _buildSubTabPill(
-                    label: '🌾 Buku Infak',
-                    selected: widget.activeSubTab == 1,
-                    onTap: () => widget.onSubTabChanged?.call(1),
+                  const SizedBox(width: 8),
+                  SpotlightHelpButton(
+                    onTap: () {
+                      if (widget.activeSubTab == 1) {
+                        _infakSpotCtrl.startTour();
+                      } else {
+                        _setoranSpotCtrl.startTour();
+                      }
+                    },
+                    size: 36,
+                    accent: widget.activeSubTab == 1
+                        ? const Color(0xFF34D399)
+                        : const Color(0xFF38BDF8),
                   ),
                 ],
               ),
             ),
-          ),
 
-          Expanded(
-            child: widget.activeSubTab == 1
-                ? const BukuInfakView()
-                : ListView(
-                    padding: EdgeInsets.fromLTRB(16, 4, 16, 120 + bottomSafe),
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(18),
+            Expanded(
+              child: widget.activeSubTab == 1
+                  ? BukuInfakView(
+                      isActiveTab: widget.isActiveTab && widget.activeSubTab == 1,
+                      spotlightController: _infakSpotCtrl,
+                    )
+                  : ListView(
+                      padding: EdgeInsets.fromLTRB(16, 4, 16, 120 + bottomSafe),
+                      children: [
+                        Container(
+                          key: _spotFormCardKey,
+                          padding: const EdgeInsets.all(18),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: isSambangan
@@ -24205,9 +25780,10 @@ class _SetoranScreenState extends State<SetoranScreen>
                             const SizedBox(height: 16),
 
                             // Pilih Santri (Universal Searchable Picker)
-                            const Text(
+                            Text(
                               'PILIH SANTRI',
-                              style: TextStyle(
+                              key: _spotPickerKey,
+                              style: const TextStyle(
                                 color: Colors.white54,
                                 fontSize: 10,
                                 fontWeight: FontWeight.w800,
@@ -24603,6 +26179,7 @@ class _SetoranScreenState extends State<SetoranScreen>
           ),
         ],
       ),
+    ),
     );
   }
 
@@ -25120,7 +26697,7 @@ class _SetoranScreenState extends State<SetoranScreen>
 }
 ```
 
-### [64/123] `lib/screens/settings/audit_log_screen.dart`
+### [66/127] `lib/screens/settings/audit_log_screen.dart`
 
 ```dart
 import 'package:flutter/material.dart';
@@ -25131,6 +26708,7 @@ import '../../providers/kas_santri_provider.dart';
 import '../../utils/app_feedback.dart';
 import '../../utils/date_formatter.dart';
 import '../../widgets/app_background_wrapper.dart';
+import '../../widgets/guided_spotlight_tour.dart';
 import '../paywall_screen.dart';
 
 class AuditLogScreen extends StatefulWidget {
@@ -25141,6 +26719,7 @@ class AuditLogScreen extends StatefulWidget {
 }
 
 class _AuditLogScreenState extends State<AuditLogScreen> {
+  final ScreenSpotlightController _spotCtrl = ScreenSpotlightController();
   bool _loading = true;
   List<AuditLogEntry> _entries = const [];
   AuditLogVerificationResult? _verification;
@@ -25250,22 +26829,51 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
     final verif = _verification;
     final chainOk = verif?.isValid ?? true;
 
-    return AppBackgroundWrapper(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          title: const Text('Jejak Audit Keamanan'),
-          actions: [
-            IconButton(
-              tooltip: 'Verifikasi Ulang Rantai Audit',
-              onPressed: () {
-                AppFeedback.tap();
-                _loadAudit();
-              },
-              icon: const Icon(Icons.verified_user_outlined),
-            ),
-          ],
+    return ScreenSpotlightHost(
+      screenKey: 'tour_audit_log',
+      controller: _spotCtrl,
+      steps: const [
+        SpotlightStepSpec(
+          emoji: '🛡️',
+          title: 'Verifikasi Integritas Rantai Hash SHA-256',
+          description:
+              'Setiap aksi sensitif (Void, Edit, Hapus, Restore, Reset, Serah Terima Infak) dirantai dengan hash kriptografis sehingga manipulasi manual dapat langsung terdeteksi.',
+          accent: Color(0xFF34D399),
         ),
+        SpotlightStepSpec(
+          emoji: '🔎',
+          title: 'Saring Log Berdasarkan Jenis Aksi',
+          description:
+              'Gunakan filter di bagian atas untuk menelusuri riwayat pembatalan (Void), perubahan nominal transaksi, atau pemulihan cadangan secara read-only.',
+          accent: Color(0xFF38BDF8),
+        ),
+      ],
+      child: AppBackgroundWrapper(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            title: const Text('Jejak Audit Keamanan'),
+            actions: [
+              IconButton(
+                tooltip: 'Verifikasi Ulang Rantai Audit',
+                onPressed: () {
+                  AppFeedback.tap();
+                  _loadAudit();
+                },
+                icon: const Icon(Icons.verified_user_outlined),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Center(
+                  child: SpotlightHelpButton(
+                    onTap: _spotCtrl.startTour,
+                    size: 32,
+                    accent: const Color(0xFF34D399),
+                  ),
+                ),
+              ),
+            ],
+          ),
         body: Column(
           children: [
             Padding(
@@ -25481,12 +27089,13 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 }
 ```
 
-### [65/123] `lib/screens/settings/pin_settings_screen.dart`
+### [67/127] `lib/screens/settings/pin_settings_screen.dart`
 
 ```dart
 import 'package:flutter/material.dart';
@@ -25733,18 +27342,15 @@ class _PinSettingsScreenState extends State<PinSettingsScreen> {
 }
 ```
 
-### [66/123] `lib/screens/settings/settings_screen.dart`
+### [68/127] `lib/screens/settings/settings_screen.dart`
 
 ```dart
-import 'dart:convert';
-import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
+import '../../services/tutorial_service.dart';
+import '../../widgets/guided_spotlight_tour.dart';
 import 'package:provider/provider.dart';
-import 'package:share_plus/share_plus.dart';
-import '../../database/database_helper.dart';
 import '../../models/bendahara_account.dart';
 import '../../models/pengaturan.dart';
 import '../../providers/kas_santri_provider.dart';
@@ -25752,6 +27358,7 @@ import '../../providers/theme_wallpaper_provider.dart';
 import '../../services/account_auth_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/backup_service.dart';
+import '../../services/cloud_backup_service.dart';
 import '../../services/google_drive_backup_service.dart';
 import '../../services/subscription_service.dart';
 import '../../utils/app_feedback.dart';
@@ -25779,6 +27386,7 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  final ScreenSpotlightController _spotCtrl = ScreenSpotlightController();
   late TextEditingController _namaPondokController;
   late TextEditingController _tahunAjaranController;
   late TextEditingController _defaultJatahController;
@@ -26176,22 +27784,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _backupJson() async {
-    AppFeedback.tap();
-    try {
-      final dump = await DatabaseHelper.instance.dumpBackupJson();
-      final jsonStr = const JsonEncoder.withIndent('  ').convert(dump);
-      final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/backup_kas_santri_${DateTime.now().millisecondsSinceEpoch}.json');
-      await file.writeAsString(jsonStr);
-      AppFeedback.success();
-      await Share.shareXFiles([XFile(file.path)], text: 'Backup Kas Santri (.JSON)');
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal backup: $e'), backgroundColor: const Color(0xFFF43F5E)),
-        );
-      }
-    }
+    await EncryptedBackupHelper.backupPlainJson(context);
   }
 
   Future<void> _showConfirmRestoreDialog({
@@ -26279,14 +27872,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final isLinked = linkedEmail != null && linkedEmail.isNotEmpty;
     final bottomSafe = MediaQuery.of(context).padding.bottom;
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      appBar: AppBar(
-        title: const Text(
-          '⚙️ Pengaturan Lengkap',
-          style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w900),
+    return ScreenSpotlightHost(
+      screenKey: 'tour_settings',
+      controller: _spotCtrl,
+      steps: const [
+        SpotlightStepSpec(
+          emoji: '🎨',
+          title: 'Tampilan, Wallpaper & Identitas Pondok',
+          description:
+              'Sesuaikan preset warna kaca/wallpaper, isi nama & alamat pondok, pengelola, serta target infak bawaan untuk Smart Split Sambangan.',
+          accent: Color(0xFF38BDF8),
         ),
-      ),
+        SpotlightStepSpec(
+          emoji: '🔐',
+          title: 'Keamanan PIN, Biometrik & Mode Privasi',
+          description:
+              'Lindungi kas santri dengan PIN, sidik jari, timer kunci otomatis, dan blokir tangkapan layar agar data keuangan aman.',
+          accent: Color(0xFFFB7185),
+        ),
+        SpotlightStepSpec(
+          emoji: '💾',
+          title: 'Backup Offline (.KSBAK) & Cloud Online',
+          description:
+              'Cadangkan database terenkripsi ke file HP Anda atau gunakan Cloud Backup Online gratis yang selalu siap dipulihkan jika ganti perangkat.',
+          accent: Color(0xFF34D399),
+        ),
+      ],
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: const Text(
+            '⚙️ Pengaturan Lengkap',
+            style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w900),
+          ),
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Center(
+                child: SpotlightHelpButton(
+                  onTap: _spotCtrl.startTour,
+                  size: 32,
+                  accent: const Color(0xFF38BDF8),
+                ),
+              ),
+            ),
+          ],
+        ),
       body: ListView(
         padding: EdgeInsets.fromLTRB(16, 8, 16, 36 + bottomSafe),
         children: [
@@ -26888,40 +28519,258 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _sectionHeader('5. DATA & CADANGAN', 'Backup .KSBAK Terenkripsi, .JSON & Google Drive PRO', const Color(0xFF67E8F9)),
+                _sectionHeader(
+                  '5. DATA & CADANGAN',
+                  'Offline-First + Cloud Backup Online (.KSBAK, .JSON & Supabase Vault)',
+                  const Color(0xFF67E8F9),
+                ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
                     Expanded(
-                      child: OutlinedButton(
-                        onPressed: _backupJson,
-                        style: OutlinedButton.styleFrom(side: BorderSide(color: const Color(0xFF10B981).withOpacity(0.5))),
-                        child: const Text('⬇️ Backup .JSON', style: TextStyle(color: Color(0xFF6EE7B7), fontSize: 11, fontWeight: FontWeight.w800)),
+                      child: ElevatedButton.icon(
+                        onPressed: () =>
+                            EncryptedBackupHelper.saveLocalBackupToDevice(
+                          context,
+                          encrypted: false,
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF10B981),
+                          foregroundColor: const Color(0xFF030712),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                        ),
+                        icon: const Icon(Icons.save_alt_rounded, size: 15),
+                        label: const FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            '💾 Simpan ke Memori HP',
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: ElevatedButton(
-                        onPressed: () => EncryptedBackupHelper.backupEncryptedKsbak(context),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF0E7490),
-                          foregroundColor: Colors.white,
+                      child: OutlinedButton.icon(
+                        onPressed: () =>
+                            EncryptedBackupHelper.shareLocalBackupFile(
+                          context,
+                          encrypted: false,
                         ),
-                        child: Text(
-                          isPro ? '🔐 Backup .KSBAK' : '🔐 Backup .KSBAK 👑',
-                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(
+                            color: const Color(0xFF10B981).withOpacity(0.55),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                        ),
+                        icon: const Icon(
+                          Icons.share_outlined,
+                          size: 15,
+                          color: Color(0xFF6EE7B7),
+                        ),
+                        label: const FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            '📤 Bagikan .JSON',
+                            style: TextStyle(
+                              color: Color(0xFF6EE7B7),
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
-                SizedBox(
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () =>
+                            EncryptedBackupHelper.backupEncryptedKsbak(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF0E7490),
+                          foregroundColor: Colors.white,
+                        ),
+                        child: Text(
+                          isPro ? '🔐 Backup .KSBAK' : '🔐 Backup .KSBAK 👑',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () =>
+                            EncryptedBackupHelper.restoreBackupAnyFormat(
+                          context,
+                          provider,
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(
+                            color: const Color(0xFF38BDF8).withOpacity(0.5),
+                          ),
+                        ),
+                        child: const FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            '⬆️ Pulihkan File',
+                            style: TextStyle(
+                              color: Color(0xFF67E8F9),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Container(
                   width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () => EncryptedBackupHelper.restoreBackupAnyFormat(context, provider),
-                    style: OutlinedButton.styleFrom(side: BorderSide(color: const Color(0xFF38BDF8).withOpacity(0.5))),
-                    child: const Text('⬆️ Pulihkan Backup (.JSON / .KSBAK)', style: TextStyle(color: Color(0xFF67E8F9), fontSize: 11.5, fontWeight: FontWeight.w800)),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        const Color(0xFF062C2B).withValues(alpha: 0.78),
+                        const Color(0xFF0A1428).withValues(alpha: 0.84),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: const Color(0xFF2DD4BF).withValues(alpha: 0.45),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Text(
+                        '☁️ Cloud Backup Online (Terenkripsi AES-256)',
+                        style: TextStyle(
+                          color: Color(0xFF5EEAD4),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      FutureBuilder<CloudBackupMeta?>(
+                        future: CloudBackupService.instance.getLastMeta(),
+                        builder: (ctx, snap) {
+                          final meta = snap.data;
+                          if (meta == null) {
+                            return const Text(
+                              'Offline-First + Cloud Backup Online: Buat Kode Pondok & Password Enkripsi agar bisa pindah HP tanpa repot kirim file manual.',
+                              style: TextStyle(
+                                color: Colors.white60,
+                                fontSize: 10.5,
+                                height: 1.35,
+                              ),
+                            );
+                          }
+                          final dtText = meta.lastUploadedAt != null
+                              ? DateFormatter.formatFullDateTime(
+                                  meta.lastUploadedAt!,
+                                )
+                              : '-';
+                          final kb = (meta.sizeBytes / 1024).toStringAsFixed(1);
+                          return Text(
+                            'Kode Aktif: ${meta.backupKey} • Terakhir unggah: $dtText ($kb KB)',
+                            style: const TextStyle(
+                              color: Color(0xFFA7F3D0),
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () =>
+                                  EncryptedBackupHelper.showCloudBackupDialog(
+                                context,
+                                provider,
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF14B8A6),
+                                foregroundColor: const Color(0xFF030712),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 10,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              icon: const Icon(
+                                Icons.cloud_upload_rounded,
+                                size: 15,
+                              ),
+                              label: const FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  '☁️ Cadangkan Online',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () =>
+                                  EncryptedBackupHelper.showCloudRestoreDialog(
+                                context,
+                                provider,
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                side: BorderSide(
+                                  color: const Color(0xFF2DD4BF)
+                                      .withValues(alpha: 0.65),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 10,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              icon: const Icon(
+                                Icons.cloud_download_rounded,
+                                size: 15,
+                                color: Color(0xFF5EEAD4),
+                              ),
+                              label: const FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  '☁️ Pulihkan Online',
+                                  style: TextStyle(
+                                    color: Color(0xFF5EEAD4),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -27317,6 +29166,50 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ],
                 const SizedBox(height: 8),
+                FutureBuilder<bool>(
+                  future: TutorialService.instance.isAutoTourEnabled(),
+                  builder: (context, snap) {
+                    var autoVal = snap.data ?? true;
+                    return StatefulBuilder(
+                      builder: (_, setInnerState) {
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.24),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: const Color(0xFF38BDF8).withValues(alpha: 0.25),
+                            ),
+                          ),
+                          child: SwitchListTile.adaptive(
+                            dense: true,
+                            contentPadding: EdgeInsets.zero,
+                            activeColor: const Color(0xFF34D399),
+                            title: const Text(
+                              'Panduan Sorotan Otomatis (Saat Pertama Buka Menu)',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            subtitle: const Text(
+                              'Tampil maks 1x per layar baru. Matikan kapan saja; ikon (?) tetap tersedia.',
+                              style: TextStyle(color: Colors.white60, fontSize: 10),
+                            ),
+                            value: autoVal,
+                            onChanged: (val) async {
+                              AppFeedback.tap();
+                              setInnerState(() => autoVal = val);
+                              await TutorialService.instance.setAutoTourEnabled(val);
+                            },
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
@@ -27365,18 +29258,80 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     },
                   ),
                 ],
+                const SizedBox(height: 14),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF060B14).withValues(alpha: 0.72),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: const Color(0xFFD946EF).withValues(alpha: 0.32),
+                    ),
+                  ),
+                  child: const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '✨ TENTANG APLIKASI • Kas-Santri v4.3.0',
+                        style: TextStyle(
+                          color: Color(0xFFF0ABFC),
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                      SizedBox(height: 6),
+                      Text(
+                        'Pengembang: Moch Khoirul Azman',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Dibuat: Senin, 23 November 2026 • 09:00 WIB',
+                        style: TextStyle(
+                          color: Color(0xFF67E8F9),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Arsitektur: Offline-First + Cloud Backup Online (v4.3.0)',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 10.5,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'Aplikasi ini lahir dari niat tulus untuk mendampingi para bendahara, musyrif, dan pengurus pondok pesantren agar dapat menjaga amanah keuangan santri secara cepat, tertib, jujur, akurat, dan terbebas dari selisih perhitungan.',
+                        style: TextStyle(
+                          color: Colors.white60,
+                          fontSize: 11,
+                          height: 1.42,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
 
           const SizedBox(height: 22),
-          Text(
-            'Pengembang: Moch Khoirul Azman • Kas-Santri v4.2 • ${settings.namaPondok} • © 2026',
+          const Text(
+            'Dikembangkan oleh Moch Khoirul Azman • Kas-Santri v4.3 • Senin, 23 November 2026 (09:00 WIB) • © 2026',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.white38, fontSize: 10),
+            style: TextStyle(color: Colors.white38, fontSize: 10),
           ),
         ],
       ),
+    ),
     );
   }
 
@@ -27544,12 +29499,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
 }
 ```
 
-### [67/123] `lib/screens/settings/system_tab_screen.dart`
+### [69/127] `lib/screens/settings/system_tab_screen.dart`
 
 ```dart
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import '../../widgets/guided_spotlight_tour.dart';
 import 'package:provider/provider.dart';
 import '../../models/bendahara_account.dart';
 import '../../providers/kas_santri_provider.dart';
@@ -27566,6 +29522,7 @@ import '../rekap/executive_dashboard_screen.dart';
 import '../rekap/smart_wa_reminder_screen.dart';
 import '../santri/cetak_kartu_qr_screen.dart';
 import '../santri/import_santri_excel_screen.dart';
+import '../tabungan/brankas_tabungan_screen.dart';
 import 'audit_log_screen.dart';
 import 'pin_settings_screen.dart';
 import 'settings_screen.dart';
@@ -27573,10 +29530,12 @@ import 'tahun_ajaran_screen.dart';
 
 class SystemTabScreen extends StatefulWidget {
   final GlobalKey? headerSpotlightKey;
+  final bool isActiveTab;
 
   const SystemTabScreen({
     Key? key,
     this.headerSpotlightKey,
+    this.isActiveTab = true,
   }) : super(key: key);
 
   @override
@@ -27585,6 +29544,8 @@ class SystemTabScreen extends StatefulWidget {
 
 class _SystemTabScreenState extends State<SystemTabScreen>
     with AutomaticKeepAliveClientMixin {
+  final ScreenSpotlightController _spotCtrl = ScreenSpotlightController();
+  final GlobalKey _spotProfileKey = GlobalKey();
   @override
   bool get wantKeepAlive => true;
 
@@ -27854,6 +29815,20 @@ class _SystemTabScreenState extends State<SystemTabScreen>
 
     final quickItems = <_QuickAccessSpec>[
       _QuickAccessSpec(
+        emoji: '🏦',
+        title: 'Brankas Tabungan',
+        subtitle: 'Tabungan terpisah santri',
+        accent: const Color(0xFF2DD4BF),
+        isProLocked: false,
+        onTap: () {
+          AppFeedback.tap();
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const BrankasTabunganScreen()),
+          );
+        },
+      ),
+      _QuickAccessSpec(
         emoji: '🧮',
         title: 'Cash Opname',
         subtitle: 'Kalkulator uang fisik',
@@ -27960,42 +29935,77 @@ class _SystemTabScreenState extends State<SystemTabScreen>
       ),
     ];
 
-    return SafeArea(
-      bottom: false,
-      child: ListView(
-        padding: EdgeInsets.fromLTRB(16, 12, 16, 120 + bottomSafe),
-        children: [
-          // Header Tab Sistem + Tombol Gerigi ⚙️ (SettingsScreen)
-          Container(
-            key: widget.headerSpotlightKey,
-            child: Row(
-              children: [
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'SISTEM & AKUN',
-                        style: TextStyle(
-                          color: Color(0xFF38BDF8),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1.4,
+    return ScreenSpotlightHost(
+      screenKey: 'tour_sistem',
+      isActive: widget.isActiveTab,
+      controller: _spotCtrl,
+      steps: [
+        SpotlightStepSpec(
+          targetKey: widget.headerSpotlightKey,
+          emoji: '⚙️',
+          title: 'Pusat Sistem & Pengaturan Lengkap',
+          description:
+              'Ketuk tombol Pengaturan di kanan atas untuk mengatur PIN, sidik jari, preset wallpaper, target infak default, dan Backup Cloud/Lokal.',
+          accent: const Color(0xFF38BDF8),
+        ),
+        SpotlightStepSpec(
+          targetKey: _spotProfileKey,
+          emoji: '🪪',
+          title: 'Profil Pengurus & Bendahara Aktif',
+          description:
+              'Ketuk foto atau nama pengurus untuk memperbarui identitas pengelola keuangan yang tampil otomatis pada struk resmi PDF & WA wali santri.',
+          accent: const Color(0xFF34D399),
+        ),
+        const SpotlightStepSpec(
+          emoji: '⚡',
+          title: 'Akses Cepat Pengurus (6 Modul Utama)',
+          description:
+              'Akses instan ke 🏦 Brankas Tabungan Terpisah, Cash Opname Laci, Kartu QR A4, Import Excel 500 Santri, Tahun Ajaran, Wallpaper, & Backup.',
+          accent: Color(0xFFFBBF24),
+        ),
+      ],
+      child: SafeArea(
+        bottom: false,
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(16, 12, 16, 120 + bottomSafe),
+          children: [
+            // Header Tab Sistem + Tombol Gerigi ⚙️ (SettingsScreen) + (?)
+            Container(
+              key: widget.headerSpotlightKey,
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'SISTEM & AKUN',
+                          style: TextStyle(
+                            color: Color(0xFF38BDF8),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.4,
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        'Profil Pengurus Bendahara',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
+                        SizedBox(height: 2),
+                        Text(
+                          'Profil Pengurus Bendahara',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                InkWell(
+                  SpotlightHelpButton(
+                    onTap: _spotCtrl.startTour,
+                    size: 36,
+                    accent: const Color(0xFF38BDF8),
+                  ),
+                  const SizedBox(width: 8),
+                  InkWell(
                   onTap: () {
                     AppFeedback.tap();
                     Navigator.push(
@@ -28033,6 +30043,7 @@ class _SystemTabScreenState extends State<SystemTabScreen>
 
           // Kartu Profil Pengurus Bendahara (Vibrant Glass)
           GlassCard(
+            key: _spotProfileKey,
             borderRadius: 28,
             padding: const EdgeInsets.all(18),
             borderColor: const Color(0xFF34D399).withValues(alpha: 0.45),
@@ -28467,22 +30478,38 @@ class _SystemTabScreenState extends State<SystemTabScreen>
 
           const SizedBox(height: 24),
 
-          // Footer pengembang minimalis & halus di paling bawah
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Text(
-              'Pengembang: Moch Khoirul Azman • Kas-Santri v4.2 • ${peng.namaPondok} • © 2026',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white38,
-                fontSize: 10,
-                fontWeight: FontWeight.w500,
-                height: 1.4,
-              ),
+          // Footer pengembang minimalis & hangat (bebas nama pondok)
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 14),
+            child: Column(
+              children: [
+                Text(
+                  'Dikembangkan oleh Moch Khoirul Azman • Senin, 23 Nov 2026 (09:00 WIB) • Kas-Santri v4.3',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white54,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    height: 1.4,
+                  ),
+                ),
+                SizedBox(height: 3),
+                Text(
+                  'Didedikasikan untuk meringankan amanah bendahara pondok pesantren — tertib, transparan, dan menenangkan hati.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white38,
+                    fontSize: 9.8,
+                    fontStyle: FontStyle.italic,
+                    height: 1.4,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
       ),
+    ),
     );
   }
 
@@ -28617,7 +30644,7 @@ class _QuickAccessSpec {
 }
 ```
 
-### [68/123] `lib/screens/settings/tahun_ajaran_screen.dart`
+### [70/127] `lib/screens/settings/tahun_ajaran_screen.dart`
 
 ```dart
 import 'package:flutter/material.dart';
@@ -28627,6 +30654,7 @@ import '../../providers/kas_santri_provider.dart';
 import '../../utils/app_feedback.dart';
 import '../../utils/currency_formatter.dart';
 import '../../widgets/app_background_wrapper.dart';
+import '../../widgets/guided_spotlight_tour.dart';
 import '../paywall_screen.dart';
 
 class TahunAjaranScreen extends StatefulWidget {
@@ -28637,6 +30665,7 @@ class TahunAjaranScreen extends StatefulWidget {
 }
 
 class _TahunAjaranScreenState extends State<TahunAjaranScreen> {
+  final ScreenSpotlightController _spotCtrl = ScreenSpotlightController();
   int _tabIdx = 0; // 0: Tahun Ajaran, 1: Pindah Kamar, 2: Tutup Buku / Alumni
   late TextEditingController _tahunCtrl;
   final TextEditingController _targetKamarCtrl = TextEditingController();
@@ -28849,10 +30878,50 @@ class _TahunAjaranScreenState extends State<TahunAjaranScreen> {
       return s.kamar == _filterKamar;
     }).toList();
 
-    return AppBackgroundWrapper(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(title: const Text('Tahun Ajaran & Mutasi Kamar / Kelas')),
+    return ScreenSpotlightHost(
+      screenKey: 'tour_tahun_ajaran',
+      controller: _spotCtrl,
+      steps: const [
+        SpotlightStepSpec(
+          emoji: '📅',
+          title: 'Atur Tahun Ajaran Aktif',
+          description:
+              'Perbarui label tahun ajaran aktif pondok (mis. 2026/2027) agar seluruh dokumen laporan PDF & Excel tercatat sesuai periode berjalan.',
+          accent: Color(0xFF38BDF8),
+        ),
+        SpotlightStepSpec(
+          emoji: '🏠',
+          title: 'Mutasi Kamar / Kelas Massal',
+          description:
+              'Di tab Kamar / Kelas, centang beberapa santri sekaligus untuk memindahkan kamar atau naik kelas secara massal saat tahun ajaran baru.',
+          accent: Color(0xFF34D399),
+        ),
+        SpotlightStepSpec(
+          emoji: '🎓',
+          title: 'Tutup Buku & Arsipkan Alumni',
+          description:
+              'Arsipkan santri yang telah lulus/pindah tanpa menghapus jejak riwayat mutasi keuangan agar data pembukuan tetap aman dan bisa diaudit.',
+          accent: Color(0xFFFBBF24),
+        ),
+      ],
+      child: AppBackgroundWrapper(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            title: const Text('Tahun Ajaran & Mutasi Kamar / Kelas'),
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Center(
+                  child: SpotlightHelpButton(
+                    onTap: _spotCtrl.startTour,
+                    size: 32,
+                    accent: const Color(0xFF38BDF8),
+                  ),
+                ),
+              ),
+            ],
+          ),
         body: SafeArea(
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
@@ -29175,6 +31244,7 @@ class _TahunAjaranScreenState extends State<TahunAjaranScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 
@@ -29219,7 +31289,7 @@ class _TahunAjaranScreenState extends State<TahunAjaranScreen> {
 }
 ```
 
-### [69/123] `lib/screens/splash_screen.dart`
+### [71/127] `lib/screens/splash_screen.dart`
 
 ```dart
 import 'package:flutter/material.dart';
@@ -29394,7 +31464,1415 @@ class _SplashScreenState extends State<SplashScreen> {
 }
 ```
 
-### [70/123] `lib/screens/transaksi/riwayat_transaksi_screen.dart`
+### [72/127] `lib/screens/tabungan/brankas_tabungan_screen.dart`
+
+```dart
+import 'package:flutter/material.dart';
+import '../../widgets/guided_spotlight_tour.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import '../../models/santri.dart';
+import '../../models/transaksi_tabungan.dart';
+import '../../providers/kas_santri_provider.dart';
+import '../../services/report_service.dart';
+import '../../utils/app_feedback.dart';
+import '../../utils/currency_formatter.dart';
+import '../../utils/date_formatter.dart';
+import '../../widgets/app_background_wrapper.dart';
+import '../../widgets/searchable_santri_picker.dart';
+import '../paywall_screen.dart';
+
+enum _TabunganActionMode { setor, tarik, transfer }
+
+class BrankasTabunganScreen extends StatefulWidget {
+  final String? initialSantriId;
+
+  const BrankasTabunganScreen({Key? key, this.initialSantriId})
+      : super(key: key);
+
+  @override
+  State<BrankasTabunganScreen> createState() => _BrankasTabunganScreenState();
+}
+
+class _BrankasTabunganScreenState extends State<BrankasTabunganScreen> {
+  final ScreenSpotlightController _spotCtrl = ScreenSpotlightController();
+  int _activeTab = 0; // 0 = Saldo Per Santri, 1 = Mutasi Tabungan
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialSantriId != null && widget.initialSantriId!.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final provider = Provider.of<KasSantriProvider>(context, listen: false);
+        final match = provider.allSantri
+            .where((s) => s.id == widget.initialSantriId)
+            .firstOrNull;
+        if (match != null) {
+          _showSantriTabunganOptions(match);
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _showSantriTabunganOptions(Santri santri) {
+    AppFeedback.tap();
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xF5072536), Color(0xF70A1428)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          border: Border.all(
+            color: const Color(0xFF2DD4BF).withValues(alpha: 0.45),
+          ),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 42,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                santri.namaLengkap,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '${santri.kamar} • Tabungan: ${CurrencyFormatter.format(santri.saldoTabungan)} • Jajan: ${CurrencyFormatter.format(santri.saldoTotal)}',
+                style: const TextStyle(color: Color(0xFF99F6E4), fontSize: 11.5),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        _openActionModal(
+                          _TabunganActionMode.setor,
+                          preselectedSantriId: santri.id,
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF10B981),
+                        foregroundColor: const Color(0xFF030712),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      icon: const Icon(Icons.add_circle_outline, size: 17),
+                      label: const Text(
+                        'Setor',
+                        style: TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        _openActionModal(
+                          _TabunganActionMode.tarik,
+                          preselectedSantriId: santri.id,
+                        );
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFFFDA4AF),
+                        side: const BorderSide(color: Color(0xFFFB7185)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      icon: const Icon(Icons.payments_outlined, size: 17),
+                      label: const Text(
+                        'Tarik',
+                        style: TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        _openActionModal(
+                          _TabunganActionMode.transfer,
+                          preselectedSantriId: santri.id,
+                        );
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF67E8F9),
+                        side: const BorderSide(color: Color(0xFF38BDF8)),
+                        padding: const EdgeInsets.symmetric(vertical: 11),
+                      ),
+                      icon: const Icon(Icons.swap_horiz_rounded, size: 18),
+                      label: const Text(
+                        'Pindah Jajan ↔ Tabungan',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  InkWell(
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _kirimInfoTabunganWa(santri);
+                    },
+                    borderRadius: BorderRadius.circular(14),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 11,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF064E3B).withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFF34D399)),
+                      ),
+                      child: const Text('💬 WA', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF6EE7B7))),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _kirimInfoTabunganWa(Santri santri) async {
+    AppFeedback.tap();
+    final provider = Provider.of<KasSantriProvider>(context, listen: false);
+    final namaPondok = provider.pengaturan.namaPondok;
+    final msg = StringBuffer()
+      ..writeln('*Assalamu’alaikum Warahmatullahi Wabarakatuh* 🌸\n')
+      ..writeln('Yth. Wali Santri dari ananda *${santri.namaLengkap}* (${santri.kamar}),')
+      ..writeln('Berikut informasi saldo *Brankas Tabungan Terpisah* per ${DateFormatter.formatFullDateTime(DateTime.now())}:')
+      ..writeln('• 🏦 Saldo Tabungan Tersimpan: *${CurrencyFormatter.format(santri.saldoTabungan)}*')
+      ..writeln('• 💵 Saldo Uang Jajan Aktif: *${CurrencyFormatter.format(santri.saldoTotal)}*\n')
+      ..writeln('_Tabungan terpisah aman & tidak terpotong oleh pengambilan jajan harian._')
+      ..writeln('\nHormat kami,\n*Bendahara $namaPondok*');
+
+    if (!provider.hasProAccess) {
+      await Clipboard.setData(ClipboardData(text: msg.toString()));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Info tabungan disalin ke clipboard (Kirim WA 1-klik khusus PRO).',
+          ),
+          backgroundColor: Color(0xFF10B981),
+        ),
+      );
+      return;
+    }
+
+    final ok = await ReportService.instance.openWhatsAppDirect(
+      rawPhone: santri.noWaWali,
+      message: msg.toString(),
+    );
+    if (!ok && mounted) {
+      await Clipboard.setData(ClipboardData(text: msg.toString()));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Nomor WA wali belum diisi / WA tidak terpasang. Teks info telah disalin.',
+          ),
+          backgroundColor: Color(0xFFF59E0B),
+        ),
+      );
+    }
+  }
+
+  Future<void> _openActionModal(
+    _TabunganActionMode mode, {
+    String? preselectedSantriId,
+  }) async {
+    AppFeedback.tap();
+    final provider = Provider.of<KasSantriProvider>(context, listen: false);
+    final activeSantri =
+        provider.allSantri.where((s) => s.statusAktif).toList();
+    if (activeSantri.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Belum ada data santri aktif.'),
+          backgroundColor: Color(0xFFF59E0B),
+        ),
+      );
+      return;
+    }
+
+    String selectedSantriId =
+        preselectedSantriId ?? activeSantri.first.id;
+    bool jajanKeTabungan = true; // khusus mode.transfer
+    String sumberDompet = 'TUNAI';
+    final nominalCtrl = TextEditingController();
+    final catatanCtrl = TextEditingController();
+    bool isSaving = false;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) => StatefulBuilder(
+        builder: (sheetCtx, setModalState) {
+          final isPro = provider.hasProAccess;
+          final currentSantri = activeSantri.firstWhere(
+            (s) => s.id == selectedSantriId,
+            orElse: () => activeSantri.first,
+          );
+          final bottomPad = MediaQuery.of(sheetCtx).viewInsets.bottom +
+              MediaQuery.of(sheetCtx).padding.bottom;
+
+          final String modalTitle;
+          final Color accent;
+          switch (mode) {
+            case _TabunganActionMode.setor:
+              modalTitle = 'Setor ke Brankas Tabungan';
+              accent = const Color(0xFF34D399);
+              break;
+            case _TabunganActionMode.tarik:
+              modalTitle = 'Tarik dari Brankas Tabungan';
+              accent = const Color(0xFFFB7185);
+              break;
+            case _TabunganActionMode.transfer:
+              modalTitle = 'Pindah Saldo Jajan ↔ Tabungan';
+              accent = const Color(0xFF38BDF8);
+              break;
+          }
+
+          return Container(
+            padding: EdgeInsets.fromLTRB(20, 14, 20, 20 + bottomPad),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xF5072536), Color(0xF80A1428)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(28)),
+              border: Border.all(color: accent.withValues(alpha: 0.50)),
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 44,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    modalTitle,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Pemilih Santri dengan SearchableSantriPicker
+                  SearchableSantriField(
+                    selectedSantri: currentSantri,
+                    placeholder: 'Pilih santri...',
+                    onTap: () async {
+                      final pickedId = await SearchableSantriPicker.show(
+                        sheetCtx,
+                        santriList: activeSantri,
+                        selectedSantriId: selectedSantriId,
+                        title: 'Pilih Santri Penabung',
+                      );
+                      if (pickedId != null && sheetCtx.mounted) {
+                        setModalState(() => selectedSantriId = pickedId);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Ringkasan saldo santri terpilih
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF060B14).withValues(alpha: 0.72),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Colors.white12),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Tabungan: ${CurrencyFormatter.format(currentSantri.saldoTabungan)}',
+                          style: const TextStyle(
+                            color: Color(0xFF6EE7B7),
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        Text(
+                          'Jajan: ${CurrencyFormatter.format(currentSantri.saldoTotal)}',
+                          style: const TextStyle(
+                            color: Color(0xFF67E8F9),
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  if (mode == _TabunganActionMode.transfer) ...[
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ChoiceChip(
+                            label: const Text(
+                              'Jajan → Tabungan',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            selected: jajanKeTabungan,
+                            selectedColor: const Color(0xFF065F46),
+                            onSelected: (_) =>
+                                setModalState(() => jajanKeTabungan = true),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ChoiceChip(
+                            label: const Text(
+                              'Tabungan → Jajan',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            selected: !jajanKeTabungan,
+                            selectedColor: const Color(0xFF0E7490),
+                            onSelected: (_) =>
+                                setModalState(() => jajanKeTabungan = false),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: nominalCtrl,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [RibuanInputFormatter()],
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                    ),
+                    decoration: const InputDecoration(
+                      labelText: 'Nominal (Rp)',
+                      prefixText: 'Rp ',
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Chip nominal cepat
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [10000, 20000, 50000, 100000].map((val) {
+                      return ActionChip(
+                        backgroundColor: const Color(0xFF0A1628),
+                        side: BorderSide(color: accent.withValues(alpha: 0.4)),
+                        label: Text(
+                          '+${CurrencyFormatter.formatWithoutSymbol(val)}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        onPressed: () {
+                          AppFeedback.tap();
+                          final cur = CurrencyFormatter.parse(nominalCtrl.text);
+                          nominalCtrl.text =
+                              CurrencyFormatter.formatWithoutSymbol(cur + val);
+                        },
+                      );
+                    }).toList(),
+                  ),
+
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Sumber / Kantong Dompet',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ChoiceChip(
+                          label: const Text('💵 Kas Laci Tunai'),
+                          selected: sumberDompet == 'TUNAI',
+                          selectedColor: const Color(0xFF065F46),
+                          onSelected: (_) =>
+                              setModalState(() => sumberDompet = 'TUNAI'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ChoiceChip(
+                          label: Text(
+                            isPro
+                                ? '🏦 Rekening Bank'
+                                : '🏦 Rekening Bank 👑',
+                          ),
+                          selected: sumberDompet == 'REKENING',
+                          selectedColor: const Color(0xFF1E3A8A),
+                          onSelected: (_) {
+                            if (!isPro) {
+                              PaywallScreen.show(
+                                sheetCtx,
+                                triggerFeature:
+                                    'Multi-Dompet Rekening Bank di Brankas Tabungan',
+                              );
+                              return;
+                            }
+                            setModalState(() => sumberDompet = 'REKENING');
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: catatanCtrl,
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                    decoration: const InputDecoration(
+                      labelText: 'Catatan (mis. Tabungan Lebaran / Kitab)',
+                      isDense: true,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  SizedBox(
+                    width: double.infinity,
+                    height: 46,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: accent,
+                        foregroundColor: const Color(0xFF030712),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      icon: isSaving
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.check_circle_outline),
+                      label: Text(
+                        isSaving ? 'Menyimpan...' : 'Simpan Transaksi Tabungan',
+                        style: const TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                      onPressed: isSaving
+                          ? null
+                          : () async {
+                              final nominal =
+                                  CurrencyFormatter.parse(nominalCtrl.text);
+                              if (nominal <= 0) {
+                                ScaffoldMessenger.of(sheetCtx).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Masukkan nominal lebih dari Rp 0.',
+                                    ),
+                                    backgroundColor: Color(0xFFF59E0B),
+                                  ),
+                                );
+                                return;
+                              }
+                              setModalState(() => isSaving = true);
+                              try {
+                                final note = catatanCtrl.text.trim();
+                                switch (mode) {
+                                  case _TabunganActionMode.setor:
+                                    await provider.setorTabungan(
+                                      santriId: selectedSantriId,
+                                      nominal: nominal,
+                                      sumberDompet: sumberDompet,
+                                      catatan: note.isEmpty ? null : note,
+                                    );
+                                    break;
+                                  case _TabunganActionMode.tarik:
+                                    await provider.tarikTabungan(
+                                      santriId: selectedSantriId,
+                                      nominal: nominal,
+                                      sumberDompet: sumberDompet,
+                                      catatan: note.isEmpty ? null : note,
+                                    );
+                                    break;
+                                  case _TabunganActionMode.transfer:
+                                    if (jajanKeTabungan) {
+                                      await provider.transferJajanKeTabungan(
+                                        santriId: selectedSantriId,
+                                        nominal: nominal,
+                                        sumberDompet: sumberDompet,
+                                        catatan: note.isEmpty ? null : note,
+                                      );
+                                    } else {
+                                      await provider.transferTabunganKeJajan(
+                                        santriId: selectedSantriId,
+                                        nominal: nominal,
+                                        sumberDompet: sumberDompet,
+                                        catatan: note.isEmpty ? null : note,
+                                      );
+                                    }
+                                    break;
+                                }
+                                AppFeedback.success();
+                                if (sheetCtx.mounted) {
+                                  Navigator.pop(sheetCtx);
+                                }
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Transaksi Brankas Tabungan berhasil disimpan!',
+                                      ),
+                                      backgroundColor: Color(0xFF10B981),
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                AppFeedback.alert();
+                                if (sheetCtx.mounted) {
+                                  setModalState(() => isSaving = false);
+                                  ScaffoldMessenger.of(sheetCtx).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        e.toString().replaceFirst(
+                                              'Exception: ',
+                                              '',
+                                            ),
+                                      ),
+                                      backgroundColor: const Color(0xFFE11D48),
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+    nominalCtrl.dispose();
+    catatanCtrl.dispose();
+  }
+
+  Future<void> _confirmVoidTx(
+    KasSantriProvider provider,
+    TransaksiTabungan tx,
+  ) async {
+    AppFeedback.tap();
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF0E1422),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: Color(0xFFF43F5E)),
+        ),
+        title: const Text(
+          'Batalkan Mutasi Tabungan?',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 15.5,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        content: Text(
+          'Mutasi "${tx.tipeLabel}" sebesar ${CurrencyFormatter.format(tx.nominal)} untuk ${tx.namaSantri ?? tx.santriId} akan dibatalkan dan saldo terkait dikembalikan otomatis.',
+          style: const TextStyle(color: Colors.white70, fontSize: 12),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Tutup', style: TextStyle(color: Colors.white60)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFE11D48),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Ya, Batalkan'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true || !mounted) return;
+    try {
+      await provider.voidTransaksiTabungan(tx.id);
+      AppFeedback.success();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Mutasi tabungan berhasil dibatalkan.'),
+            backgroundColor: Color(0xFF10B981),
+          ),
+        );
+      }
+    } catch (e) {
+      AppFeedback.alert();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceFirst('Exception: ', '')),
+            backgroundColor: const Color(0xFFE11D48),
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = Provider.of<KasSantriProvider>(context);
+    final isPro = provider.hasProAccess;
+    final hideBalance = provider.pengaturan.hideBalance;
+
+    final q = _searchQuery.trim().toLowerCase();
+    final santriList = provider.allSantri.where((s) {
+      if (!s.statusAktif) return false;
+      if (q.isEmpty) return true;
+      return s.namaLengkap.toLowerCase().contains(q) ||
+          s.namaPanggilan.toLowerCase().contains(q) ||
+          s.kamar.toLowerCase().contains(q);
+    }).toList()
+      ..sort((a, b) {
+        final cmp = b.saldoTabungan.compareTo(a.saldoTabungan);
+        if (cmp != 0) return cmp;
+        return a.namaLengkap.compareTo(b.namaLengkap);
+      });
+
+    final txList = provider.transaksiTabunganList.where((t) {
+      if (q.isEmpty) return true;
+      return (t.namaSantri ?? '').toLowerCase().contains(q) ||
+          (t.kamarSantri ?? '').toLowerCase().contains(q) ||
+          (t.catatan ?? '').toLowerCase().contains(q);
+    }).toList();
+
+    return ScreenSpotlightHost(
+      screenKey: 'tour_tabungan',
+      controller: _spotCtrl,
+      steps: const [
+        SpotlightStepSpec(
+          emoji: '🏦',
+          title: 'Brankas Tabungan Terpisah (Anti-Tercampur)',
+          description:
+              'Dana tabungan darurat, pulang/lebaran, atau kitab terpisah 100% dari saldo uang jajan harian sehingga tidak pernah ikut terpotong jajan anak.',
+          accent: Color(0xFF34D399),
+        ),
+        SpotlightStepSpec(
+          emoji: '💰',
+          title: 'Setor, Tarik & Pindah Buku Instan',
+          description:
+              'Catat setor/tarik tabungan (Tunai atau Bank), atau transfer sisa uang jajan ke Brankas Tabungan (maupun sebaliknya) dalam satu ketukan.',
+          accent: Color(0xFF38BDF8),
+        ),
+        SpotlightStepSpec(
+          emoji: '📜',
+          title: 'Saldo Per Santri & Jejak Mutasi Khusus',
+          description:
+              'Gunakan tab Saldo Santri untuk daftar penabung aktif dan tab Mutasi Tabungan untuk mengecek/membatalkan (Void) mutasi tabungan dengan aman.',
+          accent: Color(0xFFFBBF24),
+        ),
+      ],
+      child: AppBackgroundWrapper(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            backgroundColor: const Color(0xCC060F1E),
+            title: const Text(
+              '🏦 Brankas Tabungan Terpisah',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+            ),
+            actions: [
+              IconButton(
+                tooltip: hideBalance ? 'Tampilkan Saldo' : 'Sembunyikan Saldo',
+                icon: Icon(
+                  hideBalance
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                  color: Colors.white70,
+                ),
+                onPressed: () {
+                  AppFeedback.tap();
+                  provider.toggleHideBalance();
+                },
+              ),
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Center(
+                  child: SpotlightHelpButton(
+                    onTap: _spotCtrl.startTour,
+                    size: 32,
+                    accent: const Color(0xFF34D399),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        body: SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                child: Column(
+                  children: [
+                    // Hero Card Kantong 4
+                    GlassCard(
+                      borderRadius: 24,
+                      padding: const EdgeInsets.all(16),
+                      borderColor:
+                          const Color(0xFF2DD4BF).withValues(alpha: 0.48),
+                      gradientColors: const [
+                        Color(0xD6083635),
+                        Color(0xDC0B182C),
+                        Color(0xD8111834),
+                      ],
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'KANTONG KAS KE-4 • TERPISAH DARI JAJAN',
+                                style: TextStyle(
+                                  color: Color(0xFF5EEAD4),
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1.0,
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white10,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  '${provider.countPenabungAktif} Penabung Aktif',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              hideBalance
+                                  ? 'Rp ••••••••'
+                                  : CurrencyFormatter.format(
+                                      provider.totalBrankasTabungan,
+                                    ),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 25,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 7,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF060B14)
+                                        .withValues(alpha: 0.65),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: Colors.white12),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        '💵 Tunai di Laci',
+                                        style: TextStyle(
+                                          color: Colors.white60,
+                                          fontSize: 9.5,
+                                        ),
+                                      ),
+                                      Text(
+                                        hideBalance
+                                            ? '••••••'
+                                            : CurrencyFormatter.format(
+                                                provider.tabunganTunai,
+                                              ),
+                                        style: const TextStyle(
+                                          color: Color(0xFF6EE7B7),
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: InkWell(
+                                  onTap: isPro
+                                      ? null
+                                      : () => PaywallScreen.show(
+                                            context,
+                                            triggerFeature:
+                                                'Rincian Rekening Bank Brankas Tabungan',
+                                          ),
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 7,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF060B14)
+                                          .withValues(alpha: 0.65),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: isPro
+                                            ? Colors.white12
+                                            : const Color(0xFFFBBF24)
+                                                .withValues(alpha: 0.5),
+                                      ),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          isPro
+                                              ? '🏦 Rekening Bank'
+                                              : '🏦 Rekening Bank 👑',
+                                          style: const TextStyle(
+                                            color: Colors.white60,
+                                            fontSize: 9.5,
+                                          ),
+                                        ),
+                                        Text(
+                                          !isPro
+                                              ? 'Terkunci PRO'
+                                              : (hideBalance
+                                                  ? '••••••'
+                                                  : CurrencyFormatter.format(
+                                                      provider.tabunganRekening,
+                                                    )),
+                                          style: TextStyle(
+                                            color: isPro
+                                                ? const Color(0xFF67E8F9)
+                                                : const Color(0xFFFDE68A),
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    // 3 Tombol Aksi Utama
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () =>
+                                _openActionModal(_TabunganActionMode.setor),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF10B981),
+                              foregroundColor: const Color(0xFF030712),
+                              padding: const EdgeInsets.symmetric(vertical: 11),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            child: const FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                '+ Setor',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () =>
+                                _openActionModal(_TabunganActionMode.tarik),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: const Color(0xFFFDA4AF),
+                              side: const BorderSide(color: Color(0xFFFB7185)),
+                              padding: const EdgeInsets.symmetric(vertical: 11),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            child: const FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                '💸 Tarik',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          flex: 2,
+                          child: OutlinedButton(
+                            onPressed: () =>
+                                _openActionModal(_TabunganActionMode.transfer),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: const Color(0xFF67E8F9),
+                              side: const BorderSide(color: Color(0xFF38BDF8)),
+                              padding: const EdgeInsets.symmetric(vertical: 11),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            child: const FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                '⇄ Pindah Jajan ↔ Tabungan',
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    // Pencarian + Sub-Tab Switcher
+                    TextField(
+                      controller: _searchController,
+                      onChanged: (v) => setState(() => _searchQuery = v),
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: 'Cari santri, kamar, atau catatan tabungan...',
+                        hintStyle: const TextStyle(
+                          color: Colors.white38,
+                          fontSize: 12,
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.search_rounded,
+                          color: Color(0xFF5EEAD4),
+                          size: 19,
+                        ),
+                        suffixIcon: _searchQuery.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(
+                                  Icons.clear,
+                                  color: Colors.white54,
+                                  size: 18,
+                                ),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  setState(() => _searchQuery = '');
+                                },
+                              )
+                            : null,
+                        isDense: true,
+                        filled: true,
+                        fillColor:
+                            const Color(0xFF0A1424).withValues(alpha: 0.78),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _subTabPill(
+                            label: '👥 Saldo Per Santri (${santriList.length})',
+                            selected: _activeTab == 0,
+                            onTap: () => setState(() => _activeTab = 0),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _subTabPill(
+                            label: '📜 Mutasi Tabungan (${txList.length})',
+                            selected: _activeTab == 1,
+                            onTap: () => setState(() => _activeTab = 1),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              Expanded(
+                child: _activeTab == 0
+                    ? _buildSantriSaldoList(santriList, hideBalance)
+                    : _buildMutasiList(provider, txList),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+    );
+  }
+
+  Widget _subTabPill({
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: () {
+        AppFeedback.tap();
+        onTap();
+      },
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 9),
+        decoration: BoxDecoration(
+          color: selected
+              ? const Color(0xFF0F766E).withValues(alpha: 0.72)
+              : const Color(0xFF0A1424).withValues(alpha: 0.68),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: selected ? const Color(0xFF2DD4BF) : Colors.white12,
+          ),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? Colors.white : Colors.white60,
+            fontSize: 11.5,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSantriSaldoList(List<Santri> list, bool hideBalance) {
+    if (list.isEmpty) {
+      return const Center(
+        child: Text(
+          'Tidak ada data santri yang cocok.',
+          style: TextStyle(color: Colors.white60, fontSize: 12.5),
+        ),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
+      itemCount: list.length,
+      itemBuilder: (ctx, idx) {
+        final s = list[idx];
+        return RepaintBoundary(
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0A1424).withValues(alpha: 0.80),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: s.saldoTabungan > 0
+                    ? const Color(0xFF2DD4BF).withValues(alpha: 0.42)
+                    : Colors.white12,
+              ),
+            ),
+            child: ListTile(
+              onTap: () => _showSantriTabunganOptions(s),
+              leading: CircleAvatar(
+                backgroundColor: s.saldoTabungan > 0
+                    ? const Color(0xFF064E3B)
+                    : Colors.white10,
+                child: Text(
+                  s.namaPanggilan.isNotEmpty
+                      ? s.namaPanggilan[0].toUpperCase()
+                      : 'S',
+                  style: TextStyle(
+                    color: s.saldoTabungan > 0
+                        ? const Color(0xFF5EEAD4)
+                        : Colors.white54,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              title: Text(
+                s.namaLengkap,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              subtitle: Text(
+                '${s.kamar} • Jajan: ${hideBalance ? '••••' : CurrencyFormatter.format(s.saldoTotal)}',
+                style: const TextStyle(color: Colors.white60, fontSize: 11),
+              ),
+              trailing: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    hideBalance
+                        ? '••••••'
+                        : CurrencyFormatter.format(s.saldoTabungan),
+                    style: TextStyle(
+                      color: s.saldoTabungan > 0
+                          ? const Color(0xFF5EEAD4)
+                          : Colors.white38,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const Text(
+                    'Tabungan',
+                    style: TextStyle(color: Colors.white38, fontSize: 9.5),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildMutasiList(
+    KasSantriProvider provider,
+    List<TransaksiTabungan> list,
+  ) {
+    if (list.isEmpty) {
+      return const Center(
+        child: Text(
+          'Belum ada riwayat mutasi tabungan.',
+          style: TextStyle(color: Colors.white60, fontSize: 12.5),
+        ),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
+      itemCount: list.length,
+      itemBuilder: (ctx, idx) {
+        final tx = list[idx];
+        final isMasuk = tx.isMasuk;
+        final santri = provider.allSantri
+            .where((s) => s.id == tx.santriId)
+            .firstOrNull;
+        final color = tx.isVoided
+            ? Colors.white38
+            : (isMasuk ? const Color(0xFF34D399) : const Color(0xFFFB7185));
+
+        return RepaintBoundary(
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0A1424).withValues(alpha: 0.80),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: tx.isVoided
+                    ? Colors.white12
+                    : color.withValues(alpha: 0.35),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '${tx.namaSantri ?? tx.santriId} • ${tx.tipeLabel}',
+                        style: TextStyle(
+                          color: tx.isVoided ? Colors.white38 : Colors.white,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w800,
+                          decoration: tx.isVoided
+                              ? TextDecoration.lineThrough
+                              : null,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '${isMasuk ? '+' : '-'}${CurrencyFormatter.format(tx.nominal)}',
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
+                        decoration: tx.isVoided
+                            ? TextDecoration.lineThrough
+                            : null,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${DateFormatter.formatFullDateTime(tx.createdAt)} • ${tx.sumberDompet} • Saldo Tabungan: ${CurrencyFormatter.format(tx.saldoTabunganSetelah)}'
+                  '${tx.catatan != null && tx.catatan!.isNotEmpty ? ' • ${tx.catatan}' : ''}',
+                  style: const TextStyle(color: Colors.white60, fontSize: 10.8),
+                ),
+                if (!tx.isVoided) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      if (santri != null)
+                        TextButton.icon(
+                          onPressed: () => _kirimInfoTabunganWa(santri),
+                          icon: const Icon(
+                            Icons.send_to_mobile_rounded,
+                            size: 14,
+                            color: Color(0xFF6EE7B7),
+                          ),
+                          label: Text(
+                            provider.hasProAccess ? 'Info WA' : 'Info WA 👑',
+                            style: const TextStyle(
+                              color: Color(0xFF6EE7B7),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      TextButton.icon(
+                        onPressed: () => _confirmVoidTx(provider, tx),
+                        icon: const Icon(
+                          Icons.cancel_outlined,
+                          size: 14,
+                          color: Color(0xFFFB7185),
+                        ),
+                        label: const Text(
+                          'Void / Batal',
+                          style: TextStyle(
+                            color: Color(0xFFFB7185),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+```
+
+### [73/127] `lib/screens/transaksi/riwayat_transaksi_screen.dart`
 
 ```dart
 import 'package:flutter/material.dart';
@@ -29408,11 +32886,17 @@ import '../../utils/date_formatter.dart';
 import '../../utils/time_category_helper.dart';
 import '../../utils/app_feedback.dart';
 import '../../services/yayasan_export_service.dart';
+import '../../widgets/guided_spotlight_tour.dart';
 import '../../widgets/searchable_santri_picker.dart';
 import '../paywall_screen.dart';
 
 class RiwayatTransaksiScreen extends StatefulWidget {
-  const RiwayatTransaksiScreen({Key? key}) : super(key: key);
+  final bool isActiveTab;
+
+  const RiwayatTransaksiScreen({
+    Key? key,
+    this.isActiveTab = true,
+  }) : super(key: key);
 
   @override
   State<RiwayatTransaksiScreen> createState() => _RiwayatTransaksiScreenState();
@@ -29420,6 +32904,9 @@ class RiwayatTransaksiScreen extends StatefulWidget {
 
 class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen>
     with AutomaticKeepAliveClientMixin {
+  final ScreenSpotlightController _spotCtrl = ScreenSpotlightController();
+  final GlobalKey _spotFilterKey = GlobalKey();
+  final GlobalKey _spotDateFilterKey = GlobalKey();
   String _selectedSantriId = 'ALL';
   String _selectedWaktu = 'ALL';
   ExportPeriod _dateFilter = ExportPeriod.semua;
@@ -29607,9 +33094,38 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen>
     final santriList = provider.allSantri.where((s) => s.statusAktif).toList();
     final bottomSafe = MediaQuery.of(context).padding.bottom;
 
-    return SafeArea(
-      bottom: false,
-      child: RefreshIndicator(
+    return ScreenSpotlightHost(
+      screenKey: 'tour_mutasi',
+      isActive: widget.isActiveTab,
+      controller: _spotCtrl,
+      steps: [
+        SpotlightStepSpec(
+          targetKey: _spotFilterKey,
+          emoji: '🔍',
+          title: 'Filter Santri & Kategori Waktu',
+          description:
+              'Saring mutasi keluar-masuk untuk satu santri tertentu atau berdasarkan sesi waktu (Pagi, Siang, Sore, Malam, maupun Setoran masuk).',
+          accent: const Color(0xFF38BDF8),
+        ),
+        SpotlightStepSpec(
+          targetKey: _spotDateFilterKey,
+          emoji: '📅',
+          title: 'Rentang Tanggal & Ekspor PDF / Excel',
+          description:
+              'Pilih Hari Ini, Bulan Ini, atau Rentang Tanggal Khusus untuk mengecek mutasi dan langsung mengunduh laporan PDF / Excel resmi.',
+          accent: const Color(0xFF34D399),
+        ),
+        const SpotlightStepSpec(
+          emoji: '🛡️',
+          title: 'Edit / Batalkan (Void) Transaksi Aman',
+          description:
+              'Salah ketik nominal atau santri? Ketuk kartu transaksi di bawah untuk mengubah nominal atau membatalkan (Void). Saldo & Kas Laci otomatis tersinkron tanpa selisih.',
+          accent: Color(0xFFFB7185),
+        ),
+      ],
+      child: SafeArea(
+        bottom: false,
+        child: RefreshIndicator(
         onRefresh: () async {
           await provider.loadAllData();
           await _fetch();
@@ -29665,17 +33181,28 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen>
                               ),
                             ],
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF060B14).withValues(alpha: 0.7),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: const Color(0xFF38BDF8).withValues(alpha: 0.35)),
-                            ),
-                            child: Text(
-                              '${_list.length} catatan',
-                              style: const TextStyle(color: Color(0xFF67E8F9), fontSize: 10.5, fontFamily: 'monospace', fontWeight: FontWeight.bold),
-                            ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF060B14).withValues(alpha: 0.7),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: const Color(0xFF38BDF8).withValues(alpha: 0.35)),
+                                ),
+                                child: Text(
+                                  '${_list.length} catatan',
+                                  style: const TextStyle(color: Color(0xFF67E8F9), fontSize: 10.5, fontFamily: 'monospace', fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              SpotlightHelpButton(
+                                onTap: _spotCtrl.startTour,
+                                size: 30,
+                                accent: const Color(0xFF38BDF8),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -29684,6 +33211,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen>
 
                       // Filter Santri (Searchable) & Filter Waktu
                       Row(
+                        key: _spotFilterKey,
                         children: [
                           Expanded(
                             flex: 6,
@@ -29745,6 +33273,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen>
 
                       // Filter Rentang Tanggal Lokal Akurat
                       SizedBox(
+                        key: _spotDateFilterKey,
                         height: 34,
                         child: ListView(
                           scrollDirection: Axis.horizontal,
@@ -30043,12 +33572,13 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen>
           ],
         ),
       ),
+    ),
     );
   }
 }
 ```
 
-### [71/123] `lib/services/account_auth_service.dart`
+### [74/127] `lib/services/account_auth_service.dart`
 
 ```dart
 import 'dart:convert';
@@ -30453,7 +33983,7 @@ class AccountAuthService {
 }
 ```
 
-### [72/123] `lib/services/auth_service.dart`
+### [75/127] `lib/services/auth_service.dart`
 
 ```dart
 import 'dart:convert';
@@ -30660,7 +34190,7 @@ class AuthService {
 }
 ```
 
-### [73/123] `lib/services/backup_service.dart`
+### [76/127] `lib/services/backup_service.dart`
 
 ```dart
 import 'dart:convert';
@@ -30680,6 +34210,7 @@ class BackupValidationResult {
   final int cashOpnameCount;
   final int infakCount;
   final int serahTerimaInfakCount;
+  final int transaksiTabunganCount;
   final String? exportedAt;
   final Map<String, dynamic>? parsedData;
 
@@ -30694,6 +34225,7 @@ class BackupValidationResult {
     this.cashOpnameCount = 0,
     this.infakCount = 0,
     this.serahTerimaInfakCount = 0,
+    this.transaksiTabunganCount = 0,
     this.exportedAt,
     this.parsedData,
   });
@@ -30720,6 +34252,7 @@ class BackupService {
   static const List<String> optionalV3Tables = [
     'infak_santri',
     'serah_terima_infak',
+    'transaksi_tabungan',
     'audit_log',
   ];
 
@@ -30788,6 +34321,7 @@ class BackupService {
     final opnameList = data['cash_opname_logs'] as List;
     final infakList = (data['infak_santri'] as List?) ?? const [];
     final serahTerimaList = (data['serah_terima_infak'] as List?) ?? const [];
+    final tabunganList = (data['transaksi_tabungan'] as List?) ?? const [];
 
     return BackupValidationResult(
       isValid: true,
@@ -30799,6 +34333,7 @@ class BackupService {
       cashOpnameCount: opnameList.length,
       infakCount: infakList.length,
       serahTerimaInfakCount: serahTerimaList.length,
+      transaksiTabunganCount: tabunganList.length,
       exportedAt: data['exported_at']?.toString(),
       parsedData: data,
     );
@@ -30948,7 +34483,7 @@ class BackupService {
 }
 ```
 
-### [74/123] `lib/services/bulk_santri_excel_service.dart`
+### [77/127] `lib/services/bulk_santri_excel_service.dart`
 
 ```dart
 import 'dart:typed_data';
@@ -31296,7 +34831,324 @@ class BulkSantriExcelService {
 }
 ```
 
-### [75/123] `lib/services/customer_sync_service.dart`
+### [78/127] `lib/services/cloud_backup_service.dart`
+
+```dart
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import '../config/app_config.dart';
+import 'backup_service.dart';
+
+class CloudBackupMeta {
+  final String backupKey;
+  final DateTime? lastUploadedAt;
+  final int sizeBytes;
+
+  const CloudBackupMeta({
+    required this.backupKey,
+    this.lastUploadedAt,
+    this.sizeBytes = 0,
+  });
+}
+
+class CloudBackupUploadResult {
+  final bool success;
+  final String backupKey;
+  final int sizeBytes;
+  final DateTime? updatedAt;
+  final String message;
+
+  const CloudBackupUploadResult({
+    required this.success,
+    this.backupKey = '',
+    this.sizeBytes = 0,
+    this.updatedAt,
+    required this.message,
+  });
+}
+
+class CloudBackupDownloadResult {
+  final bool success;
+  final String backupKey;
+  final String namaPondok;
+  final DateTime? updatedAt;
+  final BackupValidationResult? validation;
+  final String message;
+
+  const CloudBackupDownloadResult({
+    required this.success,
+    this.backupKey = '',
+    this.namaPondok = '',
+    this.updatedAt,
+    this.validation,
+    required this.message,
+  });
+}
+
+/// Layanan Cloud Backup Online Resmi Kas-Santri (Supabase Cloud Vault).
+///
+/// Seluruh data dienkripsi di sisi perangkat dengan AES-256-GCM (`BackupService.encryptBackupToKsbak`)
+/// menggunakan password pilihan bendahara sebelum diunggah ke cloud, sehingga server
+/// maupun pihak lain tidak pernah dapat membaca isi data keuangan pondok.
+class CloudBackupService {
+  static final CloudBackupService instance = CloudBackupService._init();
+  CloudBackupService._init();
+
+  static const String _prefBackupKey = 'ks_v43_cloud_backup_key';
+  static const String _prefBackupAt = 'ks_v43_cloud_backup_at';
+  static const String _prefBackupSize = 'ks_v43_cloud_backup_size';
+
+  static String normalizeBackupKey(String raw) {
+    return raw.trim().toUpperCase().replaceAll(RegExp(r'[^A-Z0-9_\-]'), '');
+  }
+
+  Future<CloudBackupMeta?> getLastMeta() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = prefs.getString(_prefBackupKey) ?? '';
+      if (key.isEmpty) return null;
+      final atRaw = prefs.getString(_prefBackupAt);
+      final size = prefs.getInt(_prefBackupSize) ?? 0;
+      return CloudBackupMeta(
+        backupKey: key,
+        lastUploadedAt: atRaw != null ? DateTime.tryParse(atRaw) : null,
+        sizeBytes: size,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _saveMeta({
+    required String backupKey,
+    required DateTime updatedAt,
+    required int sizeBytes,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_prefBackupKey, backupKey);
+      await prefs.setString(_prefBackupAt, updatedAt.toIso8601String());
+      await prefs.setInt(_prefBackupSize, sizeBytes);
+    } catch (_) {}
+  }
+
+  Future<CloudBackupUploadResult> uploadEncryptedBackup({
+    required String backupKey,
+    required String password,
+    required String deviceId,
+    required String namaPondok,
+    required Map<String, dynamic> backupData,
+    http.Client? client,
+  }) async {
+    final cleanKey = normalizeBackupKey(backupKey);
+    if (cleanKey.length < 4 || cleanKey.length > 48) {
+      return const CloudBackupUploadResult(
+        success: false,
+        message: 'Kode Backup Pondok wajib 4–48 karakter (huruf, angka, - atau _).',
+      );
+    }
+    if (password.trim().length < 4) {
+      return const CloudBackupUploadResult(
+        success: false,
+        message: 'Password enkripsi minimal 4 karakter.',
+      );
+    }
+    if (!AppConfig.isSupabaseConfigured) {
+      return const CloudBackupUploadResult(
+        success: false,
+        message:
+            'Server Cloud Vault Online belum dikonfigurasi pada build aplikasi ini. Gunakan Simpan ke Memori HP atau Bagikan File (.KSBAK / .JSON).',
+      );
+    }
+
+    final httpClient = client ?? http.Client();
+    final shouldClose = client == null;
+    try {
+      final encryptedBytes = await BackupService.encryptBackupToKsbak(
+        backupData: backupData,
+        password: password,
+      );
+      final payloadB64 = base64Encode(encryptedBytes);
+
+      final uri = Uri.parse(
+        '${AppConfig.supabaseUrl.trim()}/rest/v1/rpc/upsert_cloud_backup',
+      );
+      final response = await httpClient
+          .post(
+            uri,
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': AppConfig.supabaseAnonKey.trim(),
+              'Authorization': 'Bearer ${AppConfig.supabaseAnonKey.trim()}',
+            },
+            body: jsonEncode({
+              'p_backup_key': cleanKey,
+              'p_device_id': deviceId,
+              'p_nama_pondok': namaPondok,
+              'p_payload_encrypted': payloadB64,
+              'p_app_version': AppConfig.appVersion,
+            }),
+          )
+          .timeout(const Duration(seconds: 20));
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        return CloudBackupUploadResult(
+          success: false,
+          backupKey: cleanKey,
+          message: 'Gagal mengunggah ke Cloud Online (HTTP ${response.statusCode}).',
+        );
+      }
+
+      final decoded = jsonDecode(response.body);
+      final now = DateTime.now();
+      DateTime updatedAt = now;
+      int sizeBytes = encryptedBytes.length;
+      if (decoded is Map) {
+        if (decoded['updated_at'] != null) {
+          updatedAt = DateTime.tryParse(decoded['updated_at'].toString())?.toLocal() ?? now;
+        }
+        if (decoded['size_bytes'] != null) {
+          sizeBytes = (decoded['size_bytes'] as num?)?.toInt() ?? encryptedBytes.length;
+        }
+      }
+
+      await _saveMeta(
+        backupKey: cleanKey,
+        updatedAt: updatedAt,
+        sizeBytes: sizeBytes,
+      );
+
+      return CloudBackupUploadResult(
+        success: true,
+        backupKey: cleanKey,
+        sizeBytes: sizeBytes,
+        updatedAt: updatedAt,
+        message: 'Cadangan terenkripsi berhasil diunggah ke Cloud Online.',
+      );
+    } catch (e) {
+      return CloudBackupUploadResult(
+        success: false,
+        backupKey: cleanKey,
+        message: 'Koneksi internet / Cloud Online bermasalah ($e).',
+      );
+    } finally {
+      if (shouldClose) httpClient.close();
+    }
+  }
+
+  Future<CloudBackupDownloadResult> downloadAndDecryptBackup({
+    required String backupKey,
+    required String password,
+    http.Client? client,
+  }) async {
+    final cleanKey = normalizeBackupKey(backupKey);
+    if (cleanKey.length < 4 || cleanKey.length > 48) {
+      return const CloudBackupDownloadResult(
+        success: false,
+        message: 'Masukkan Kode Backup Pondok yang valid (min. 4 karakter).',
+      );
+    }
+    if (password.isEmpty) {
+      return const CloudBackupDownloadResult(
+        success: false,
+        message: 'Masukkan Password Enkripsi cadangan Anda.',
+      );
+    }
+    if (!AppConfig.isSupabaseConfigured) {
+      return const CloudBackupDownloadResult(
+        success: false,
+        message:
+            'Server Cloud Vault Online belum dikonfigurasi pada build aplikasi ini. Gunakan Pulihkan File Lokal (.JSON / .KSBAK).',
+      );
+    }
+
+    final httpClient = client ?? http.Client();
+    final shouldClose = client == null;
+    try {
+      final uri = Uri.parse(
+        '${AppConfig.supabaseUrl.trim()}/rest/v1/rpc/fetch_cloud_backup',
+      );
+      final response = await httpClient
+          .post(
+            uri,
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': AppConfig.supabaseAnonKey.trim(),
+              'Authorization': 'Bearer ${AppConfig.supabaseAnonKey.trim()}',
+            },
+            body: jsonEncode({'p_backup_key': cleanKey}),
+          )
+          .timeout(const Duration(seconds: 20));
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        return CloudBackupDownloadResult(
+          success: false,
+          backupKey: cleanKey,
+          message: 'Gagal mengunduh dari Cloud Online (HTTP ${response.statusCode}).',
+        );
+      }
+
+      final decoded = jsonDecode(response.body);
+      if (decoded is! Map || decoded['found'] != true) {
+        return CloudBackupDownloadResult(
+          success: false,
+          backupKey: cleanKey,
+          message: 'Kode Backup "$cleanKey" tidak ditemukan di Cloud Online.',
+        );
+      }
+
+      final payloadB64 = decoded['payload_encrypted']?.toString() ?? '';
+      if (payloadB64.isEmpty) {
+        return CloudBackupDownloadResult(
+          success: false,
+          backupKey: cleanKey,
+          message: 'Data cadangan cloud kosong atau rusak.',
+        );
+      }
+
+      final encryptedBytes = base64Decode(payloadB64);
+      final validation = await BackupService.decryptAndValidateKsbak(
+        bytes: encryptedBytes,
+        password: password,
+      );
+
+      if (!validation.isValid) {
+        return CloudBackupDownloadResult(
+          success: false,
+          backupKey: cleanKey,
+          validation: validation,
+          message: validation.errorMessage ??
+              'Password salah atau data cadangan cloud tidak valid.',
+        );
+      }
+
+      final updatedAt = decoded['updated_at'] != null
+          ? DateTime.tryParse(decoded['updated_at'].toString())?.toLocal()
+          : null;
+
+      return CloudBackupDownloadResult(
+        success: true,
+        backupKey: cleanKey,
+        namaPondok: decoded['nama_pondok']?.toString() ?? '',
+        updatedAt: updatedAt,
+        validation: validation,
+        message: 'Cadangan cloud berhasil dibuka & diverifikasi.',
+      );
+    } catch (e) {
+      return CloudBackupDownloadResult(
+        success: false,
+        backupKey: cleanKey,
+        message: 'Gagal terhubung ke Cloud Online ($e).',
+      );
+    } finally {
+      if (shouldClose) httpClient.close();
+    }
+  }
+}
+```
+
+### [79/127] `lib/services/customer_sync_service.dart`
 
 ```dart
 import 'dart:convert';
@@ -31588,7 +35440,7 @@ class CustomerSyncService {
 }
 ```
 
-### [76/123] `lib/services/executive_analytics_service.dart`
+### [80/127] `lib/services/executive_analytics_service.dart`
 
 ```dart
 import 'dart:io';
@@ -32241,7 +36093,7 @@ class ExecutiveAnalyticsService {
 }
 ```
 
-### [77/123] `lib/services/exports/yayasan_excel_exporter.dart`
+### [81/127] `lib/services/exports/yayasan_excel_exporter.dart`
 
 ```dart
 import 'dart:io';
@@ -34018,7 +37870,7 @@ class YayasanExcelExporter {
 }
 ```
 
-### [78/123] `lib/services/exports/yayasan_pdf_exporter.dart`
+### [82/127] `lib/services/exports/yayasan_pdf_exporter.dart`
 
 ```dart
 import 'dart:io';
@@ -34968,7 +38820,7 @@ class YayasanPdfExporter {
 }
 ```
 
-### [79/123] `lib/services/google_drive_backup_service.dart`
+### [83/127] `lib/services/google_drive_backup_service.dart`
 
 ```dart
 import 'dart:async';
@@ -35300,7 +39152,7 @@ class GoogleDriveBackupService {
 }
 ```
 
-### [80/123] `lib/services/license_service.dart`
+### [84/127] `lib/services/license_service.dart`
 
 ```dart
 import 'dart:convert';
@@ -35664,7 +39516,7 @@ class LicenseService {
 }
 ```
 
-### [81/123] `lib/services/qr_card_pdf_service.dart`
+### [85/127] `lib/services/qr_card_pdf_service.dart`
 
 ```dart
 import 'dart:io';
@@ -36027,7 +39879,7 @@ class QrCardPdfService {
 }
 ```
 
-### [82/123] `lib/services/report_service.dart`
+### [86/127] `lib/services/report_service.dart`
 
 ```dart
 import 'package:pdf/pdf.dart';
@@ -36506,7 +40358,7 @@ Mohon kiranya Bapak/Ibu dapat menyiapkan setoran lanjutan agar kebutuhan harian 
 }
 ```
 
-### [83/123] `lib/services/security_guard_service.dart`
+### [87/127] `lib/services/security_guard_service.dart`
 
 ```dart
 import 'dart:io';
@@ -36798,7 +40650,7 @@ class SecurityGuardService {
 }
 ```
 
-### [84/123] `lib/services/smart_wa_reminder_service.dart`
+### [88/127] `lib/services/smart_wa_reminder_service.dart`
 
 ```dart
 import 'package:shared_preferences/shared_preferences.dart';
@@ -36983,7 +40835,7 @@ class SmartWaReminderService {
 }
 ```
 
-### [85/123] `lib/services/subscription_service.dart`
+### [89/127] `lib/services/subscription_service.dart`
 
 ```dart
 import 'dart:io';
@@ -37515,68 +41367,110 @@ class SubscriptionService {
 }
 ```
 
-### [86/123] `lib/services/tutorial_service.dart`
+### [90/127] `lib/services/tutorial_service.dart`
 
 ```dart
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Menyimpan status Onboarding awal instal & Guided Spotlight Tour halaman utama.
+/// Menyimpan status Onboarding awal instal, preferensi tutorial otomatis,
+/// dan status Guided Spotlight Tour per layar agar tampil maksimal 1x per menu.
 class TutorialService {
   static final TutorialService instance = TutorialService._init();
   TutorialService._init();
 
   static const String keyHasSeenOnboarding = 'has_seen_onboarding';
   static const String keyHasSeenWalkthrough = 'has_seen_walkthrough';
+  static const String keyAutoTourEnabled = 'auto_spotlight_tour_enabled';
+  static const String screenTourPrefix = 'seen_tour_';
+
+  /// Daftar lengkap 16 kunci layar untuk Tutorial Sorotan Kontekstual v4.3.
+  static const List<String> allScreenTourKeys = <String>[
+    'tour_home',
+    'tour_setoran',
+    'tour_buku_infak',
+    'tour_mutasi',
+    'tour_rekap',
+    'tour_sistem',
+    'tour_tabungan',
+    'tour_settings',
+    'tour_opname',
+    'tour_santri_detail',
+    'tour_executive',
+    'tour_wa_reminder',
+    'tour_cetak_qr',
+    'tour_import_excel',
+    'tour_tahun_ajaran',
+    'tour_audit_log',
+  ];
 
   Future<bool> hasSeenOnboarding() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      return prefs.getBool(keyHasSeenOnboarding) ?? false;
-    } catch (_) {
-      return false;
-    }
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(keyHasSeenOnboarding) ?? false;
   }
 
   Future<void> markOnboardingSeen() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(keyHasSeenOnboarding, true);
-    } catch (_) {}
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(keyHasSeenOnboarding, true);
   }
 
   Future<void> resetOnboarding() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(keyHasSeenOnboarding, false);
-    } catch (_) {}
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(keyHasSeenOnboarding, false);
   }
 
   Future<bool> hasSeenWalkthrough() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      return prefs.getBool(keyHasSeenWalkthrough) ?? false;
-    } catch (_) {
-      return false;
-    }
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(keyHasSeenWalkthrough) ?? false;
   }
 
   Future<void> markWalkthroughSeen() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(keyHasSeenWalkthrough, true);
-    } catch (_) {}
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(keyHasSeenWalkthrough, true);
   }
 
   Future<void> resetWalkthrough() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(keyHasSeenWalkthrough, false);
-    } catch (_) {}
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(keyHasSeenWalkthrough, false);
+  }
+
+  /// Apakah panduan sorotan otomatis saat pertama kali membuka layar aktif.
+  Future<bool> isAutoTourEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(keyAutoTourEnabled) ?? true;
+  }
+
+  Future<void> setAutoTourEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(keyAutoTourEnabled, enabled);
+  }
+
+  /// Cek apakah layar dengan [screenKey] sudah pernah menampilkan tutorial otomatis.
+  Future<bool> hasSeenScreenTour(String screenKey) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('$screenTourPrefix$screenKey') ?? false;
+  }
+
+  Future<void> markScreenTourSeen(String screenKey) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('$screenTourPrefix$screenKey', true);
+    if (screenKey == 'tour_home') {
+      await prefs.setBool(keyHasSeenWalkthrough, true);
+    }
+  }
+
+  /// Menghapus seluruh riwayat tutorial sorotan dan mengaktifkan kembali mode otomatis.
+  Future<void> resetAllScreenTours() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(keyHasSeenWalkthrough, false);
+    await prefs.setBool(keyAutoTourEnabled, true);
+    for (final key in allScreenTourKeys) {
+      await prefs.remove('$screenTourPrefix$key');
+    }
   }
 }
 ```
 
-### [87/123] `lib/services/yayasan_export_service.dart`
+### [91/127] `lib/services/yayasan_export_service.dart`
 
 ```dart
 import 'dart:io';
@@ -37831,7 +41725,7 @@ class YayasanExportService {
 }
 ```
 
-### [88/123] `lib/utils/app_feedback.dart`
+### [92/127] `lib/utils/app_feedback.dart`
 
 ```dart
 import 'package:flutter/services.dart';
@@ -37871,7 +41765,7 @@ class AppFeedback {
 }
 ```
 
-### [89/123] `lib/utils/currency_formatter.dart`
+### [93/127] `lib/utils/currency_formatter.dart`
 
 ```dart
 import 'package:flutter/services.dart';
@@ -37952,7 +41846,7 @@ class RibuanInputFormatter extends TextInputFormatter {
 }
 ```
 
-### [90/123] `lib/utils/date_formatter.dart`
+### [94/127] `lib/utils/date_formatter.dart`
 
 ```dart
 import 'package:intl/intl.dart';
@@ -38038,7 +41932,7 @@ class DateFormatter {
 }
 ```
 
-### [91/123] `lib/utils/theme.dart`
+### [95/127] `lib/utils/theme.dart`
 
 ```dart
 import 'package:flutter/material.dart';
@@ -38141,7 +42035,7 @@ class AppTheme {
 }
 ```
 
-### [92/123] `lib/utils/time_category_helper.dart`
+### [96/127] `lib/utils/time_category_helper.dart`
 
 ```dart
 enum TimeCategory { pagi, siang, sore, malam, setoran }
@@ -38230,7 +42124,7 @@ class TimeCategoryHelper {
 }
 ```
 
-### [93/123] `lib/widgets/app_background_wrapper.dart`
+### [97/127] `lib/widgets/app_background_wrapper.dart`
 
 ```dart
 import 'dart:io';
@@ -38527,7 +42421,7 @@ class KasSantriLogoMark extends StatelessWidget {
 }
 ```
 
-### [94/123] `lib/widgets/direct_dana_payment_sheet.dart`
+### [98/127] `lib/widgets/direct_dana_payment_sheet.dart`
 
 ```dart
 import 'dart:io';
@@ -39267,9 +43161,10 @@ Berikut saya lampirkan bukti transfernya. Terima kasih.''';
 }
 ```
 
-### [95/123] `lib/widgets/encrypted_backup_helper.dart`
+### [99/127] `lib/widgets/encrypted_backup_helper.dart`
 
 ```dart
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
@@ -39278,16 +43173,77 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+import '../config/app_config.dart';
 import '../database/database_helper.dart';
 import '../providers/kas_santri_provider.dart';
 import '../screens/paywall_screen.dart';
 import '../services/backup_service.dart';
+import '../services/cloud_backup_service.dart';
 import '../utils/app_feedback.dart';
 import '../utils/date_formatter.dart';
 
-/// Helper terpusat untuk ekspor backup terenkripsi `.ksbak` (AES-256-GCM)
-/// dan pemulihan gabungan file `.json` maupun `.ksbak` berpassword.
+/// Helper terpusat untuk Backup & Restore Lokal (`.JSON` gratis / `.KSBAK` AES-256 PRO)
+/// melalui Android SAF (`saveFile`) + Share, serta Cloud Backup Online (Supabase Cloud Vault).
 class EncryptedBackupHelper {
+  static Future<T> _runWithLoading<T>(
+    BuildContext context,
+    String message,
+    Future<T> Function() task,
+  ) async {
+    var dialogOpen = false;
+    if (context.mounted) {
+      dialogOpen = true;
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        useRootNavigator: true,
+        builder: (_) => PopScope(
+          canPop: false,
+          child: AlertDialog(
+            backgroundColor: const Color(0xFF0E1628),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: BorderSide(
+                color: const Color(0xFF38BDF8).withValues(alpha: 0.45),
+              ),
+            ),
+            content: Row(
+              children: [
+                const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.6,
+                    color: Color(0xFF34D399),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    message,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    try {
+      return await task();
+    } finally {
+      if (dialogOpen && context.mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+    }
+  }
+
   static Future<String?> _promptBackupPassword(
     BuildContext context, {
     required String title,
@@ -39304,9 +43260,20 @@ class EncryptedBackupHelper {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlg) => AlertDialog(
+          backgroundColor: const Color(0xFF0E1628),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(22),
+            side: BorderSide(
+              color: const Color(0xFF38BDF8).withValues(alpha: 0.45),
+            ),
+          ),
           title: Text(
             title,
-            style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w900),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 15.5,
+              fontWeight: FontWeight.w900,
+            ),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -39389,60 +43356,288 @@ class EncryptedBackupHelper {
         ),
       ),
     );
+    pwdCtrl.dispose();
+    confirmCtrl.dispose();
     return result;
   }
 
-  static Future<void> backupEncryptedKsbak(BuildContext context) async {
-    AppFeedback.tap();
-    final provider = Provider.of<KasSantriProvider>(context, listen: false);
-    if (!provider.hasProAccess) {
-      AppFeedback.alert();
-      await PaywallScreen.show(
+  static Future<({Uint8List bytes, String fileName})?> _prepareLocalPayload(
+    BuildContext context, {
+    required bool encrypted,
+  }) async {
+    if (encrypted) {
+      final provider = Provider.of<KasSantriProvider>(context, listen: false);
+      if (!provider.hasProAccess) {
+        AppFeedback.alert();
+        await PaywallScreen.show(
+          context,
+          triggerFeature: 'Backup Terenkripsi Militer AES-256 (.KSBAK)',
+        );
+        return null;
+      }
+      final password = await _promptBackupPassword(
         context,
-        triggerFeature: 'Backup Terenkripsi Militer AES-256 (.KSBAK)',
+        title: 'Buat Backup Terenkripsi (.KSBAK)',
+        subtitle:
+            'File akan dikunci dengan AES-256-GCM + PBKDF2-SHA256. Simpan password ini baik-baik karena tidak bisa dipulihkan jika lupa.',
+        actionLabel: 'Enkripsi Data',
+        confirmField: true,
       );
-      return;
-    }
-    final password = await _promptBackupPassword(
-      context,
-      title: 'Buat Backup Terenkripsi (.KSBAK)',
-      subtitle:
-          'File akan dikunci dengan AES-256-GCM + PBKDF2-SHA256. Simpan password ini baik-baik karena tidak bisa dipulihkan jika lupa.',
-      actionLabel: 'Enkripsi & Bagikan',
-      confirmField: true,
-    );
-    if (password == null || !context.mounted) return;
+      if (password == null || !context.mounted) return null;
 
+      final bytes = await _runWithLoading<Uint8List>(
+        context,
+        'Mengenkripsi cadangan .KSBAK di latar belakang...',
+        () async {
+          final dump = await DatabaseHelper.instance.dumpBackupJson();
+          return BackupService.encryptBackupToKsbak(
+            backupData: dump,
+            password: password,
+          );
+        },
+      );
+      return (
+        bytes: bytes,
+        fileName:
+            'backup_kas_santri_${DateTime.now().millisecondsSinceEpoch}.ksbak',
+      );
+    }
+
+    final bytes = await _runWithLoading<Uint8List>(
+      context,
+      'Menyiapkan file cadangan .JSON...',
+      () async {
+        final dump = await DatabaseHelper.instance.dumpBackupJson();
+        final jsonStr = const JsonEncoder.withIndent('  ').convert(dump);
+        return Uint8List.fromList(utf8.encode(jsonStr));
+      },
+    );
+    return (
+      bytes: bytes,
+      fileName:
+          'backup_kas_santri_${DateTime.now().millisecondsSinceEpoch}.json',
+    );
+  }
+
+  static Future<void> saveLocalBackupToDevice(
+    BuildContext context, {
+    required bool encrypted,
+  }) async {
+    AppFeedback.tap();
     try {
-      final dump = await DatabaseHelper.instance.dumpBackupJson();
-      final encryptedBytes = await BackupService.encryptBackupToKsbak(
-        backupData: dump,
-        password: password,
-      );
-      final dir = await getTemporaryDirectory();
-      final file = File(
-        p.join(
-          dir.path,
-          'backup_kas_santri_${DateTime.now().millisecondsSinceEpoch}.ksbak',
-        ),
-      );
-      await file.writeAsBytes(encryptedBytes, flush: true);
+      final payload = await _prepareLocalPayload(context, encrypted: encrypted);
+      if (payload == null || !context.mounted) return;
+      final sizeKb = (payload.bytes.length / 1024).toStringAsFixed(1);
+
+      String? savedPath;
+      try {
+        savedPath = await FilePicker.platform.saveFile(
+          dialogTitle: encrypted
+              ? 'Simpan Backup Terenkripsi (.KSBAK)'
+              : 'Simpan Backup Standar (.JSON)',
+          fileName: payload.fileName,
+          bytes: payload.bytes,
+        );
+      } catch (_) {
+        // Fallback ke direktori dokumen internal bila SAF saveFile tidak tersedia
+        final docs = await getApplicationDocumentsDirectory();
+        final backupDir = Directory(p.join(docs.path, 'backups'));
+        if (!await backupDir.exists()) {
+          await backupDir.create(recursive: true);
+        }
+        final fallbackFile = File(p.join(backupDir.path, payload.fileName));
+        await fallbackFile.writeAsBytes(payload.bytes, flush: true);
+        savedPath = fallbackFile.path;
+      }
+
+      if (savedPath == null || !context.mounted) return;
       AppFeedback.success();
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        text: 'Backup Terenkripsi Kas-Santri (.KSBAK)',
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '✅ Backup tersimpan ($sizeKb KB): ${p.basename(savedPath)}',
+          ),
+          backgroundColor: const Color(0xFF10B981),
+        ),
       );
     } catch (e) {
       AppFeedback.alert();
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Gagal membuat backup .ksbak: $e'),
+            content: Text('Gagal menyimpan backup ke memori HP: $e'),
             backgroundColor: const Color(0xFFE11D48),
           ),
         );
       }
     }
+  }
+
+  static Future<void> shareLocalBackupFile(
+    BuildContext context, {
+    required bool encrypted,
+  }) async {
+    AppFeedback.tap();
+    try {
+      final payload = await _prepareLocalPayload(context, encrypted: encrypted);
+      if (payload == null || !context.mounted) return;
+      final sizeKb = (payload.bytes.length / 1024).toStringAsFixed(1);
+
+      final dir = await getTemporaryDirectory();
+      final file = File(p.join(dir.path, payload.fileName));
+      await file.writeAsBytes(payload.bytes, flush: true);
+
+      AppFeedback.success();
+      await Share.shareXFiles(
+        [XFile(file.path, mimeType: 'application/octet-stream')],
+        text: encrypted
+            ? 'Backup Terenkripsi Kas-Santri (.KSBAK • $sizeKb KB)'
+            : 'Backup Kas-Santri (.JSON • $sizeKb KB)',
+      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '📤 Siap dibagikan: ${payload.fileName} ($sizeKb KB)',
+            ),
+            backgroundColor: const Color(0xFF0E7490),
+          ),
+        );
+      }
+    } catch (e) {
+      AppFeedback.alert();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal membagikan file backup: $e'),
+            backgroundColor: const Color(0xFFE11D48),
+          ),
+        );
+      }
+    }
+  }
+
+  static Future<void> _showExportDestinationSheet(
+    BuildContext context, {
+    required bool encrypted,
+  }) async {
+    if (encrypted) {
+      final provider = Provider.of<KasSantriProvider>(context, listen: false);
+      if (!provider.hasProAccess) {
+        AppFeedback.alert();
+        await PaywallScreen.show(
+          context,
+          triggerFeature: 'Backup Terenkripsi Militer AES-256 (.KSBAK)',
+        );
+        return;
+      }
+    }
+    if (!context.mounted) return;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) => Container(
+        padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xF5072536), Color(0xF80A1428)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
+          border: Border.all(
+            color: const Color(0xFF38BDF8).withValues(alpha: 0.45),
+          ),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 42,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                encrypted
+                    ? 'Pilih Tujuan Backup Terenkripsi (.KSBAK)'
+                    : 'Pilih Tujuan Backup Standar (.JSON)',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 15.5,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(sheetCtx);
+                    saveLocalBackupToDevice(context, encrypted: encrypted);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF10B981),
+                    foregroundColor: const Color(0xFF030712),
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  icon: const Icon(Icons.save_alt_rounded, size: 18),
+                  label: const Text(
+                    '💾 Simpan ke Memori HP',
+                    style: TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(sheetCtx);
+                    shareLocalBackupFile(context, encrypted: encrypted);
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF67E8F9),
+                    side: const BorderSide(color: Color(0xFF38BDF8)),
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  icon: const Icon(Icons.share_outlined, size: 18),
+                  label: const Text(
+                    '📤 Bagikan File (WA / Drive / Telegram)',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  static Future<void> backupPlainJson(BuildContext context) async {
+    AppFeedback.tap();
+    await _showExportDestinationSheet(context, encrypted: false);
+  }
+
+  static Future<void> backupEncryptedKsbak(BuildContext context) async {
+    AppFeedback.tap();
+    await _showExportDestinationSheet(context, encrypted: true);
   }
 
   static Future<void> restoreBackupAnyFormat(
@@ -39451,14 +43646,32 @@ class EncryptedBackupHelper {
   ) async {
     AppFeedback.tap();
     try {
+      // Gunakan FileType.any agar file .ksbak tidak berwarna abu-abu di File Picker Android
       final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['json', 'ksbak'],
+        type: FileType.any,
+        withData: true,
       );
-      if (result == null || result.files.single.path == null) return;
-      final filePath = result.files.single.path!;
-      final Uint8List bytes = await File(filePath).readAsBytes();
-      final isKsbak = filePath.toLowerCase().endsWith('.ksbak') ||
+      if (result == null || result.files.isEmpty) return;
+
+      final picked = result.files.single;
+      Uint8List? bytes = picked.bytes;
+      if (bytes == null && picked.path != null) {
+        bytes = await File(picked.path!).readAsBytes();
+      }
+      if (bytes == null || bytes.isEmpty) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('File backup kosong atau gagal dibaca.'),
+              backgroundColor: Color(0xFFE11D48),
+            ),
+          );
+        }
+        return;
+      }
+
+      final fileNameLower = picked.name.toLowerCase();
+      final isKsbak = fileNameLower.endsWith('.ksbak') ||
           BackupService.isEncryptedKsbakBytes(bytes);
 
       final BackupValidationResult validation;
@@ -39475,81 +43688,33 @@ class EncryptedBackupHelper {
         final password = await _promptBackupPassword(
           context,
           title: 'Buka Backup Terenkripsi (.KSBAK)',
-          subtitle: 'Masukkan password enkripsi yang dipakai saat membuat file .ksbak ini.',
+          subtitle:
+              'Masukkan password enkripsi yang dipakai saat membuat file .ksbak ini.',
           actionLabel: 'Buka & Verifikasi',
         );
-        if (password == null) return;
-        validation = await BackupService.decryptAndValidateKsbak(
-          bytes: bytes,
-          password: password,
+        if (password == null || !context.mounted) return;
+
+        final ksbakBytes = bytes;
+        validation = await _runWithLoading<BackupValidationResult>(
+          context,
+          'Membuka enkripsi & memverifikasi .KSBAK...',
+          () => BackupService.decryptAndValidateKsbak(
+            bytes: ksbakBytes,
+            password: password,
+          ),
         );
       } else {
-        final rawJson = await File(filePath).readAsString();
+        final rawJson = utf8.decode(bytes, allowMalformed: true);
         validation = BackupService.validateJsonString(rawJson);
       }
 
       if (!context.mounted) return;
-      if (!validation.isValid || validation.parsedData == null) {
-        AppFeedback.alert();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              validation.errorMessage ?? 'File backup tidak valid atau rusak.',
-            ),
-            backgroundColor: const Color(0xFFE11D48),
-          ),
-        );
-        return;
-      }
-
-      final exportedDt = validation.exportedAt != null
-          ? DateTime.tryParse(validation.exportedAt!)
-          : null;
-      final dateText = exportedDt != null
-          ? DateFormatter.formatFullDateTime(exportedDt)
-          : '-';
-
-      final confirm = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text(
-            'Pulihkan Data Backup?',
-            style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w900),
-          ),
-          content: Text(
-            'Format: ${isKsbak ? 'Terenkripsi (.KSBAK)' : 'Standar (.JSON)'}\n'
-            'Tanggal Backup: $dateText\n\n'
-            '• Santri: ${validation.santriCount} • Setoran: ${validation.setoranCount}\n'
-            '• Transaksi: ${validation.transaksiCount} • Mutasi: ${validation.mutasiDompetCount}\n'
-            '• Infak: ${validation.infakCount} • Serah Terima: ${validation.serahTerimaInfakCount}\n\n'
-            'Data lokal saat ini akan diganti dengan data backup.',
-            style: const TextStyle(color: Colors.white70, fontSize: 12),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Batal', style: TextStyle(color: Colors.white70)),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Ya, Pulihkan'),
-            ),
-          ],
-        ),
+      await _confirmAndApplyRestore(
+        context,
+        provider: provider,
+        sourceLabel: isKsbak ? 'File Lokal Terenkripsi (.KSBAK)' : 'File Lokal (.JSON)',
+        validation: validation,
       );
-
-      if (confirm == true && context.mounted) {
-        await provider.restoreFromBackupJson(validation.parsedData!);
-        if (context.mounted) {
-          AppFeedback.success();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Alhamdulillah! Data backup berhasil dipulihkan.'),
-              backgroundColor: Color(0xFF10B981),
-            ),
-          );
-        }
-      }
     } catch (e) {
       AppFeedback.alert();
       if (context.mounted) {
@@ -39562,10 +43727,467 @@ class EncryptedBackupHelper {
       }
     }
   }
+
+  static Future<void> _confirmAndApplyRestore(
+    BuildContext context, {
+    required KasSantriProvider provider,
+    required String sourceLabel,
+    required BackupValidationResult validation,
+  }) async {
+    if (!validation.isValid || validation.parsedData == null) {
+      AppFeedback.alert();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            validation.errorMessage ?? 'File backup tidak valid atau rusak.',
+          ),
+          backgroundColor: const Color(0xFFE11D48),
+        ),
+      );
+      return;
+    }
+
+    final exportedDt = validation.exportedAt != null
+        ? DateTime.tryParse(validation.exportedAt!)
+        : null;
+    final dateText = exportedDt != null
+        ? DateFormatter.formatFullDateTime(exportedDt)
+        : '-';
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF0E1628),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(22),
+          side: const BorderSide(color: Color(0xFF38BDF8)),
+        ),
+        title: const Text(
+          'Pulihkan Data Backup?',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 15.5,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        content: Text(
+          'Sumber: $sourceLabel\n'
+          'Tanggal Backup: $dateText\n\n'
+          '• Santri: ${validation.santriCount} • Setoran: ${validation.setoranCount}\n'
+          '• Transaksi: ${validation.transaksiCount} • Mutasi: ${validation.mutasiDompetCount}\n'
+          '• Infak: ${validation.infakCount} • Serah Terima: ${validation.serahTerimaInfakCount}\n'
+          '• Tabungan Terpisah: ${validation.transaksiTabunganCount}\n\n'
+          'Data lokal saat ini akan diganti dengan data backup.',
+          style: const TextStyle(color: Colors.white70, fontSize: 12),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal', style: TextStyle(color: Colors.white70)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF10B981),
+              foregroundColor: const Color(0xFF030712),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text(
+              'Ya, Pulihkan',
+              style: TextStyle(fontWeight: FontWeight.w900),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && context.mounted) {
+      await _runWithLoading<void>(
+        context,
+        'Memulihkan seluruh data pondok...',
+        () => provider.restoreFromBackupJson(validation.parsedData!),
+      );
+      if (context.mounted) {
+        AppFeedback.success();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Alhamdulillah! Data backup berhasil dipulihkan.'),
+            backgroundColor: Color(0xFF10B981),
+          ),
+        );
+      }
+    }
+  }
+
+  static Future<void> _showCloudNotConfiguredDialog(BuildContext context) async {
+    AppFeedback.alert();
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF0E1628),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(22),
+          side: const BorderSide(color: Color(0xFFFBBF24)),
+        ),
+        title: const Text(
+          '☁️ Cloud Vault Belum Tersambung',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 15.5,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        content: const Text(
+          'Server Cloud Backup Online (SUPABASE_URL & SUPABASE_ANON_KEY) belum dipasang pada build APK ini.\n\n'
+          'Tenang, seluruh data Anda tetap aman memakai Simpan ke Memori HP atau Bagikan File (.KSBAK / .JSON) ke WhatsApp / Google Drive Anda.',
+          style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Tutup', style: TextStyle(color: Colors.white60)),
+          ),
+          OutlinedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              shareLocalBackupFile(context, encrypted: false);
+            },
+            child: const Text('📤 Bagikan .JSON'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF10B981),
+              foregroundColor: const Color(0xFF030712),
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              saveLocalBackupToDevice(context, encrypted: false);
+            },
+            child: const Text('💾 Simpan ke HP'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static Future<void> showCloudBackupDialog(
+    BuildContext context,
+    KasSantriProvider provider,
+  ) async {
+    AppFeedback.tap();
+    if (!AppConfig.isSupabaseConfigured) {
+      await _showCloudNotConfiguredDialog(context);
+      return;
+    }
+
+    final lastMeta = await CloudBackupService.instance.getLastMeta();
+    if (!context.mounted) return;
+
+    final suggestedKey = lastMeta?.backupKey ??
+        CloudBackupService.normalizeBackupKey(
+          provider.pengaturan.namaPondok.isNotEmpty
+              ? '${provider.pengaturan.namaPondok}_2026'
+              : provider.deviceId,
+        );
+    final keyCtrl = TextEditingController(text: suggestedKey);
+    final pwdCtrl = TextEditingController();
+    final confirmCtrl = TextEditingController();
+    var obscure = true;
+    String? errorMsg;
+
+    final formResult = await showDialog<({String key, String password})>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlg) => AlertDialog(
+          backgroundColor: const Color(0xFF0E1628),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(22),
+            side: const BorderSide(color: Color(0xFF38BDF8)),
+          ),
+          title: const Text(
+            '☁️ Cadangkan ke Cloud Online',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 15.5,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Data dienkripsi AES-256-GCM di HP Anda sebelum diunggah ke Cloud Vault. Buat Kode Pondok & Password untuk memulihkan saat ganti HP.',
+                  style: TextStyle(color: Colors.white70, fontSize: 11.5, height: 1.35),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: keyCtrl,
+                  textCapitalization: TextCapitalization.characters,
+                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800),
+                  decoration: const InputDecoration(
+                    labelText: 'Kode Backup Pondok (min. 4 karakter)',
+                    hintText: 'Contoh: PONDOK_ALIKHLAS_2026',
+                    isDense: true,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: pwdCtrl,
+                  obscureText: obscure,
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  decoration: InputDecoration(
+                    labelText: 'Password Enkripsi (min. 4 karakter)',
+                    isDense: true,
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                        size: 18,
+                      ),
+                      onPressed: () => setDlg(() => obscure = !obscure),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: confirmCtrl,
+                  obscureText: obscure,
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  decoration: const InputDecoration(
+                    labelText: 'Ulangi Password Enkripsi',
+                    isDense: true,
+                  ),
+                ),
+                if (errorMsg != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    errorMsg!,
+                    style: const TextStyle(color: Color(0xFFFDA4AF), fontSize: 11, fontWeight: FontWeight.w700),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Batal', style: TextStyle(color: Colors.white70)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF10B981),
+                foregroundColor: const Color(0xFF030712),
+              ),
+              onPressed: () {
+                final k = CloudBackupService.normalizeBackupKey(keyCtrl.text);
+                if (k.length < 4) {
+                  setDlg(() => errorMsg = 'Kode Backup Pondok minimal 4 karakter.');
+                  return;
+                }
+                if (pwdCtrl.text.trim().length < 4) {
+                  setDlg(() => errorMsg = 'Password enkripsi minimal 4 karakter.');
+                  return;
+                }
+                if (pwdCtrl.text != confirmCtrl.text) {
+                  setDlg(() => errorMsg = 'Konfirmasi password tidak cocok.');
+                  return;
+                }
+                Navigator.pop(ctx, (key: k, password: pwdCtrl.text));
+              },
+              child: const Text('Enkripsi & Unggah', style: TextStyle(fontWeight: FontWeight.w900)),
+            ),
+          ],
+        ),
+      ),
+    );
+    keyCtrl.dispose();
+    pwdCtrl.dispose();
+    confirmCtrl.dispose();
+
+    if (formResult == null || !context.mounted) return;
+
+    final res = await _runWithLoading<CloudBackupUploadResult>(
+      context,
+      'Mengenkripsi & mengunggah ke Cloud Online...',
+      () async {
+        final dump = await DatabaseHelper.instance.dumpBackupJson();
+        return CloudBackupService.instance.uploadEncryptedBackup(
+          backupKey: formResult.key,
+          password: formResult.password,
+          deviceId: provider.deviceId,
+          namaPondok: provider.pengaturan.namaPondok,
+          backupData: dump,
+        );
+      },
+    );
+
+    if (!context.mounted) return;
+    if (res.success) {
+      AppFeedback.success();
+      final sizeKb = (res.sizeBytes / 1024).toStringAsFixed(1);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '☁️ Cadangan Online sukses! Kode: ${res.backupKey} ($sizeKb KB)',
+          ),
+          backgroundColor: const Color(0xFF10B981),
+        ),
+      );
+    } else {
+      AppFeedback.alert();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(res.message),
+          backgroundColor: const Color(0xFFE11D48),
+        ),
+      );
+    }
+  }
+
+  static Future<void> showCloudRestoreDialog(
+    BuildContext context,
+    KasSantriProvider provider,
+  ) async {
+    AppFeedback.tap();
+    if (!AppConfig.isSupabaseConfigured) {
+      await _showCloudNotConfiguredDialog(context);
+      return;
+    }
+
+    final lastMeta = await CloudBackupService.instance.getLastMeta();
+    if (!context.mounted) return;
+
+    final keyCtrl = TextEditingController(text: lastMeta?.backupKey ?? '');
+    final pwdCtrl = TextEditingController();
+    var obscure = true;
+    String? errorMsg;
+
+    final formResult = await showDialog<({String key, String password})>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlg) => AlertDialog(
+          backgroundColor: const Color(0xFF0E1628),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(22),
+            side: const BorderSide(color: Color(0xFF38BDF8)),
+          ),
+          title: const Text(
+            '☁️ Pulihkan dari Cloud Online',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 15.5,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Masukkan Kode Backup Pondok & Password Enkripsi yang Anda buat saat mencadangkan online.',
+                style: TextStyle(color: Colors.white70, fontSize: 11.5, height: 1.35),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: keyCtrl,
+                textCapitalization: TextCapitalization.characters,
+                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800),
+                decoration: const InputDecoration(
+                  labelText: 'Kode Backup Pondok',
+                  isDense: true,
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: pwdCtrl,
+                obscureText: obscure,
+                style: const TextStyle(color: Colors.white, fontSize: 13),
+                decoration: InputDecoration(
+                  labelText: 'Password Enkripsi',
+                  isDense: true,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                      size: 18,
+                    ),
+                    onPressed: () => setDlg(() => obscure = !obscure),
+                  ),
+                ),
+              ),
+              if (errorMsg != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  errorMsg!,
+                  style: const TextStyle(color: Color(0xFFFDA4AF), fontSize: 11, fontWeight: FontWeight.w700),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Batal', style: TextStyle(color: Colors.white70)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF38BDF8),
+                foregroundColor: const Color(0xFF030712),
+              ),
+              onPressed: () {
+                final k = CloudBackupService.normalizeBackupKey(keyCtrl.text);
+                if (k.length < 4) {
+                  setDlg(() => errorMsg = 'Masukkan Kode Backup minimal 4 karakter.');
+                  return;
+                }
+                if (pwdCtrl.text.isEmpty) {
+                  setDlg(() => errorMsg = 'Masukkan password enkripsi.');
+                  return;
+                }
+                Navigator.pop(ctx, (key: k, password: pwdCtrl.text));
+              },
+              child: const Text('Unduh & Buka', style: TextStyle(fontWeight: FontWeight.w900)),
+            ),
+          ],
+        ),
+      ),
+    );
+    keyCtrl.dispose();
+    pwdCtrl.dispose();
+
+    if (formResult == null || !context.mounted) return;
+
+    final res = await _runWithLoading<CloudBackupDownloadResult>(
+      context,
+      'Mengunduh & membuka enkripsi dari Cloud Online...',
+      () => CloudBackupService.instance.downloadAndDecryptBackup(
+        backupKey: formResult.key,
+        password: formResult.password,
+      ),
+    );
+
+    if (!context.mounted) return;
+    if (!res.success || res.validation == null) {
+      AppFeedback.alert();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(res.message),
+          backgroundColor: const Color(0xFFE11D48),
+        ),
+      );
+      return;
+    }
+
+    await _confirmAndApplyRestore(
+      context,
+      provider: provider,
+      sourceLabel: 'Cloud Vault Online (${res.backupKey})',
+      validation: res.validation!,
+    );
+  }
 }
 ```
 
-### [96/123] `lib/widgets/fast_withdrawal_bottom_sheet.dart`
+### [100/127] `lib/widgets/fast_withdrawal_bottom_sheet.dart`
 
 ```dart
 import 'dart:io';
@@ -40386,14 +45008,17 @@ class _FastWithdrawalBottomSheetState extends State<FastWithdrawalBottomSheet> {
 }
 ```
 
-### [97/123] `lib/widgets/guided_spotlight_tour.dart`
+### [101/127] `lib/widgets/guided_spotlight_tour.dart`
 
 ```dart
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import '../services/tutorial_service.dart';
 
 class SpotlightStepSpec {
-  final GlobalKey targetKey;
+  final GlobalKey? targetKey;
   final int tabIndex;
   final String emoji;
   final String title;
@@ -40401,8 +45026,8 @@ class SpotlightStepSpec {
   final Color accent;
 
   const SpotlightStepSpec({
-    required this.targetKey,
-    required this.tabIndex,
+    this.targetKey,
+    this.tabIndex = 0,
     required this.emoji,
     required this.title,
     required this.description,
@@ -40410,7 +45035,218 @@ class SpotlightStepSpec {
   });
 }
 
-/// Overlay interaktif Guided Spotlight Tour (6 Langkah) murni CustomPainter
+/// Controller untuk memicu ulang Tutorial Sorotan dari tombol bantuan (?) di header/AppBar.
+class ScreenSpotlightController {
+  VoidCallback? _onStart;
+
+  void startTour() => _onStart?.call();
+
+  void _attach(VoidCallback onStart) {
+    _onStart = onStart;
+  }
+
+  void _detach(VoidCallback onStart) {
+    if (_onStart == onStart) {
+      _onStart = null;
+    }
+  }
+}
+
+/// Tombol bantuan kaca neon (?) berukuran ringkas dan tidak mencolok
+/// untuk memutar ulang tutorial sorotan kapan saja sesuai kebutuhan bendahara.
+class SpotlightHelpButton extends StatelessWidget {
+  final VoidCallback onTap;
+  final Color accent;
+  final double size;
+  final String tooltip;
+
+  const SpotlightHelpButton({
+    Key? key,
+    required this.onTap,
+    this.accent = const Color(0xFF38BDF8),
+    this.size = 34,
+    this.tooltip = 'Panduan Menu Ini',
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
+        borderRadius: BorderRadius.circular(11),
+        child: Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            color: accent.withValues(alpha: 0.14),
+            borderRadius: BorderRadius.circular(11),
+            border: Border.all(
+              color: accent.withValues(alpha: 0.42),
+              width: 1,
+            ),
+          ),
+          alignment: Alignment.center,
+          child: Icon(
+            Icons.help_outline_rounded,
+            size: size * 0.52,
+            color: accent,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Pembungkus non-intrusif untuk memasang Tutorial Sorotan Kontekstual pada setiap halaman/tab.
+/// - Otomatis tampil maksimal 1x per `screenKey` (kecuali dimatikan oleh user).
+/// - Menggunakan `OverlayEntry` di rootOverlay agar mencakup AppBar maupun Floating Bottom Bar.
+class ScreenSpotlightHost extends StatefulWidget {
+  final String screenKey;
+  final List<SpotlightStepSpec> steps;
+  final ScreenSpotlightController? controller;
+  final bool isActive;
+  final bool autoStart;
+  final Widget child;
+
+  const ScreenSpotlightHost({
+    Key? key,
+    required this.screenKey,
+    required this.steps,
+    this.controller,
+    this.isActive = true,
+    this.autoStart = true,
+    required this.child,
+  }) : super(key: key);
+
+  @override
+  State<ScreenSpotlightHost> createState() => _ScreenSpotlightHostState();
+}
+
+class _ScreenSpotlightHostState extends State<ScreenSpotlightHost> {
+  OverlayEntry? _overlayEntry;
+  int _currentStep = 0;
+  bool _hasCheckedAutoThisSession = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller?._attach(startTour);
+    if (widget.isActive) {
+      _scheduleAutoTourCheck();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant ScreenSpotlightHost oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller?._detach(startTour);
+      widget.controller?._attach(startTour);
+    }
+    if (!oldWidget.isActive && widget.isActive) {
+      _scheduleAutoTourCheck();
+    } else if (oldWidget.isActive && !widget.isActive && _overlayEntry != null) {
+      _removeOverlay();
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller?._detach(startTour);
+    _removeOverlay();
+    super.dispose();
+  }
+
+  void _scheduleAutoTourCheck() {
+    if (_hasCheckedAutoThisSession || !widget.autoStart || widget.steps.isEmpty) {
+      return;
+    }
+    Future.delayed(const Duration(milliseconds: 380), () async {
+      if (!mounted || !widget.isActive) return;
+      final isCurrentRoute = ModalRoute.of(context)?.isCurrent ?? true;
+      if (!isCurrentRoute) return;
+
+      _hasCheckedAutoThisSession = true;
+      final autoEnabled = await TutorialService.instance.isAutoTourEnabled();
+      if (!mounted || !widget.isActive || !autoEnabled) return;
+
+      final seen = await TutorialService.instance.hasSeenScreenTour(widget.screenKey);
+      if (!mounted || !widget.isActive || seen) return;
+      final stillCurrent = ModalRoute.of(context)?.isCurrent ?? true;
+      if (!stillCurrent) return;
+
+      startTour();
+    });
+  }
+
+  void startTour() {
+    if (!mounted || widget.steps.isEmpty) return;
+    _removeOverlay();
+    _currentStep = 0;
+    _overlayEntry = OverlayEntry(
+      builder: (_) => GuidedSpotlightOverlay(
+        steps: widget.steps,
+        currentStep: _currentStep,
+        onNext: _nextStep,
+        onPrev: _prevStep,
+        onSkip: _finishTour,
+        onDisableAllAutoTours: _disableAllAutoTours,
+      ),
+    );
+    Overlay.of(context, rootOverlay: true).insert(_overlayEntry!);
+  }
+
+  void _nextStep() {
+    if (_currentStep + 1 >= widget.steps.length) {
+      _finishTour();
+      return;
+    }
+    _currentStep++;
+    _overlayEntry?.markNeedsBuild();
+  }
+
+  void _prevStep() {
+    if (_currentStep > 0) {
+      _currentStep--;
+      _overlayEntry?.markNeedsBuild();
+    }
+  }
+
+  void _finishTour() {
+    _removeOverlay();
+    unawaited(TutorialService.instance.markScreenTourSeen(widget.screenKey));
+  }
+
+  void _disableAllAutoTours() {
+    _removeOverlay();
+    unawaited(TutorialService.instance.markScreenTourSeen(widget.screenKey));
+    unawaited(TutorialService.instance.setAutoTourEnabled(false));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Tutorial otomatis dimatikan. Ketuk ikon (?) kapan saja jika butuh panduan.',
+        ),
+        backgroundColor: Color(0xFF0EA5E9),
+        duration: Duration(seconds: 3),
+      ),
+    );
+  }
+
+  void _removeOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
+}
+
+/// Overlay interaktif Guided Spotlight Tour murni CustomPainter
 /// tanpa BackdropFilter agar 100% mulus 60-120 FPS di semua perangkat Android.
 class GuidedSpotlightOverlay extends StatefulWidget {
   final List<SpotlightStepSpec> steps;
@@ -40418,6 +45254,7 @@ class GuidedSpotlightOverlay extends StatefulWidget {
   final VoidCallback onNext;
   final VoidCallback onPrev;
   final VoidCallback onSkip;
+  final VoidCallback? onDisableAllAutoTours;
 
   const GuidedSpotlightOverlay({
     Key? key,
@@ -40426,6 +45263,7 @@ class GuidedSpotlightOverlay extends StatefulWidget {
     required this.onNext,
     required this.onPrev,
     required this.onSkip,
+    this.onDisableAllAutoTours,
   }) : super(key: key);
 
   @override
@@ -40434,6 +45272,7 @@ class GuidedSpotlightOverlay extends StatefulWidget {
 
 class _GuidedSpotlightOverlayState extends State<GuidedSpotlightOverlay> {
   Rect? _targetRect;
+  bool _didScrollStep = false;
 
   @override
   void initState() {
@@ -40444,7 +45283,9 @@ class _GuidedSpotlightOverlayState extends State<GuidedSpotlightOverlay> {
   @override
   void didUpdateWidget(covariant GuidedSpotlightOverlay oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.currentStep != widget.currentStep) {
+    if (oldWidget.currentStep != widget.currentStep ||
+        oldWidget.steps != widget.steps) {
+      _didScrollStep = false;
       _scheduleMeasure();
     }
   }
@@ -40459,17 +45300,42 @@ class _GuidedSpotlightOverlayState extends State<GuidedSpotlightOverlay> {
   void _measureTarget({required bool retryIfNull}) {
     if (!mounted || widget.currentStep >= widget.steps.length) return;
     final spec = widget.steps[widget.currentStep];
-    final targetCtx = spec.targetKey.currentContext;
+    final targetKey = spec.targetKey;
+    if (targetKey == null) {
+      setState(() => _targetRect = null);
+      return;
+    }
+
+    final targetCtx = targetKey.currentContext;
     final overlayBox = context.findRenderObject() as RenderBox?;
     final targetBox = targetCtx?.findRenderObject() as RenderBox?;
 
     if (overlayBox != null &&
+        targetCtx != null &&
+        targetCtx.mounted &&
         targetBox != null &&
         overlayBox.hasSize &&
         targetBox.hasSize &&
         targetBox.attached) {
       final topLeft = targetBox.localToGlobal(Offset.zero, ancestor: overlayBox);
       final rect = topLeft & targetBox.size;
+      final viewH = overlayBox.size.height;
+
+      // Pastikan elemen target berada di area pandang sebelum mengukur kotak sorotan
+      if (!_didScrollStep && (rect.top < 64 || rect.bottom > viewH - 80)) {
+        _didScrollStep = true;
+        Scrollable.ensureVisible(
+          targetCtx,
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOut,
+          alignment: 0.35,
+        );
+        Future.delayed(const Duration(milliseconds: 240), () {
+          if (mounted) _measureTarget(retryIfNull: false);
+        });
+        return;
+      }
+
       setState(() => _targetRect = rect);
     } else {
       setState(() => _targetRect = null);
@@ -40503,7 +45369,7 @@ class _GuidedSpotlightOverlayState extends State<GuidedSpotlightOverlay> {
     if (spot == null) {
       cardTop = screenH * 0.28;
     } else if (placeBelow) {
-      cardTop = math.min(spot.bottom + 16, screenH - 270 - safeBottom);
+      cardTop = math.min(spot.bottom + 16, screenH - 290 - safeBottom);
       cardTop = math.max(cardTop, safeTop);
     } else {
       final fromBottom = (screenH - spot.top) + 16;
@@ -40556,18 +45422,13 @@ class _GuidedSpotlightOverlayState extends State<GuidedSpotlightOverlay> {
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(
                       color: spec.accent.withValues(alpha: 0.65),
-                      width: 1.4,
+                      width: 1.5,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.65),
+                        color: spec.accent.withValues(alpha: 0.24),
                         blurRadius: 24,
                         offset: const Offset(0, 10),
-                      ),
-                      BoxShadow(
-                        color: spec.accent.withValues(alpha: 0.22),
-                        blurRadius: 18,
-                        spreadRadius: 1,
                       ),
                     ],
                   ),
@@ -40576,29 +45437,30 @@ class _GuidedSpotlightOverlayState extends State<GuidedSpotlightOverlay> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
+                              horizontal: 9,
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: spec.accent.withValues(alpha: 0.20),
-                              borderRadius: BorderRadius.circular(12),
+                              color: spec.accent.withValues(alpha: 0.16),
+                              borderRadius: BorderRadius.circular(10),
                               border: Border.all(
-                                color: spec.accent.withValues(alpha: 0.55),
+                                color: spec.accent.withValues(alpha: 0.45),
                               ),
                             ),
                             child: Text(
-                              'Langkah ${widget.currentStep + 1} / $total',
+                              'LANGKAH ${widget.currentStep + 1} / $total',
                               style: TextStyle(
                                 color: spec.accent,
-                                fontSize: 10.5,
+                                fontSize: 10,
                                 fontWeight: FontWeight.w900,
+                                letterSpacing: 0.8,
                               ),
                             ),
                           ),
+                          const Spacer(),
                           InkWell(
                             onTap: widget.onSkip,
                             borderRadius: BorderRadius.circular(10),
@@ -40608,11 +45470,11 @@ class _GuidedSpotlightOverlayState extends State<GuidedSpotlightOverlay> {
                                 vertical: 4,
                               ),
                               child: Text(
-                                'Lewati Tutorial ✕',
+                                'Lewati ✕',
                                 style: TextStyle(
                                   color: Colors.white60,
                                   fontSize: 11,
-                                  fontWeight: FontWeight.w800,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                             ),
@@ -40621,15 +45483,16 @@ class _GuidedSpotlightOverlayState extends State<GuidedSpotlightOverlay> {
                       ),
                       const SizedBox(height: 12),
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Container(
-                            width: 40,
-                            height: 40,
+                            width: 42,
+                            height: 42,
                             decoration: BoxDecoration(
-                              color: spec.accent.withValues(alpha: 0.18),
-                              borderRadius: BorderRadius.circular(12),
+                              color: spec.accent.withValues(alpha: 0.16),
+                              borderRadius: BorderRadius.circular(14),
                               border: Border.all(
-                                color: spec.accent.withValues(alpha: 0.50),
+                                color: spec.accent.withValues(alpha: 0.45),
                               ),
                             ),
                             alignment: Alignment.center,
@@ -40640,37 +45503,43 @@ class _GuidedSpotlightOverlayState extends State<GuidedSpotlightOverlay> {
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: Text(
-                              spec.title,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w900,
-                                height: 1.25,
-                              ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  spec.title,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w900,
+                                    height: 1.25,
+                                  ),
+                                ),
+                                const SizedBox(height: 5),
+                                Text(
+                                  spec.description,
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 12.2,
+                                    height: 1.48,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 10),
-                      Text(
-                        spec.description,
-                        style: const TextStyle(
-                          color: Color(0xFFE2E8F0),
-                          fontSize: 12.2,
-                          height: 1.42,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 14),
                       Row(
                         children: [
+                          // Dot progress
                           Row(
-                            children: List.generate(total, (idx) {
-                              final active = idx == widget.currentStep;
+                            children: List.generate(total, (i) {
+                              final active = i == widget.currentStep;
                               return Container(
-                                margin: const EdgeInsets.only(right: 5),
-                                width: active ? 18 : 6,
+                                width: active ? 16 : 6,
                                 height: 6,
+                                margin: const EdgeInsets.only(right: 4),
                                 decoration: BoxDecoration(
                                   color: active ? spec.accent : Colors.white24,
                                   borderRadius: BorderRadius.circular(6),
@@ -40726,6 +45595,31 @@ class _GuidedSpotlightOverlayState extends State<GuidedSpotlightOverlay> {
                           ),
                         ],
                       ),
+                      if (widget.onDisableAllAutoTours != null) ...[
+                        const SizedBox(height: 10),
+                        Center(
+                          child: InkWell(
+                            onTap: widget.onDisableAllAutoTours,
+                            borderRadius: BorderRadius.circular(10),
+                            child: const Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              child: Text(
+                                '🔕 Matikan tutorial otomatis di semua menu',
+                                style: TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w600,
+                                  decoration: TextDecoration.underline,
+                                  decorationColor: Colors.white30,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -40787,7 +45681,7 @@ class _SpotlightHolePainter extends CustomPainter {
 }
 ```
 
-### [98/123] `lib/widgets/infak_edit_bottom_sheet.dart`
+### [102/127] `lib/widgets/infak_edit_bottom_sheet.dart`
 
 ```dart
 import 'package:flutter/material.dart';
@@ -41350,7 +46244,7 @@ class _InfakEditBottomSheetState extends State<InfakEditBottomSheet> {
 }
 ```
 
-### [99/123] `lib/widgets/kartu_qr_santri_dialog.dart`
+### [103/127] `lib/widgets/kartu_qr_santri_dialog.dart`
 
 ```dart
 import 'dart:io';
@@ -41777,7 +46671,7 @@ class _KartuQrSantriDialogState extends State<KartuQrSantriDialog> {
 }
 ```
 
-### [100/123] `lib/widgets/legal_document_sheet.dart`
+### [104/127] `lib/widgets/legal_document_sheet.dart`
 
 ```dart
 import 'package:flutter/material.dart';
@@ -42054,7 +46948,7 @@ class LegalDocumentSheet extends StatelessWidget {
 }
 ```
 
-### [101/123] `lib/widgets/numpad_widget.dart`
+### [105/127] `lib/widgets/numpad_widget.dart`
 
 ```dart
 import 'package:flutter/material.dart';
@@ -42190,22 +47084,15 @@ class NumpadWidget extends StatelessWidget {
 }
 ```
 
-### [102/123] `lib/widgets/panduan_aplikasi_sheet.dart`
+### [106/127] `lib/widgets/panduan_aplikasi_sheet.dart`
 
 ```dart
-import 'dart:convert';
-import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:share_plus/share_plus.dart';
-import '../database/database_helper.dart';
 import '../providers/kas_santri_provider.dart';
 import '../providers/theme_wallpaper_provider.dart';
 import '../screens/onboarding_screen.dart';
-import '../screens/paywall_screen.dart';
-import '../screens/settings/settings_screen.dart';
 import '../services/tutorial_service.dart';
 import '../utils/app_feedback.dart';
 import 'encrypted_backup_helper.dart';
@@ -42340,6 +47227,98 @@ class PanduanAplikasiSheet {
                     ),
                   ),
                   const SizedBox(height: 8),
+
+                  // Tombol Reset & Putar Ulang Semua Tutorial Sorotan di Semua Menu
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        AppFeedback.tap();
+                        final provider = Provider.of<KasSantriProvider>(
+                          rootContext,
+                          listen: false,
+                        );
+                        await TutorialService.instance.resetAllScreenTours();
+                        if (sheetCtx.mounted) {
+                          Navigator.pop(sheetCtx);
+                        }
+                        if (rootContext.mounted) {
+                          ScaffoldMessenger.of(rootContext).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Semua tutorial sorotan di-reset & mode otomatis aktif kembali.',
+                              ),
+                              backgroundColor: Color(0xFF0EA5E9),
+                            ),
+                          );
+                          Navigator.of(rootContext).popUntil((r) => r.isFirst);
+                          provider.triggerSpotlightTour();
+                        }
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF6EE7B7),
+                        side: BorderSide(
+                          color: const Color(0xFF34D399).withValues(alpha: 0.55),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      icon: const Icon(Icons.restart_alt_rounded, size: 17),
+                      label: const Text(
+                        '🔄 Reset & Putar Ulang Semua Tutorial Sorotan',
+                        style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Switch Preferensi Tutorial Otomatis Saat Pertama Buka Menu
+                  FutureBuilder<bool>(
+                    future: TutorialService.instance.isAutoTourEnabled(),
+                    builder: (context, snap) {
+                      var autoVal = snap.data ?? true;
+                      return StatefulBuilder(
+                        builder: (_, setInnerState) {
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.04),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: const Color(0xFF38BDF8).withValues(alpha: 0.25),
+                              ),
+                            ),
+                            child: SwitchListTile.adaptive(
+                              dense: true,
+                              contentPadding: EdgeInsets.zero,
+                              activeColor: const Color(0xFF34D399),
+                              title: const Text(
+                                'Panduan Sorotan Otomatis (Saat Pertama Buka Menu)',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              subtitle: const Text(
+                                'Jika dimatikan, ketuk ikon (?) di header menu kapan saja.',
+                                style: TextStyle(color: Colors.white60, fontSize: 10),
+                              ),
+                              value: autoVal,
+                              onChanged: (val) async {
+                                AppFeedback.tap();
+                                setInnerState(() => autoVal = val);
+                                await TutorialService.instance.setAutoTourEnabled(val);
+                              },
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
 
                   // Tombol Buka Slide Pengenalan (5 Slide)
                   SizedBox(
@@ -42861,20 +47840,37 @@ class QuickBackupRestoreSheet {
               const SizedBox(height: 12),
 
               _actionTile(
-                emoji: '⬇️',
-                title: 'Backup Standar (.JSON)',
-                subtitle: 'Simpan & bagikan file cadangan lokal standar (Gratis)',
+                emoji: '💾',
+                title: 'Simpan Backup ke Memori HP (.JSON)',
+                subtitle: 'Simpan langsung ke folder Download / Dokumen HP (Gratis)',
                 accent: const Color(0xFF34D399),
                 isLockedPro: false,
                 onTap: () async {
                   Navigator.pop(sheetCtx);
-                  await _exportStandardJson(rootContext);
+                  await EncryptedBackupHelper.saveLocalBackupToDevice(
+                    rootContext,
+                    encrypted: false,
+                  );
+                },
+              ),
+              _actionTile(
+                emoji: '📤',
+                title: 'Bagikan File Backup (.JSON)',
+                subtitle: 'Kirim cepat ke WhatsApp, Google Drive, atau Telegram (Gratis)',
+                accent: const Color(0xFF2DD4BF),
+                isLockedPro: false,
+                onTap: () async {
+                  Navigator.pop(sheetCtx);
+                  await EncryptedBackupHelper.shareLocalBackupFile(
+                    rootContext,
+                    encrypted: false,
+                  );
                 },
               ),
               _actionTile(
                 emoji: '🔐',
                 title: 'Backup Terenkripsi AES-256 (.KSBAK)',
-                subtitle: 'Dilindungi password kriptografi anti-intip',
+                subtitle: 'Simpan ke HP atau bagikan dengan kunci password kriptografi',
                 accent: const Color(0xFF38BDF8),
                 isLockedPro: !isPro,
                 onTap: () {
@@ -42885,7 +47881,7 @@ class QuickBackupRestoreSheet {
               _actionTile(
                 emoji: '⬆️',
                 title: 'Pulihkan Data Backup (.JSON / .KSBAK)',
-                subtitle: 'Muat kembali data dari file cadangan perangkat',
+                subtitle: 'Pilih file cadangan dari memori HP (mendukung penuh .KSBAK)',
                 accent: const Color(0xFFA78BFA),
                 isLockedPro: false,
                 onTap: () {
@@ -42898,22 +47894,29 @@ class QuickBackupRestoreSheet {
               ),
               _actionTile(
                 emoji: '☁️',
-                title: 'Google Drive Auto-Backup',
-                subtitle: 'Sinkronisasi cadangan privat ke akun Google Anda',
-                accent: const Color(0xFFFBBF24),
-                isLockedPro: !isPro,
+                title: 'Cadangkan ke Cloud Online (AES-256)',
+                subtitle: 'Offline-First + Cloud Backup Online terenkripsi antar HP',
+                accent: const Color(0xFF38BDF8),
+                isLockedPro: false,
                 onTap: () {
                   Navigator.pop(sheetCtx);
-                  if (!isPro) {
-                    PaywallScreen.show(
-                      rootContext,
-                      triggerFeature: 'Auto-Backup & Restore Google Drive',
-                    );
-                    return;
-                  }
-                  Navigator.push(
+                  EncryptedBackupHelper.showCloudBackupDialog(
                     rootContext,
-                    MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                    provider,
+                  );
+                },
+              ),
+              _actionTile(
+                emoji: '🌐',
+                title: 'Pulihkan dari Cloud Online',
+                subtitle: 'Unduh cadangan terenkripsi memakai Kode Pondok & Password',
+                accent: const Color(0xFFFBBF24),
+                isLockedPro: false,
+                onTap: () {
+                  Navigator.pop(sheetCtx);
+                  EncryptedBackupHelper.showCloudRestoreDialog(
+                    rootContext,
+                    provider,
                   );
                 },
               ),
@@ -42922,30 +47925,6 @@ class QuickBackupRestoreSheet {
         );
       },
     );
-  }
-
-  static Future<void> _exportStandardJson(BuildContext context) async {
-    AppFeedback.tap();
-    try {
-      final dump = await DatabaseHelper.instance.dumpBackupJson();
-      final jsonStr = const JsonEncoder.withIndent('  ').convert(dump);
-      final dir = await getTemporaryDirectory();
-      final file = File(
-        '${dir.path}/backup_kas_santri_${DateTime.now().millisecondsSinceEpoch}.json',
-      );
-      await file.writeAsString(jsonStr);
-      AppFeedback.success();
-      await Share.shareXFiles([XFile(file.path)], text: 'Backup Kas Santri (.JSON)');
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Gagal membuat backup JSON: $e'),
-            backgroundColor: const Color(0xFFF43F5E),
-          ),
-        );
-      }
-    }
   }
 
   static Widget _actionTile({
@@ -43029,7 +48008,7 @@ class QuickBackupRestoreSheet {
 }
 ```
 
-### [103/123] `lib/widgets/quick_chips_widget.dart`
+### [107/127] `lib/widgets/quick_chips_widget.dart`
 
 ```dart
 import 'package:flutter/material.dart';
@@ -43121,7 +48100,7 @@ class QuickChipsWidget extends StatelessWidget {
 }
 ```
 
-### [104/123] `lib/widgets/quick_edit_santri_bottom_sheet.dart`
+### [108/127] `lib/widgets/quick_edit_santri_bottom_sheet.dart`
 
 ```dart
 import 'dart:io';
@@ -43907,7 +48886,7 @@ class _QuickEditSantriBottomSheetState extends State<QuickEditSantriBottomSheet>
 }
 ```
 
-### [105/123] `lib/widgets/sambangan_receipt_dialog.dart`
+### [109/127] `lib/widgets/sambangan_receipt_dialog.dart`
 
 ```dart
 import 'dart:io';
@@ -44322,7 +49301,7 @@ class _SambanganReceiptDialogState extends State<SambanganReceiptDialog> {
 }
 ```
 
-### [106/123] `lib/widgets/santri_card.dart`
+### [110/127] `lib/widgets/santri_card.dart`
 
 ```dart
 import 'dart:io';
@@ -45129,7 +50108,7 @@ class SantriCard extends StatelessWidget {
 }
 ```
 
-### [107/123] `lib/widgets/searchable_santri_picker.dart`
+### [111/127] `lib/widgets/searchable_santri_picker.dart`
 
 ```dart
 import 'dart:io';
@@ -45859,7 +50838,7 @@ class _SearchableSantriPickerState extends State<SearchableSantriPicker> {
 }
 ```
 
-### [108/123] `lib/widgets/serah_terima_bottom_sheet.dart`
+### [112/127] `lib/widgets/serah_terima_bottom_sheet.dart`
 
 ```dart
 import 'package:flutter/material.dart';
@@ -46402,7 +51381,7 @@ class SerahTerimaHistorySheet extends StatelessWidget {
 }
 ```
 
-### [109/123] `lib/widgets/stat_card.dart`
+### [113/127] `lib/widgets/stat_card.dart`
 
 ```dart
 import 'package:flutter/material.dart';
@@ -46967,7 +51946,7 @@ class SafeVaultCard extends StatelessWidget {
 }
 ```
 
-### [110/123] `lib/widgets/struk_gambar_dialog.dart`
+### [114/127] `lib/widgets/struk_gambar_dialog.dart`
 
 ```dart
 import 'dart:io';
@@ -47397,7 +52376,7 @@ class _StrukGambarDialogState extends State<StrukGambarDialog> {
 }
 ```
 
-### [111/123] `lib/widgets/tambah_santri_bottom_sheet.dart`
+### [115/127] `lib/widgets/tambah_santri_bottom_sheet.dart`
 
 ```dart
 import 'package:flutter/material.dart';
@@ -48073,7 +53052,7 @@ class _TambahSantriBottomSheetState extends State<TambahSantriBottomSheet> {
 }
 ```
 
-### [112/123] `lib/widgets/tarik_tunai_bottom_sheet.dart`
+### [116/127] `lib/widgets/tarik_tunai_bottom_sheet.dart`
 
 ```dart
 import 'package:flutter/material.dart';
@@ -48484,7 +53463,7 @@ class _TarikTunaiBottomSheetState extends State<TarikTunaiBottomSheet> {
 }
 ```
 
-### [113/123] `lib/widgets/tunggakan_bottom_sheet.dart`
+### [117/127] `lib/widgets/tunggakan_bottom_sheet.dart`
 
 ```dart
 import 'package:flutter/material.dart';
@@ -48945,7 +53924,7 @@ class _TunggakanBottomSheetState extends State<TunggakanBottomSheet> {
 }
 ```
 
-### [114/123] `lib/widgets/undo_snackbar.dart`
+### [118/127] `lib/widgets/undo_snackbar.dart`
 
 ```dart
 import 'dart:async';
@@ -49190,7 +54169,7 @@ class UndoBottomBanner extends StatelessWidget {
 }
 ```
 
-### [115/123] `prd.md`
+### [119/127] `prd.md`
 
 ````markdown
 # Product Requirements Document (PRD): Aplikasi Kas-Santri
@@ -49199,14 +54178,14 @@ class UndoBottomBanner extends StatelessWidget {
 > **ATURAN WAJIB PEMELIHARAAN PRD (STANDING RULE):**
 > Setiap kali ada penambahan fitur baru, perubahan arsitektur/skema database, perubahan aturan bisnis, pembaruan keamanan, atau perubahan konfigurasi build/CI/CD di masa mendatang, agen AI / pengembang **WAJIB** memperbarui dokumen `prd.md` ini pada commit yang sama agar `prd.md` selalu 100% sinkron dengan kondisi aktual kode sumber (*Single Source of Truth*).
 
-- **Nama Produk:** Kas-Santri (Sistem Manajemen Uang Saku, Titipan, Tunggakan & Infak Santri Terpadu)
-- **Versi Rilis Aktif:** `v4.2.0+42` (`AppConfig.appVersion = '4.2.0'`)
-- **Platform:** Mobile App Android (Flutter — Offline-First + Cloud Backup PRO) untuk distribusi Direct APK (DANA/QRIS) dan Google Play Store (`.aab`)
+- **Nama Produk:** Kas-Santri (Sistem Manajemen Uang Saku, Titipan, Tabungan Terpisah, Tunggakan & Infak Santri Terpadu)
+- **Versi Rilis Aktif:** `v4.3.0+43` (`AppConfig.appVersion = '4.3.0'`)
+- **Platform:** Mobile App Android (Flutter — Offline-First + Cloud Backup Online) untuk distribusi Direct APK (DANA/QRIS) dan Google Play Store (`.aab`)
 - **Target Pengguna:** Pengurus Pondok, Musyrif/Musyrifah, Bendahara Asrama, Bendahara Infak, atau Wali Kamar di seluruh Pondok Pesantren
-- **Tema Visual Utama:** *Dark Translucent Aurora Glassmorphism v4.2* (Obsidian Dark `#090D16`, Emerald `#10B981`, Royal Gold `#F59E0B`, dengan 1 Global `AppBackgroundWrapper` + Tata Letak Tombol Kartu 2 Kotak)
-- **Pengembang:** Moch Khoirul Azman
+- **Tema Visual Utama:** *Dark Translucent Aurora Glassmorphism v4.3* (Obsidian Dark `#090D16`, Emerald `#10B981`, Royal Gold `#F59E0B`, dengan 1 Global `AppBackgroundWrapper` + Tata Letak Tombol Kartu 2 Kotak)
+- **Pengembang:** Moch Khoirul Azman *(Dibuat: Senin, 23 November 2026 • 09:00 WIB — Kredensial Pengembang Netral tanpa nama pondok tertentu)*
 - **Repositori Utama:** https://github.com/mochkhoirulazman-max/kas-santri.git (Workspace: `project antigrafity`)
-- **Status Dokumen:** **Versi 4.2 Final Master** (Smooth 60–120 FPS, Multi-Pondok Neutral, Strict PRO Gating `hasProAccess`, Rekonsiliasi Akuntansi 100%, Modular Repository Architecture, Ed25519 License + Admin Command Center, & Standar CI/CD AGP 9.3.1)
+- **Status Dokumen:** **Versi 4.3 Final Master** (Brankas Tabungan Terpisah Kantong Kas Ke-4 SQLite v5, Backup Hybrid SAF Lokal `.ksbak` & Cloud Backup Online AES-256, Tutorial Sorotan Kontekstual 16 Layar Anti-Mengganggu, Smooth 60–120 FPS, Strict PRO Gating `hasProAccess`, Rekonsiliasi Akuntansi 100%, Modular Repository Architecture, Ed25519 License + Admin Command Center, & Standar CI/CD AGP 9.3.1)
 
 ---
 
@@ -49221,8 +54200,8 @@ Di lingkungan pondok pesantren, santri tidak diperbolehkan memegang uang tunai d
 4. **Campur Aduk Kantong Uang:** Tanpa pemisahan tegas antara Titipan Uang Jajan Santri, Kas Infak Pondok (yang harus disetor ke Dapur/Yayasan), Kas Laci Tunai, dan Saldo Rekening Bank, bendahara rentan mengalami selisih saat tutup kas malam (*Cash Opname*).
 5. **Kasus Khusus (*Overlimit*, *Carry-Over* & Tunggakan):** Sulit melacak santri yang mengambil melebihi batas harian, akumulasi jatah sisa kemarin, serta tunggakan/talangan administrasi.
 
-### Solusi Kas-Santri v4.2 PRO
-Aplikasi mobile **Kas-Santri v4.2 PRO** dengan antarmuka super cepat (*3-Tap Transaction* di bawah 5 detik dan Scan QR 1 detik), *Smart Split Setoran Sambangan*, *Buku Infak Bulanan Digital* (Santriyin, Santriyat, Santri Baru), *Serah Terima Infak ke Dapur/Yayasan*, rekonsiliasi 3 kantong kas presisi 0 selisih, verifikasi fisik *Cash Opname*, serta ekspor laporan PDF/Excel resmi berkop logo pondok yang berjalan mulus 60–120 FPS di latar belakang (`compute()` isolate).
+### Solusi Kas-Santri v4.3 PRO
+Aplikasi mobile **Kas-Santri v4.3 PRO** dengan antarmuka super cepat (*3-Tap Transaction* di bawah 5 detik dan Scan QR 1 detik), *Smart Split Setoran Sambangan*, *Buku Infak Bulanan Digital* (Santriyin, Santriyat, Santri Baru), **Brankas Tabungan Terpisah (Kantong Kas Ke-4)** yang diisolasi total agar tidak ikut terpotong jajan harian, **Backup Lokal `.ksbak` Berbasis SAF & Cloud Backup Online Terenkripsi AES-256**, **Tutorial Sorotan Kontekstual pada 16 Layar/Menu** dengan mode anti-mengganggu (`seen_tour_<screenKey>`), rekonsiliasi 4 kantong kas presisi 0 selisih, verifikasi fisik *Cash Opname*, serta ekspor laporan PDF/Excel resmi berkop logo pondok yang berjalan mulus 60–120 FPS (`compute()` isolate).
 
 ---
 
@@ -49282,13 +54261,14 @@ $$S_{jajan} = U_{total} - (I_{uang} + P_{tunggakan})$$
 - **Perhitungan Otomatis Tgl Habis (*Rolling Date*):** `tgl_habis` otomatis dihitung $+1$ bulan kalender dari `tgl_masuk` (contoh: `18-11-2026` -> `18-12-2026`).
 - **Penentuan Otomatis Status Infak:** `LUNAS`, `CICIL`, atau `BELUM`.
 
-### F. Akuntansi 3 Kantong Kas & Verifikasi Cash Opname Terpadu
+### F. Akuntansi 4 Kantong Kas & Verifikasi Cash Opname Terpadu (v4.3)
 1. **Kantong 1 — Brankas Titipan Uang Jajan Santri ($\text{Rp}$):** $\sum Saldo_{akhir,\text{santri}}$ (terpecah menjadi Kas Laci Tunai dan Rekening Bank).
 2. **Kantong 2 — Kas Infak Pondok Belum Disetor ($\text{Rp}$):**
    $$\text{Saldo Kas Infak} = \sum I_{uang,\text{masuk}} - \sum \text{Serah Terima ke Dapur/Yayasan}$$
 3. **Kantong 3 — Catatan Gudang Beras Fisik ($\text{Liter}$):** Total akumulasi liter beras fisik dikurangi serah terima beras fisik ke dapur.
-4. **Verifikasi Tutup Kas Malam (*Cash Opname*):**
-   $$\text{Target Uang Fisik di Laci} = \text{Kas Laci Tunai (Uang Jajan)} + \text{Kas Infak Tunai Belum Disetor}$$
+4. **Kantong 4 — Brankas Tabungan Terpisah ($\text{Rp}$, Baru v4.3):** $\sum Saldo_{tabungan,\text{santri}}$ (simpanan darurat, tabungan pulang/lebaran, kitab/ziarah) yang **100% terisolasi** dari pengambilan jajan harian (`catatPengambilan` tidak pernah menyentuh `saldo_tabungan`), terpecah menjadi **Tabungan Tunai** vs **Tabungan Rekening** serta mendukung transfer 1-ketuk antar jajan <-> tabungan dan Void aman.
+5. **Verifikasi Tutup Kas Malam (*Cash Opname* 4 Kantong):**
+   $$\text{Target Uang Fisik di Laci} = \text{Kas Laci Tunai (Uang Jajan)} + \text{Kas Infak Tunai Belum Disetor} + \text{Tabungan Tunai Santri}$$
    $$\Delta_{selisih} = \text{Total Uang Fisik di Laci} - \text{Target Uang Fisik di Laci}$$
 
 ---
@@ -49323,36 +54303,46 @@ bool get hasProAccess => isProActive || isTrialActive;
   - Menampilkan profil & metrik lengkap santri, aksi cepat (Ambil Uang, Setoran/Sambangan, Kelola Tunggakan, Edit Profil, Cetak Kartu QR PRO, Cetak PDF Mutasi PRO, dan Arsip/Hapus Santri Hybrid), serta tab riwayat transaksi & setoran lengkap dengan Void berperingatan rekonsiliasi.
 - **Setoran Bulanan, Smart Split Sambangan & Buku Infak (`SetoranScreen` & `BukuInfakView`):**
   - 2 sub-tab terpadu: `💸 Input Setoran` (Top-Up Uang Jajan & Smart Split Sambangan) dan `🌾 Buku Infak` (monitoring infak bulanan Santriyin/Santriyat/Santri Baru, edit cicilan infak dengan audit log `EDIT_INFAK_MANUAL`, Serah Terima ke Dapur/Yayasan, dan ekspor PDF/Excel 4-Sheet).
-- **Onboarding Multi-Pondok & Spotlight Walkthrough (`OnboardingScreen` & `InteractiveWalkthroughOverlay`):**
-  - Saat instalasi pertama, menyapa pengguna dengan slide onboarding dan form Setup Cepat Identitas Pondok, lalu otomatis menampilkan tur sorotan interaktif 5 langkah (dapat diputar ulang kapan saja dari **Panduan Penggunaan Aplikasi -> Mulai Tur Sorotan Layar**).
+- **Brankas Tabungan Terpisah (`BrankasTabunganScreen` — Baru v4.3):**
+  - Dapat diakses langsung dari `SafeVaultCard` di Beranda, tab `Sistem` (Akses Cepat Pengurus), maupun `SantriDetailScreen`.
+  - Menyediakan Setor Tabungan, Tarik Tabungan, Pindah Buku Jajan <-> Tabungan, filter penabung aktif, sembunyikan saldo, serta riwayat mutasi tabungan khusus dengan fitur Void aman (`voidTransaksiTabungan`).
+- **Backup Lokal Terenkripsi SAF & Cloud Backup Online (`EncryptedBackupHelper` & `CloudBackupService` — Diperbaiki & Diperluas v4.3):**
+  - Simpan file `.ksbak` (AES-256-GCM + PBKDF2 60.000 iterasi) langsung ke folder pilihan Android melalui Storage Access Framework (`FilePicker.platform.saveFile`), dilengkapi fallback `Downloads` / `ApplicationDocumentsDirectory` dan Share Sheet + dialog loading yang selalu tertutup aman (`finally`). Pemulihan `.ksbak` memakai `FileType.any` + validasi ekstensi agar kompatibel di Android 11–16 tanpa error MIME.
+  - Cloud Backup Online tanpa login Google OAuth (`app_cloud_backups` via Supabase RPC) dengan enkripsi **AES-256 di sisi perangkat** sebelum diunggah.
+- **Onboarding Multi-Pondok & Tutorial Sorotan Kontekstual 16 Layar (`ScreenSpotlightHost` + `SpotlightHelpButton` — Baru v4.3):**
+  - Saat instalasi pertama, menyapa pengguna dengan slide onboarding dan form Setup Cepat Identitas Pondok.
+  - Seluruh **16 halaman & menu fitur** (`tour_home`, `tour_setoran`, `tour_buku_infak`, `tour_mutasi`, `tour_rekap`, `tour_sistem`, `tour_tabungan`, `tour_settings`, `tour_opname`, `tour_santri_detail`, `tour_executive`, `tour_wa_reminder`, `tour_cetak_qr`, `tour_import_excel`, `tour_tahun_ajaran`, `tour_audit_log`) kini dibungkus `ScreenSpotlightHost` murni `CustomPainter` (`OverlayEntry` di rootOverlay tanpa `BackdropFilter`).
+  - **Anti-Mengganggu:** Otomatis muncul maksimal 1x saat layar dibuka pertama kali (`seen_tour_<screenKey>`), memiliki kontrol 1-ketuk **"🔕 Matikan tutorial otomatis di semua menu"**, switch kontrol di `Pengaturan` & `PanduanAplikasiSheet`, tombol **"🔄 Reset & Putar Ulang Semua Tutorial Sorotan"**, serta ikon bantuan kaca neon **`?` (`SpotlightHelpButton`)** di header/AppBar setiap menu.
 
 ---
 
-## 4. Arsitektur Modular v4.2 (Facade & Repository Pattern)
+## 4. Arsitektur Modular v4.3 (Facade & Repository Pattern)
 
-Untuk menjaga *maintainability* jangka panjang dan mencegah *God Classes* tanpa merusak pemanggil yang sudah ada (*Zero Regression*), lapisan data dan ekspor dipecah secara modular dengan pola **Facade + Repository**:
+Untuk menjaga *maintainability* jangka panjang dan mencegah *God Classes* tanpa merusak pemanggil yang sudah ada (*Zero Regression*), lapisan data, backup, dan ekspor dipecah secara modular dengan pola **Facade + Repository**:
 
 1. **Lapisan Database SQLite (`lib/database/`):**
    - `lib/database/database_helper.dart` (**Public Facade** — mempertahankan 100% tanda tangan metode `DatabaseHelper.instance`).
-   - `lib/database/schema_migrator.dart`: DDL pembuatan 10 tabel, indeks performa, migrasi aman v1->v4, `PRAGMA foreign_keys = ON`, dan backfill QR/hash.
-   - `lib/database/repositories/santri_repository.dart`: CRUD santri, filter, pindah kamar massal, tutup buku tahun ajaran, dan penghapusan santri hybrid berpenyeimbang `mutasi_dompet`.
+   - `lib/database/schema_migrator.dart`: DDL pembuatan 11 tabel, indeks performa, migrasi aman v1->v5 (`saldo_tabungan` + `transaksi_tabungan`), `PRAGMA foreign_keys = ON`, dan backfill QR/hash.
+   - `lib/database/repositories/santri_repository.dart`: CRUD santri, filter, pindah kamar massal, tutup buku tahun ajaran, dan penghapusan santri hybrid berpenyeimbang `mutasi_dompet` + cleanup mutasi tabungan.
    - `lib/database/repositories/ledger_repository.dart`: Mesin transaksi `catatPengambilan`, `catatSetoranBaru`, `catatSambanganSmartSplit`, `editTransaksi`, `voidTransaksi`, manajemen tunggakan, batch query `getAllTransaksiPengambilanHariIniMap`, agregasi SQL `getSaldoDompet`, tarik tunai bank ke laci, dan `cash_opname_logs`.
    - `lib/database/repositories/infak_repository.dart`: CRUD `infak_santri`, `serah_terima_infak`, dan agregasi SQL `getSaldoKantongInfak`.
-   - `lib/database/repositories/backup_audit_repository.dart`: Pengaturan aplikasi, akun bendahara, rantai hash `audit_log`, `dumpBackupJson`, `restoreFromJson` (anti-elevasi `is_pro`/`has_used_trial`), dan `seedDemoData`.
-2. **Lapisan Ekspor Laporan (`lib/services/`):**
+   - `lib/database/repositories/tabungan_repository.dart` (**Baru v4.3**): Transaksi atomik Brankas Tabungan Terpisah (`setorTabungan`, `tarikTabungan`, `transferJajanKeTabungan`, `transferTabunganKeJajan`, `voidTransaksiTabungan`, `getTransaksiTabungan`, dan agregasi SQL `getSaldoBrankasTabungan`).
+   - `lib/database/repositories/backup_audit_repository.dart`: Pengaturan aplikasi, akun bendahara, rantai hash `audit_log`, `dumpBackupJson` (11 tabel), `restoreFromJson` (mendukung kompatibilitas mundur backup lama tanpa `transaksi_tabungan` + anti-elevasi `is_pro`/`has_used_trial`), dan `seedDemoData`.
+2. **Lapisan Ekspor & Backup Hybrid (`lib/services/` & `lib/widgets/`):**
    - `lib/services/yayasan_export_service.dart` (**Public Facade** & model data laporan).
    - `lib/services/exports/yayasan_excel_exporter.dart`: Pembuatan workbook Excel Yayasan 3-Sheet & Buku Infak 4-Sheet di dalam background isolate `compute()`.
    - `lib/services/exports/yayasan_pdf_exporter.dart`: Generator dokumen PDF Resmi Yayasan & Buku Infak berkop logo pondok.
+   - `lib/services/cloud_backup_service.dart` & `lib/widgets/encrypted_backup_helper.dart`: Enkripsi `.ksbak` berbasis isolate + SAF lokal + Cloud Backup Online AES-256 via Supabase RPC.
 
 ---
 
-## 5. Skema Database SQLite Offline-First (10 Tabel — Versi Skema 4)
+## 5. Skema Database SQLite Offline-First (11 Tabel — Versi Skema 5)
 
 Koneksi SQLite wajib mengaktifkan `PRAGMA foreign_keys = ON;` pada callback `onConfigure` dan menjalankan migrasi skema secara deterministik pada `onUpgrade`.
 
 | No | Nama Tabel | Fungsi Utama & Kolom Kunci |
 |---:|---|---|
-| 1 | `santri` | Profil & saldo santri (`id`, `qr_code`, `nama_lengkap`, `nama_panggilan`, `kategori_santri`, `status_santri`, `kamar`, `foto_path`, `nama_wali`, `no_wa_wali`, `saldo_total`, `jatah_harian`, `tunggakan`, `status_aktif`, `created_at`, `updated_at`). |
+| 1 | `santri` | Profil & saldo santri (`id`, `qr_code`, `nama_lengkap`, `nama_panggilan`, `kategori_santri`, `status_santri`, `kamar`, `foto_path`, `nama_wali`, `no_wa_wali`, `saldo_total`, **`saldo_tabungan` [v5]**, `jatah_harian`, `tunggakan`, `status_aktif`, `created_at`, `updated_at`). |
 | 2 | `setoran_bulanan` | Riwayat setoran & Smart Split (`id`, `santri_id`, `nominal_setoran`, `nominal_potong_tunggakan`, `nominal_bersih`, `durasi_hari`, `jatah_harian_hasil`, `tipe_setoran`, `sumber_dompet`, `catatan`, `tanggal_setor`). |
 | 3 | `transaksi_harian` | Mutasi keluar/masuk harian (`id`, `santri_id`, `nominal`, `saldo_sebelum`, `saldo_sesudah`, `tipe`, `waktu_ambil` **[kolom urutan utama]**, `tanggal_lokal`, `kategori_waktu`, `tag_keperluan`, `catatan`, `operator_nama`, `is_overlimit`, `overlimit_handling`, `is_void`, `alasan_void`, `sumber_dompet`). |
 | 4 | `tunggakan_log` | Riwayat tambah/bayar/potong/talangan tunggakan (`id`, `santri_id`, `nominal`, `tipe`, `sumber_dompet`, `catatan`, `tanggal`). |
@@ -49362,6 +54352,7 @@ Koneksi SQLite wajib mengaktifkan `PRAGMA foreign_keys = ON;` pada callback `onC
 | 8 | `infak_santri` | Buku Infak bulanan per santri (`id`, `santri_id`, `periode_bulan`, `tahun_ajaran`, `nominal_masak`, `is_masak_bebas`, `nominal_listrik`, `is_listrik_bebas`, `jenis_beras`, `beras_liter`, `beras_uang`, `tgl_masuk`, `tgl_habis`, `status_lunas`, `sumber_dompet`, `setoran_id`, `catatan`, `updated_at`). |
 | 9 | `serah_terima_infak` | Berita acara penyerahan uang infak/beras ke Dapur/Yayasan (`id`, `tanggal_serah`, `periode_bulan`, `pos_infak`, `sumber_dompet`, `nominal_uang`, `jumlah_beras_liter`, `penerima`, `catatan`, `created_at`). |
 | 10 | `audit_log` | Jejak audit keamanan *append-only* berantai SHA-256 (`id`, `timestamp`, `actor`, `action`, `target_id`, `summary`, `prev_hash`, `entry_hash`). |
+| 11 | `transaksi_tabungan` | Buku besar Brankas Tabungan Terpisah v5 (`id`, `santri_id`, `tipe` [`SETOR`/`TARIK`/`TRANSFER_DARI_JAJAN`/`TRANSFER_KE_JAJAN`], `nominal`, `sumber_dompet`, `saldo_tabungan_setelah`, `tanggal_lokal`, `catatan`, `is_void`, `created_at`). |
 
 **Indeks Performa Wajib:**
 - `idx_transaksi_santri_tanggal ON transaksi_harian (santri_id, tanggal_lokal)`
@@ -49371,6 +54362,7 @@ Koneksi SQLite wajib mengaktifkan `PRAGMA foreign_keys = ON;` pada callback `onC
 - `idx_audit_log_ts ON audit_log (timestamp DESC)`
 - `idx_mutasi_dompet_jenis_tipe ON mutasi_dompet (jenis_dompet, tipe)`
 - `idx_mutasi_dompet_ref ON mutasi_dompet (referensi_id)`
+- `idx_tx_tabungan_santri ON transaksi_tabungan (santri_id, tanggal_lokal, is_void)`
 
 ---
 
@@ -49388,9 +54380,12 @@ Koneksi SQLite wajib mengaktifkan `PRAGMA foreign_keys = ON;` pada callback `onC
    - `CustomerSyncService` menonaktifkan pengiriman *Personal Identifiers* (`nama_bendahara` dan `no_wa` dikosongkan) pada build Google Play Store agar 100% patuh terhadap deklarasi *Google Play Data Safety*, serta disinkronkan penuh dengan `docs/privacy.html`.
    - Seluruh aset gambar bawaan (`assets/wallpapers/default_wallpaper.jpg`) 100% bebas watermark pihak ketiga.
 
+4. **Cloud Backup Online Terenkripsi (`app_cloud_backups` & `CloudBackupService` — v4.3):**
+   - Mendukung pencadangan otomatis/manual tanpa login Google OAuth melalui Supabase RPC (`upload_cloud_backup_snapshot`, `download_cloud_backup_snapshot`, `get_cloud_backup_metadata`) dengan enkripsi AES-256 pada sisi klien sebelum diunggah.
+
 ---
 
-## 7. Riwayat Evolusi Versi (v3.0 s.d. v4.2)
+## 7. Riwayat Evolusi Versi (v3.0 s.d. v4.3)
 
 - **v3.0:** Modul Buku Infak Bulanan (Santriyin/Santriyat/Santri Baru), Smart Split Setoran Sambangan, Serah Terima Infak ke Dapur/Yayasan, dan Akuntansi 3 Kantong Kas.
 - **v3.2:** Engine Wallpaper & Translucent Aurora Glassmorphism (`AppBackgroundWrapper`), Navigasi Geser `PageView` 5 Tab, Sistem Login & Profil Bendahara, `SearchableSantriPicker`, dan Ekspor Excel/PDF Siap Cetak.
@@ -49398,7 +54393,8 @@ Koneksi SQLite wajib mengaktifkan `PRAGMA foreign_keys = ON;` pada callback `onC
 - **v3.4:** Admin Command Center (`admin_dashboard/`) terisolasi dengan Supabase RLS & generator lisensi Ed25519.
 - **v4.0:** Import Santri Massal Excel (`.xlsx`), Cetak Massal Kartu Santri QR PDF A4, Manajemen Tahun Ajaran & Pindah Kamar Massal, Dashboard Analitik Eksekutif Yayasan, dan Pusat Antrean Pengingat WA Cerdas.
 - **v4.1:** Optimasi 60 FPS (penghapusan `BackdropFilter` dari item list/grid), Default Pondok Netral (`'Nama Pondok'`), `InteractiveWalkthroughOverlay` 5 langkah, Saldo Awal Santri Baru `Rp 0`, dan Gerbang Terpusat `SubscriptionService.hasProAccess`.
-- **v4.2 (Saat Ini):** Eliminasi query `N+1` di `loadAllData()` (-99% query SQLite), agregasi SQL `SUM(CASE WHEN ...)` pada `getSaldoDompet()` & `getSaldoKantongInfak()`, rekonsiliasi akuntansi 100% pada `editTransaksi`/`voidTransaksi(setoran)`/`deleteSantri`, isolasi `UndoStateNotifier` + background isolate `compute()` untuk Excel & `.ksbak`, kepatuhan Data Safety Play Store & wallpaper bebas watermark, penghubungan kembali `SantriDetailScreen` + penghapusan 5 layar warisan v1.0, modularisasi *Repository Pattern*, dan optimasi pipeline CI/CD 2-Job.
+- **v4.2:** Eliminasi query `N+1` di `loadAllData()` (-99% query SQLite), agregasi SQL `SUM(CASE WHEN ...)` pada `getSaldoDompet()` & `getSaldoKantongInfak()`, rekonsiliasi akuntansi 100% pada `editTransaksi`/`voidTransaksi(setoran)`/`deleteSantri`, isolasi `UndoStateNotifier` + background isolate `compute()` untuk Excel & `.ksbak`, kepatuhan Data Safety Play Store & wallpaper bebas watermark, penghubungan kembali `SantriDetailScreen` + penghapusan 5 layar warisan v1.0, modularisasi *Repository Pattern*, dan optimasi pipeline CI/CD 2-Job.
+- **v4.3 (Saat Ini):** Brankas Tabungan Terpisah (Kantong Kas Ke-4, SQLite v5 & `TabunganRepository` + Cash Opname 4 kantong), Perbaikan nyata Backup Lokal `.ksbak` berbasis SAF & Cloud Backup Online terenkripsi AES-256 (`app_cloud_backups`), Kredensial Pengembang Netral tanpa nama pondok, serta Tutorial Sorotan Kontekstual (`ScreenSpotlightHost` + `SpotlightHelpButton`) pada seluruh 16 halaman & menu fitur.
 
 ---
 
@@ -49430,16 +54426,16 @@ Koneksi SQLite wajib mengaktifkan `PRAGMA foreign_keys = ON;` pada callback `onC
 
 ### C. Prosedur Git Commit & Push
 - Path Git lokal: `C:\Users\smkit\AppData\Local\Programs\Git\cmd\git.exe` (jalankan dengan `BypassSandbox: true` saat melakukan operasi jaringan `git push origin main`).
-- Pastikan seluruh 10 tabel SQLite tercakup dalam Backup & Restore `.JSON`, `.KSBAK`, dan Google Drive Backup.
+- Pastikan seluruh 11 tabel SQLite tercakup dalam Backup & Restore `.JSON`, `.KSBAK`, dan Cloud Backup Online (`app_cloud_backups`).
 ````
 
-### [116/123] `pubspec.yaml`
+### [120/127] `pubspec.yaml`
 
 ```yaml
 name: kas_santri
 description: "Aplikasi Manajemen Kas Santri - Sistem Uang Saku & Titipan Santri Harian Offline-First"
 publish_to: "none"
-version: 4.2.0+42
+version: 4.3.0+43
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -49505,7 +54501,7 @@ flutter:
     - assets/qris_dana_399k.jpg
 ```
 
-### [117/123] `push_to_github.bat`
+### [121/127] `push_to_github.bat`
 
 ```bat
 @echo off
@@ -49525,7 +54521,7 @@ echo ====================================================
 pause
 ```
 
-### [118/123] `test/financial_engine_test.dart`
+### [122/127] `test/financial_engine_test.dart`
 
 ```dart
 import 'dart:convert';
@@ -49547,6 +54543,7 @@ import 'package:kas_santri/models/santri_status.dart';
 import 'package:kas_santri/models/serah_terima_infak.dart';
 import 'package:kas_santri/models/setoran.dart';
 import 'package:kas_santri/models/transaksi.dart';
+import 'package:kas_santri/models/transaksi_tabungan.dart';
 import 'package:kas_santri/providers/kas_santri_provider.dart';
 import 'package:kas_santri/services/account_auth_service.dart';
 import 'package:kas_santri/services/auth_service.dart';
@@ -51892,8 +56889,8 @@ void main() {
     });
 
     test('AI. Batch 4 v4.2: Modular Repository & Exporter Facade Integrity + AppConfig v4.2.0', () async {
-      // 1. Verifikasi sinkronisasi versi v4.2.0 di AppConfig
-      expect(AppConfig.appVersion, '4.2.0');
+      // 1. Verifikasi sinkronisasi versi v4.3.0 di AppConfig
+      expect(AppConfig.appVersion, '4.3.0');
 
       // 2. Verifikasi arsitektur modular DatabaseHelper (Facade -> 5 sub-modul)
       sqfliteFfiInit();
@@ -51960,11 +56957,215 @@ void main() {
       expect(exporter.excelExporter, isNotNull);
       expect(exporter.pdfExporter, isNotNull);
     });
+
+    test('AJ. v4.3.0: Migrasi SQLite v4->v5, Brankas Tabungan Terpisah (Isolasi Jajan & Cash Opname 4 Kantong), Backup Kompatibilitas Mundur & TutorialService 16 Layar', () async {
+      sqfliteFfiInit();
+
+      // a) Migrasi SQLite v4 -> v5 tanpa merusak data santri eksisting
+      final v4Db = await databaseFactoryFfi.openDatabase(
+        inMemoryDatabasePath,
+        options: OpenDatabaseOptions(
+          version: 4,
+          singleInstance: false,
+          onCreate: (db, _) async {
+            await db.execute('''
+              CREATE TABLE santri (
+                id TEXT PRIMARY KEY,
+                nama_lengkap TEXT NOT NULL,
+                nama_panggilan TEXT,
+                kategori_santri TEXT NOT NULL DEFAULT 'SANTRIYIN',
+                status_santri TEXT NOT NULL DEFAULT 'AKTIF',
+                kamar TEXT NOT NULL,
+                no_wa_wali TEXT,
+                saldo_total INTEGER NOT NULL DEFAULT 0,
+                jatah_harian INTEGER NOT NULL DEFAULT 10000,
+                setoran_awal INTEGER NOT NULL DEFAULT 300000,
+                tunggakan INTEGER NOT NULL DEFAULT 0,
+                catatan_tunggakan TEXT DEFAULT '',
+                foto_path TEXT,
+                qr_code TEXT,
+                status_aktif INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL
+              )
+            ''');
+          },
+        ),
+      );
+      addTearDown(() async => await v4Db.close());
+
+      await v4Db.insert('santri', {
+        'id': 'v4-legacy-1',
+        'nama_lengkap': 'Santri v4',
+        'kamar': 'A1',
+        'saldo_total': 45000,
+        'jatah_harian': 10000,
+        'created_at': '2026-11-01T00:00:00.000',
+      });
+
+      await DatabaseHelper.instance.upgradeSchemaForTesting(v4Db, 4, 5);
+
+      final cols = await v4Db.rawQuery('PRAGMA table_info(santri)');
+      final colNames = cols.map((c) => c['name'].toString()).toSet();
+      expect(colNames.contains('saldo_tabungan'), true);
+
+      final legacyRows = await v4Db.query(
+        'santri',
+        where: 'id = ?',
+        whereArgs: ['v4-legacy-1'],
+      );
+      expect(legacyRows.length, 1);
+      expect(legacyRows.first['saldo_total'], 45000);
+      expect(legacyRows.first['saldo_tabungan'], 0);
+
+      final tabTable = await v4Db.rawQuery(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='transaksi_tabungan'",
+      );
+      expect(tabTable.isNotEmpty, true);
+
+      // b) Brankas Tabungan Terpisah (TabunganRepository), Isolasi Jajan & Cash Opname 4 Kantong
+      final v5Db = await databaseFactoryFfi.openDatabase(
+        inMemoryDatabasePath,
+        options: OpenDatabaseOptions(
+          version: 5,
+          singleInstance: false,
+          onConfigure: (db) async => await db.execute('PRAGMA foreign_keys = ON'),
+          onCreate: (db, _) async =>
+              await DatabaseHelper.instance.createSchemaForTesting(db),
+        ),
+      );
+      DatabaseHelper.instance.setDatabaseForTesting(v5Db);
+      addTearDown(() async {
+        DatabaseHelper.instance.setDatabaseForTesting(null);
+        await v5Db.close();
+      });
+      final helper = DatabaseHelper.instance;
+
+      final s = Santri(
+        id: 'aj-santri-1',
+        namaLengkap: 'Zaid Tabungan v43',
+        namaPanggilan: 'Zaid',
+        kamar: 'Al-Ikhlas 2',
+        saldoTotal: 0,
+        jatahHarian: 10000,
+      );
+      await helper.insertSantri(s, sumberDompet: 'TUNAI');
+      await helper.catatSetoranBaru(
+        santriId: s.id,
+        nominalSetoran: 100000,
+        durasiHari: 10,
+        jatahHarianHitung: 10000,
+        tipeSetoran: TipeSetoran.awalBulan,
+        tanggalSetor: DateTime(2026, 11, 27, 8, 0),
+        potongTunggakan: false,
+        metodeBayar: 'TUNAI',
+      );
+
+      final txSetor = await helper.setorTabungan(
+        santriId: s.id,
+        nominal: 50000,
+        sumberDompet: 'TUNAI',
+        catatan: 'Tabungan Pulang',
+      );
+      expect(txSetor.tipe, TransaksiTabungan.tipeSetor);
+      var afterSetor = await helper.getSantriById(s.id);
+      expect(afterSetor?.saldoTabungan, 50000);
+      expect(afterSetor?.saldoTotal, 100000);
+
+      await helper.setorTabungan(
+        santriId: s.id,
+        nominal: 30000,
+        sumberDompet: 'REKENING',
+      );
+      var brankasTab = await helper.getSaldoBrankasTabungan();
+      expect(brankasTab['tunai'], 50000);
+      expect(brankasTab['rekening'], 30000);
+      expect(brankasTab['total'], 80000);
+
+      // Pengambilan jajan harian TIDAK boleh memotong saldoTabungan
+      await helper.catatPengambilan(
+        santriId: s.id,
+        nominal: 20000,
+        customTimestamp: DateTime(2026, 11, 27, 10, 0),
+      );
+      final afterJajan = await helper.getSantriById(s.id);
+      expect(afterJajan?.saldoTotal, 80000);
+      expect(afterJajan?.saldoTabungan, 80000);
+
+      final txTransfer = await helper.transferJajanKeTabungan(
+        santriId: s.id,
+        nominal: 10000,
+        sumberDompet: 'TUNAI',
+      );
+      expect(txTransfer.tipe, TransaksiTabungan.tipeTransferDariJajan);
+      final afterTransfer = await helper.getSantriById(s.id);
+      expect(afterTransfer?.saldoTotal, 70000);
+      expect(afterTransfer?.saldoTabungan, 90000);
+
+      final dompet = await helper.getSaldoDompet();
+      final infak = await helper.getSaldoKantongInfak();
+      brankasTab = await helper.getSaldoBrankasTabungan();
+      expect(dompet['tunai'], 70000);
+      expect(brankasTab['tunai'], 60000);
+      final targetLaci4Kantong =
+          (dompet['tunai'] ?? 0) +
+          ((infak['tunai'] as num?)?.toInt() ?? 0) +
+          (brankasTab['tunai'] ?? 0);
+      expect(targetLaci4Kantong, 130000);
+
+      await helper.tarikTabungan(
+        santriId: s.id,
+        nominal: 15000,
+        sumberDompet: 'TUNAI',
+      );
+      final afterTarik = await helper.getSantriById(s.id);
+      expect(afterTarik?.saldoTabungan, 75000);
+      expect((await helper.getSaldoBrankasTabungan())['tunai'], 45000);
+
+      await helper.voidTransaksiTabungan(txTransfer.id);
+      final afterVoid = await helper.getSantriById(s.id);
+      expect(afterVoid?.saldoTotal, 80000);
+      expect(afterVoid?.saldoTabungan, 65000);
+      final txTabHistory = await helper.getTransaksiTabungan(santriId: s.id);
+      expect(txTabHistory.any((t) => t.id == txTransfer.id && t.isVoided), true);
+
+      // c) Backup & Restore v5 + Kompatibilitas Mundur v4 (tanpa key transaksi_tabungan)
+      final dump = await helper.dumpBackupJson();
+      expect(dump.containsKey('transaksi_tabungan'), true);
+      expect((dump['transaksi_tabungan'] as List).isNotEmpty, true);
+
+      await helper.restoreFromJson(dump);
+      final restoredSantri = await helper.getSantriById(s.id);
+      expect(restoredSantri?.saldoTabungan, 65000);
+      expect((await helper.getTransaksiTabungan(santriId: s.id)).isNotEmpty, true);
+
+      final legacyDump = Map<String, dynamic>.from(dump)
+        ..remove('transaksi_tabungan');
+      await helper.restoreFromJson(legacyDump);
+      expect((await helper.getTransaksiTabungan()).isEmpty, true);
+
+      // d) TutorialService v4.3 (16 Layar, Auto-Tour & Reset)
+      SharedPreferences.setMockInitialValues({});
+      expect(TutorialService.allScreenTourKeys.length, 16);
+      expect(await TutorialService.instance.isAutoTourEnabled(), true);
+      expect(await TutorialService.instance.hasSeenScreenTour('tour_tabungan'), false);
+
+      await TutorialService.instance.markScreenTourSeen('tour_tabungan');
+      expect(await TutorialService.instance.hasSeenScreenTour('tour_tabungan'), true);
+      expect(await TutorialService.instance.hasSeenScreenTour('tour_opname'), false);
+
+      await TutorialService.instance.setAutoTourEnabled(false);
+      expect(await TutorialService.instance.isAutoTourEnabled(), false);
+
+      await TutorialService.instance.resetAllScreenTours();
+      expect(await TutorialService.instance.isAutoTourEnabled(), true);
+      expect(await TutorialService.instance.hasSeenScreenTour('tour_tabungan'), false);
+      expect(await TutorialService.instance.hasSeenWalkthrough(), false);
+    });
   });
 }
 ```
 
-### [119/123] `test/refrensi antarmuka.md`
+### [123/127] `test/refrensi antarmuka.md`
 
 ```markdown
 <!DOCTYPE html>
@@ -53911,7 +59112,7 @@ _Sistem Aplikasi Kas Santri — By Moch Khoirul Azman_`;
 </html>
 ```
 
-### [120/123] `test/widget_test.dart`
+### [124/127] `test/widget_test.dart`
 
 ```dart
 import 'package:flutter/material.dart';
@@ -53943,7 +59144,7 @@ void main() {
 }
 ```
 
-### [121/123] `tool/generate_keypair.dart`
+### [125/127] `tool/generate_keypair.dart`
 
 ```dart
 // CLI Tool Sekali Jalan: Generator Pasangan Kunci Ed25519 & Penandatangan Lisensi Kas-Santri v3.3
@@ -54111,7 +59312,7 @@ Future<void> main(List<String> args) async {
 }
 ```
 
-### [122/123] `tool/pre_flight_check.bat`
+### [126/127] `tool/pre_flight_check.bat`
 
 ```bat
 @echo off
@@ -54158,7 +59359,7 @@ echo [SUKSES] Seluruh pemeriksaan pre-flight lokal 100% lulus!
 exit /b 0
 ```
 
-### [123/123] `tool/pre_flight_check.sh`
+### [127/127] `tool/pre_flight_check.sh`
 
 ```bash
 #!/usr/bin/env bash

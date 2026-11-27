@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../../widgets/guided_spotlight_tour.dart';
 import 'package:provider/provider.dart';
 import '../../database/database_helper.dart';
 import '../../models/santri_status.dart';
@@ -29,6 +30,7 @@ class SantriDetailScreen extends StatefulWidget {
 }
 
 class _SantriDetailScreenState extends State<SantriDetailScreen> {
+  final ScreenSpotlightController _spotCtrl = ScreenSpotlightController();
   String _filterPeriode = 'SEMUA'; // 'SEMUA', 'HARI_INI', '7_HARI', 'BULAN_INI'
   List<TransaksiHarian> _mutasiList = [];
   bool _isLoadingMutasi = true;
@@ -502,42 +504,78 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> {
     final hasFoto =
         santri.fotoPath != null && santri.fotoPath!.trim().isNotEmpty;
 
-    return AppBackgroundWrapper(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          title: Text(
-            santri.namaLengkap,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-          ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.edit_outlined, color: Color(0xFF67E8F9)),
-              tooltip: 'Edit Data & Foto Santri',
-              onPressed: santri.id.isEmpty
-                  ? null
-                  : () async {
-                      AppFeedback.tap();
-                      await QuickEditSantriBottomSheet.show(context, santri);
-                      await _loadMutasi();
-                    },
-            ),
-            IconButton(
-              icon: const Icon(
-                Icons.delete_outline_rounded,
-                color: Color(0xFFFB7185),
-              ),
-              tooltip: 'Arsipkan / Hapus Santri',
-              onPressed: santri.id.isEmpty
-                  ? null
-                  : () {
-                      AppFeedback.tap();
-                      _confirmDelete(context, santri);
-                    },
-            ),
-          ],
+    return ScreenSpotlightHost(
+      screenKey: 'tour_santri_detail',
+      controller: _spotCtrl,
+      steps: const [
+        SpotlightStepSpec(
+          emoji: '🪪',
+          title: 'Profil, Saldo Jajan & Brankas Tabungan',
+          description:
+              'Menampilkan sisa saldo uang jajan harian, posisi 🏦 Brankas Tabungan Terpisah (yang tidak ikut terpotong jajan), jatah harian, dan status infak.',
+          accent: Color(0xFF34D399),
         ),
+        SpotlightStepSpec(
+          emoji: '✏️',
+          title: 'Ubah Data Santri, Jatah & Potong Besok',
+          description:
+              'Ketuk ikon pensil di kanan atas untuk mengedit data profil, foto, kamar, atau jatah harian santri. Aksi cepat Setor, Jajan, & Tabungan juga tersedia.',
+          accent: Color(0xFF38BDF8),
+        ),
+        SpotlightStepSpec(
+          emoji: '📜',
+          title: 'Riwayat Mutasi Lengkap per Santri',
+          description:
+              'Gulir ke bawah untuk menelusuri seluruh histori pemasukan, pengambilan harian, dan catatan infak khusus santri ini.',
+          accent: Color(0xFFFBBF24),
+        ),
+      ],
+      child: AppBackgroundWrapper(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            title: Text(
+              santri.namaLengkap,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.edit_outlined, color: Color(0xFF67E8F9)),
+                tooltip: 'Edit Data & Foto Santri',
+                onPressed: santri.id.isEmpty
+                    ? null
+                    : () async {
+                        AppFeedback.tap();
+                        await QuickEditSantriBottomSheet.show(context, santri);
+                        await _loadMutasi();
+                      },
+              ),
+              IconButton(
+                icon: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: Color(0xFFFB7185),
+                ),
+                tooltip: 'Arsipkan / Hapus Santri',
+                onPressed: santri.id.isEmpty
+                    ? null
+                    : () {
+                        AppFeedback.tap();
+                        _confirmDelete(context, santri);
+                      },
+              ),
+              Padding(
+                padding: const EdgeInsets.only(right: 10),
+                child: Center(
+                  child: SpotlightHelpButton(
+                    onTap: _spotCtrl.startTour,
+                    size: 32,
+                    accent: const Color(0xFF34D399),
+                  ),
+                ),
+              ),
+            ],
+          ),
         body: SafeArea(
           child: RefreshIndicator(
             color: const Color(0xFF34D399),
@@ -1310,6 +1348,7 @@ class _SantriDetailScreenState extends State<SantriDetailScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 

@@ -9,11 +9,17 @@ import '../../utils/date_formatter.dart';
 import '../../utils/time_category_helper.dart';
 import '../../utils/app_feedback.dart';
 import '../../services/yayasan_export_service.dart';
+import '../../widgets/guided_spotlight_tour.dart';
 import '../../widgets/searchable_santri_picker.dart';
 import '../paywall_screen.dart';
 
 class RiwayatTransaksiScreen extends StatefulWidget {
-  const RiwayatTransaksiScreen({Key? key}) : super(key: key);
+  final bool isActiveTab;
+
+  const RiwayatTransaksiScreen({
+    Key? key,
+    this.isActiveTab = true,
+  }) : super(key: key);
 
   @override
   State<RiwayatTransaksiScreen> createState() => _RiwayatTransaksiScreenState();
@@ -21,6 +27,9 @@ class RiwayatTransaksiScreen extends StatefulWidget {
 
 class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen>
     with AutomaticKeepAliveClientMixin {
+  final ScreenSpotlightController _spotCtrl = ScreenSpotlightController();
+  final GlobalKey _spotFilterKey = GlobalKey();
+  final GlobalKey _spotDateFilterKey = GlobalKey();
   String _selectedSantriId = 'ALL';
   String _selectedWaktu = 'ALL';
   ExportPeriod _dateFilter = ExportPeriod.semua;
@@ -208,9 +217,38 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen>
     final santriList = provider.allSantri.where((s) => s.statusAktif).toList();
     final bottomSafe = MediaQuery.of(context).padding.bottom;
 
-    return SafeArea(
-      bottom: false,
-      child: RefreshIndicator(
+    return ScreenSpotlightHost(
+      screenKey: 'tour_mutasi',
+      isActive: widget.isActiveTab,
+      controller: _spotCtrl,
+      steps: [
+        SpotlightStepSpec(
+          targetKey: _spotFilterKey,
+          emoji: '🔍',
+          title: 'Filter Santri & Kategori Waktu',
+          description:
+              'Saring mutasi keluar-masuk untuk satu santri tertentu atau berdasarkan sesi waktu (Pagi, Siang, Sore, Malam, maupun Setoran masuk).',
+          accent: const Color(0xFF38BDF8),
+        ),
+        SpotlightStepSpec(
+          targetKey: _spotDateFilterKey,
+          emoji: '📅',
+          title: 'Rentang Tanggal & Ekspor PDF / Excel',
+          description:
+              'Pilih Hari Ini, Bulan Ini, atau Rentang Tanggal Khusus untuk mengecek mutasi dan langsung mengunduh laporan PDF / Excel resmi.',
+          accent: const Color(0xFF34D399),
+        ),
+        const SpotlightStepSpec(
+          emoji: '🛡️',
+          title: 'Edit / Batalkan (Void) Transaksi Aman',
+          description:
+              'Salah ketik nominal atau santri? Ketuk kartu transaksi di bawah untuk mengubah nominal atau membatalkan (Void). Saldo & Kas Laci otomatis tersinkron tanpa selisih.',
+          accent: Color(0xFFFB7185),
+        ),
+      ],
+      child: SafeArea(
+        bottom: false,
+        child: RefreshIndicator(
         onRefresh: () async {
           await provider.loadAllData();
           await _fetch();
@@ -266,17 +304,28 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen>
                               ),
                             ],
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF060B14).withValues(alpha: 0.7),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: const Color(0xFF38BDF8).withValues(alpha: 0.35)),
-                            ),
-                            child: Text(
-                              '${_list.length} catatan',
-                              style: const TextStyle(color: Color(0xFF67E8F9), fontSize: 10.5, fontFamily: 'monospace', fontWeight: FontWeight.bold),
-                            ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF060B14).withValues(alpha: 0.7),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: const Color(0xFF38BDF8).withValues(alpha: 0.35)),
+                                ),
+                                child: Text(
+                                  '${_list.length} catatan',
+                                  style: const TextStyle(color: Color(0xFF67E8F9), fontSize: 10.5, fontFamily: 'monospace', fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              SpotlightHelpButton(
+                                onTap: _spotCtrl.startTour,
+                                size: 30,
+                                accent: const Color(0xFF38BDF8),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -285,6 +334,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen>
 
                       // Filter Santri (Searchable) & Filter Waktu
                       Row(
+                        key: _spotFilterKey,
                         children: [
                           Expanded(
                             flex: 6,
@@ -346,6 +396,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen>
 
                       // Filter Rentang Tanggal Lokal Akurat
                       SizedBox(
+                        key: _spotDateFilterKey,
                         height: 34,
                         child: ListView(
                           scrollDirection: Axis.horizontal,
@@ -644,6 +695,7 @@ class _RiwayatTransaksiScreenState extends State<RiwayatTransaksiScreen>
           ],
         ),
       ),
+    ),
     );
   }
 }

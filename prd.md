@@ -4,14 +4,14 @@
 > **ATURAN WAJIB PEMELIHARAAN PRD (STANDING RULE):**
 > Setiap kali ada penambahan fitur baru, perubahan arsitektur/skema database, perubahan aturan bisnis, pembaruan keamanan, atau perubahan konfigurasi build/CI/CD di masa mendatang, agen AI / pengembang **WAJIB** memperbarui dokumen `prd.md` ini pada commit yang sama agar `prd.md` selalu 100% sinkron dengan kondisi aktual kode sumber (*Single Source of Truth*).
 
-- **Nama Produk:** Kas-Santri (Sistem Manajemen Uang Saku, Titipan, Tunggakan & Infak Santri Terpadu)
-- **Versi Rilis Aktif:** `v4.2.0+42` (`AppConfig.appVersion = '4.2.0'`)
-- **Platform:** Mobile App Android (Flutter — Offline-First + Cloud Backup PRO) untuk distribusi Direct APK (DANA/QRIS) dan Google Play Store (`.aab`)
+- **Nama Produk:** Kas-Santri (Sistem Manajemen Uang Saku, Titipan, Tabungan Terpisah, Tunggakan & Infak Santri Terpadu)
+- **Versi Rilis Aktif:** `v4.3.0+43` (`AppConfig.appVersion = '4.3.0'`)
+- **Platform:** Mobile App Android (Flutter — Offline-First + Cloud Backup Online) untuk distribusi Direct APK (DANA/QRIS) dan Google Play Store (`.aab`)
 - **Target Pengguna:** Pengurus Pondok, Musyrif/Musyrifah, Bendahara Asrama, Bendahara Infak, atau Wali Kamar di seluruh Pondok Pesantren
-- **Tema Visual Utama:** *Dark Translucent Aurora Glassmorphism v4.2* (Obsidian Dark `#090D16`, Emerald `#10B981`, Royal Gold `#F59E0B`, dengan 1 Global `AppBackgroundWrapper` + Tata Letak Tombol Kartu 2 Kotak)
-- **Pengembang:** Moch Khoirul Azman
+- **Tema Visual Utama:** *Dark Translucent Aurora Glassmorphism v4.3* (Obsidian Dark `#090D16`, Emerald `#10B981`, Royal Gold `#F59E0B`, dengan 1 Global `AppBackgroundWrapper` + Tata Letak Tombol Kartu 2 Kotak)
+- **Pengembang:** Moch Khoirul Azman *(Dibuat: Senin, 23 November 2026 • 09:00 WIB — Kredensial Pengembang Netral tanpa nama pondok tertentu)*
 - **Repositori Utama:** https://github.com/mochkhoirulazman-max/kas-santri.git (Workspace: `project antigrafity`)
-- **Status Dokumen:** **Versi 4.2 Final Master** (Smooth 60–120 FPS, Multi-Pondok Neutral, Strict PRO Gating `hasProAccess`, Rekonsiliasi Akuntansi 100%, Modular Repository Architecture, Ed25519 License + Admin Command Center, & Standar CI/CD AGP 9.3.1)
+- **Status Dokumen:** **Versi 4.3 Final Master** (Brankas Tabungan Terpisah Kantong Kas Ke-4 SQLite v5, Backup Hybrid SAF Lokal `.ksbak` & Cloud Backup Online AES-256, Tutorial Sorotan Kontekstual 16 Layar Anti-Mengganggu, Smooth 60–120 FPS, Strict PRO Gating `hasProAccess`, Rekonsiliasi Akuntansi 100%, Modular Repository Architecture, Ed25519 License + Admin Command Center, & Standar CI/CD AGP 9.3.1)
 
 ---
 
@@ -26,8 +26,8 @@ Di lingkungan pondok pesantren, santri tidak diperbolehkan memegang uang tunai d
 4. **Campur Aduk Kantong Uang:** Tanpa pemisahan tegas antara Titipan Uang Jajan Santri, Kas Infak Pondok (yang harus disetor ke Dapur/Yayasan), Kas Laci Tunai, dan Saldo Rekening Bank, bendahara rentan mengalami selisih saat tutup kas malam (*Cash Opname*).
 5. **Kasus Khusus (*Overlimit*, *Carry-Over* & Tunggakan):** Sulit melacak santri yang mengambil melebihi batas harian, akumulasi jatah sisa kemarin, serta tunggakan/talangan administrasi.
 
-### Solusi Kas-Santri v4.2 PRO
-Aplikasi mobile **Kas-Santri v4.2 PRO** dengan antarmuka super cepat (*3-Tap Transaction* di bawah 5 detik dan Scan QR 1 detik), *Smart Split Setoran Sambangan*, *Buku Infak Bulanan Digital* (Santriyin, Santriyat, Santri Baru), *Serah Terima Infak ke Dapur/Yayasan*, rekonsiliasi 3 kantong kas presisi 0 selisih, verifikasi fisik *Cash Opname*, serta ekspor laporan PDF/Excel resmi berkop logo pondok yang berjalan mulus 60–120 FPS di latar belakang (`compute()` isolate).
+### Solusi Kas-Santri v4.3 PRO
+Aplikasi mobile **Kas-Santri v4.3 PRO** dengan antarmuka super cepat (*3-Tap Transaction* di bawah 5 detik dan Scan QR 1 detik), *Smart Split Setoran Sambangan*, *Buku Infak Bulanan Digital* (Santriyin, Santriyat, Santri Baru), **Brankas Tabungan Terpisah (Kantong Kas Ke-4)** yang diisolasi total agar tidak ikut terpotong jajan harian, **Backup Lokal `.ksbak` Berbasis SAF & Cloud Backup Online Terenkripsi AES-256**, **Tutorial Sorotan Kontekstual pada 16 Layar/Menu** dengan mode anti-mengganggu (`seen_tour_<screenKey>`), rekonsiliasi 4 kantong kas presisi 0 selisih, verifikasi fisik *Cash Opname*, serta ekspor laporan PDF/Excel resmi berkop logo pondok yang berjalan mulus 60–120 FPS (`compute()` isolate).
 
 ---
 
@@ -87,13 +87,14 @@ $$S_{jajan} = U_{total} - (I_{uang} + P_{tunggakan})$$
 - **Perhitungan Otomatis Tgl Habis (*Rolling Date*):** `tgl_habis` otomatis dihitung $+1$ bulan kalender dari `tgl_masuk` (contoh: `18-11-2026` -> `18-12-2026`).
 - **Penentuan Otomatis Status Infak:** `LUNAS`, `CICIL`, atau `BELUM`.
 
-### F. Akuntansi 3 Kantong Kas & Verifikasi Cash Opname Terpadu
+### F. Akuntansi 4 Kantong Kas & Verifikasi Cash Opname Terpadu (v4.3)
 1. **Kantong 1 — Brankas Titipan Uang Jajan Santri ($\text{Rp}$):** $\sum Saldo_{akhir,\text{santri}}$ (terpecah menjadi Kas Laci Tunai dan Rekening Bank).
 2. **Kantong 2 — Kas Infak Pondok Belum Disetor ($\text{Rp}$):**
    $$\text{Saldo Kas Infak} = \sum I_{uang,\text{masuk}} - \sum \text{Serah Terima ke Dapur/Yayasan}$$
 3. **Kantong 3 — Catatan Gudang Beras Fisik ($\text{Liter}$):** Total akumulasi liter beras fisik dikurangi serah terima beras fisik ke dapur.
-4. **Verifikasi Tutup Kas Malam (*Cash Opname*):**
-   $$\text{Target Uang Fisik di Laci} = \text{Kas Laci Tunai (Uang Jajan)} + \text{Kas Infak Tunai Belum Disetor}$$
+4. **Kantong 4 — Brankas Tabungan Terpisah ($\text{Rp}$, Baru v4.3):** $\sum Saldo_{tabungan,\text{santri}}$ (simpanan darurat, tabungan pulang/lebaran, kitab/ziarah) yang **100% terisolasi** dari pengambilan jajan harian (`catatPengambilan` tidak pernah menyentuh `saldo_tabungan`), terpecah menjadi **Tabungan Tunai** vs **Tabungan Rekening** serta mendukung transfer 1-ketuk antar jajan <-> tabungan dan Void aman.
+5. **Verifikasi Tutup Kas Malam (*Cash Opname* 4 Kantong):**
+   $$\text{Target Uang Fisik di Laci} = \text{Kas Laci Tunai (Uang Jajan)} + \text{Kas Infak Tunai Belum Disetor} + \text{Tabungan Tunai Santri}$$
    $$\Delta_{selisih} = \text{Total Uang Fisik di Laci} - \text{Target Uang Fisik di Laci}$$
 
 ---
@@ -128,36 +129,46 @@ bool get hasProAccess => isProActive || isTrialActive;
   - Menampilkan profil & metrik lengkap santri, aksi cepat (Ambil Uang, Setoran/Sambangan, Kelola Tunggakan, Edit Profil, Cetak Kartu QR PRO, Cetak PDF Mutasi PRO, dan Arsip/Hapus Santri Hybrid), serta tab riwayat transaksi & setoran lengkap dengan Void berperingatan rekonsiliasi.
 - **Setoran Bulanan, Smart Split Sambangan & Buku Infak (`SetoranScreen` & `BukuInfakView`):**
   - 2 sub-tab terpadu: `💸 Input Setoran` (Top-Up Uang Jajan & Smart Split Sambangan) dan `🌾 Buku Infak` (monitoring infak bulanan Santriyin/Santriyat/Santri Baru, edit cicilan infak dengan audit log `EDIT_INFAK_MANUAL`, Serah Terima ke Dapur/Yayasan, dan ekspor PDF/Excel 4-Sheet).
-- **Onboarding Multi-Pondok & Spotlight Walkthrough (`OnboardingScreen` & `InteractiveWalkthroughOverlay`):**
-  - Saat instalasi pertama, menyapa pengguna dengan slide onboarding dan form Setup Cepat Identitas Pondok, lalu otomatis menampilkan tur sorotan interaktif 5 langkah (dapat diputar ulang kapan saja dari **Panduan Penggunaan Aplikasi -> Mulai Tur Sorotan Layar**).
+- **Brankas Tabungan Terpisah (`BrankasTabunganScreen` — Baru v4.3):**
+  - Dapat diakses langsung dari `SafeVaultCard` di Beranda, tab `Sistem` (Akses Cepat Pengurus), maupun `SantriDetailScreen`.
+  - Menyediakan Setor Tabungan, Tarik Tabungan, Pindah Buku Jajan <-> Tabungan, filter penabung aktif, sembunyikan saldo, serta riwayat mutasi tabungan khusus dengan fitur Void aman (`voidTransaksiTabungan`).
+- **Backup Lokal Terenkripsi SAF & Cloud Backup Online (`EncryptedBackupHelper` & `CloudBackupService` — Diperbaiki & Diperluas v4.3):**
+  - Simpan file `.ksbak` (AES-256-GCM + PBKDF2 60.000 iterasi) langsung ke folder pilihan Android melalui Storage Access Framework (`FilePicker.platform.saveFile`), dilengkapi fallback `Downloads` / `ApplicationDocumentsDirectory` dan Share Sheet + dialog loading yang selalu tertutup aman (`finally`). Pemulihan `.ksbak` memakai `FileType.any` + validasi ekstensi agar kompatibel di Android 11–16 tanpa error MIME.
+  - Cloud Backup Online tanpa login Google OAuth (`app_cloud_backups` via Supabase RPC) dengan enkripsi **AES-256 di sisi perangkat** sebelum diunggah.
+- **Onboarding Multi-Pondok & Tutorial Sorotan Kontekstual 16 Layar (`ScreenSpotlightHost` + `SpotlightHelpButton` — Baru v4.3):**
+  - Saat instalasi pertama, menyapa pengguna dengan slide onboarding dan form Setup Cepat Identitas Pondok.
+  - Seluruh **16 halaman & menu fitur** (`tour_home`, `tour_setoran`, `tour_buku_infak`, `tour_mutasi`, `tour_rekap`, `tour_sistem`, `tour_tabungan`, `tour_settings`, `tour_opname`, `tour_santri_detail`, `tour_executive`, `tour_wa_reminder`, `tour_cetak_qr`, `tour_import_excel`, `tour_tahun_ajaran`, `tour_audit_log`) kini dibungkus `ScreenSpotlightHost` murni `CustomPainter` (`OverlayEntry` di rootOverlay tanpa `BackdropFilter`).
+  - **Anti-Mengganggu:** Otomatis muncul maksimal 1x saat layar dibuka pertama kali (`seen_tour_<screenKey>`), memiliki kontrol 1-ketuk **"🔕 Matikan tutorial otomatis di semua menu"**, switch kontrol di `Pengaturan` & `PanduanAplikasiSheet`, tombol **"🔄 Reset & Putar Ulang Semua Tutorial Sorotan"**, serta ikon bantuan kaca neon **`?` (`SpotlightHelpButton`)** di header/AppBar setiap menu.
 
 ---
 
-## 4. Arsitektur Modular v4.2 (Facade & Repository Pattern)
+## 4. Arsitektur Modular v4.3 (Facade & Repository Pattern)
 
-Untuk menjaga *maintainability* jangka panjang dan mencegah *God Classes* tanpa merusak pemanggil yang sudah ada (*Zero Regression*), lapisan data dan ekspor dipecah secara modular dengan pola **Facade + Repository**:
+Untuk menjaga *maintainability* jangka panjang dan mencegah *God Classes* tanpa merusak pemanggil yang sudah ada (*Zero Regression*), lapisan data, backup, dan ekspor dipecah secara modular dengan pola **Facade + Repository**:
 
 1. **Lapisan Database SQLite (`lib/database/`):**
    - `lib/database/database_helper.dart` (**Public Facade** — mempertahankan 100% tanda tangan metode `DatabaseHelper.instance`).
-   - `lib/database/schema_migrator.dart`: DDL pembuatan 10 tabel, indeks performa, migrasi aman v1->v4, `PRAGMA foreign_keys = ON`, dan backfill QR/hash.
-   - `lib/database/repositories/santri_repository.dart`: CRUD santri, filter, pindah kamar massal, tutup buku tahun ajaran, dan penghapusan santri hybrid berpenyeimbang `mutasi_dompet`.
+   - `lib/database/schema_migrator.dart`: DDL pembuatan 11 tabel, indeks performa, migrasi aman v1->v5 (`saldo_tabungan` + `transaksi_tabungan`), `PRAGMA foreign_keys = ON`, dan backfill QR/hash.
+   - `lib/database/repositories/santri_repository.dart`: CRUD santri, filter, pindah kamar massal, tutup buku tahun ajaran, dan penghapusan santri hybrid berpenyeimbang `mutasi_dompet` + cleanup mutasi tabungan.
    - `lib/database/repositories/ledger_repository.dart`: Mesin transaksi `catatPengambilan`, `catatSetoranBaru`, `catatSambanganSmartSplit`, `editTransaksi`, `voidTransaksi`, manajemen tunggakan, batch query `getAllTransaksiPengambilanHariIniMap`, agregasi SQL `getSaldoDompet`, tarik tunai bank ke laci, dan `cash_opname_logs`.
    - `lib/database/repositories/infak_repository.dart`: CRUD `infak_santri`, `serah_terima_infak`, dan agregasi SQL `getSaldoKantongInfak`.
-   - `lib/database/repositories/backup_audit_repository.dart`: Pengaturan aplikasi, akun bendahara, rantai hash `audit_log`, `dumpBackupJson`, `restoreFromJson` (anti-elevasi `is_pro`/`has_used_trial`), dan `seedDemoData`.
-2. **Lapisan Ekspor Laporan (`lib/services/`):**
+   - `lib/database/repositories/tabungan_repository.dart` (**Baru v4.3**): Transaksi atomik Brankas Tabungan Terpisah (`setorTabungan`, `tarikTabungan`, `transferJajanKeTabungan`, `transferTabunganKeJajan`, `voidTransaksiTabungan`, `getTransaksiTabungan`, dan agregasi SQL `getSaldoBrankasTabungan`).
+   - `lib/database/repositories/backup_audit_repository.dart`: Pengaturan aplikasi, akun bendahara, rantai hash `audit_log`, `dumpBackupJson` (11 tabel), `restoreFromJson` (mendukung kompatibilitas mundur backup lama tanpa `transaksi_tabungan` + anti-elevasi `is_pro`/`has_used_trial`), dan `seedDemoData`.
+2. **Lapisan Ekspor & Backup Hybrid (`lib/services/` & `lib/widgets/`):**
    - `lib/services/yayasan_export_service.dart` (**Public Facade** & model data laporan).
    - `lib/services/exports/yayasan_excel_exporter.dart`: Pembuatan workbook Excel Yayasan 3-Sheet & Buku Infak 4-Sheet di dalam background isolate `compute()`.
    - `lib/services/exports/yayasan_pdf_exporter.dart`: Generator dokumen PDF Resmi Yayasan & Buku Infak berkop logo pondok.
+   - `lib/services/cloud_backup_service.dart` & `lib/widgets/encrypted_backup_helper.dart`: Enkripsi `.ksbak` berbasis isolate + SAF lokal + Cloud Backup Online AES-256 via Supabase RPC.
 
 ---
 
-## 5. Skema Database SQLite Offline-First (10 Tabel — Versi Skema 4)
+## 5. Skema Database SQLite Offline-First (11 Tabel — Versi Skema 5)
 
 Koneksi SQLite wajib mengaktifkan `PRAGMA foreign_keys = ON;` pada callback `onConfigure` dan menjalankan migrasi skema secara deterministik pada `onUpgrade`.
 
 | No | Nama Tabel | Fungsi Utama & Kolom Kunci |
 |---:|---|---|
-| 1 | `santri` | Profil & saldo santri (`id`, `qr_code`, `nama_lengkap`, `nama_panggilan`, `kategori_santri`, `status_santri`, `kamar`, `foto_path`, `nama_wali`, `no_wa_wali`, `saldo_total`, `jatah_harian`, `tunggakan`, `status_aktif`, `created_at`, `updated_at`). |
+| 1 | `santri` | Profil & saldo santri (`id`, `qr_code`, `nama_lengkap`, `nama_panggilan`, `kategori_santri`, `status_santri`, `kamar`, `foto_path`, `nama_wali`, `no_wa_wali`, `saldo_total`, **`saldo_tabungan` [v5]**, `jatah_harian`, `tunggakan`, `status_aktif`, `created_at`, `updated_at`). |
 | 2 | `setoran_bulanan` | Riwayat setoran & Smart Split (`id`, `santri_id`, `nominal_setoran`, `nominal_potong_tunggakan`, `nominal_bersih`, `durasi_hari`, `jatah_harian_hasil`, `tipe_setoran`, `sumber_dompet`, `catatan`, `tanggal_setor`). |
 | 3 | `transaksi_harian` | Mutasi keluar/masuk harian (`id`, `santri_id`, `nominal`, `saldo_sebelum`, `saldo_sesudah`, `tipe`, `waktu_ambil` **[kolom urutan utama]**, `tanggal_lokal`, `kategori_waktu`, `tag_keperluan`, `catatan`, `operator_nama`, `is_overlimit`, `overlimit_handling`, `is_void`, `alasan_void`, `sumber_dompet`). |
 | 4 | `tunggakan_log` | Riwayat tambah/bayar/potong/talangan tunggakan (`id`, `santri_id`, `nominal`, `tipe`, `sumber_dompet`, `catatan`, `tanggal`). |
@@ -167,6 +178,7 @@ Koneksi SQLite wajib mengaktifkan `PRAGMA foreign_keys = ON;` pada callback `onC
 | 8 | `infak_santri` | Buku Infak bulanan per santri (`id`, `santri_id`, `periode_bulan`, `tahun_ajaran`, `nominal_masak`, `is_masak_bebas`, `nominal_listrik`, `is_listrik_bebas`, `jenis_beras`, `beras_liter`, `beras_uang`, `tgl_masuk`, `tgl_habis`, `status_lunas`, `sumber_dompet`, `setoran_id`, `catatan`, `updated_at`). |
 | 9 | `serah_terima_infak` | Berita acara penyerahan uang infak/beras ke Dapur/Yayasan (`id`, `tanggal_serah`, `periode_bulan`, `pos_infak`, `sumber_dompet`, `nominal_uang`, `jumlah_beras_liter`, `penerima`, `catatan`, `created_at`). |
 | 10 | `audit_log` | Jejak audit keamanan *append-only* berantai SHA-256 (`id`, `timestamp`, `actor`, `action`, `target_id`, `summary`, `prev_hash`, `entry_hash`). |
+| 11 | `transaksi_tabungan` | Buku besar Brankas Tabungan Terpisah v5 (`id`, `santri_id`, `tipe` [`SETOR`/`TARIK`/`TRANSFER_DARI_JAJAN`/`TRANSFER_KE_JAJAN`], `nominal`, `sumber_dompet`, `saldo_tabungan_setelah`, `tanggal_lokal`, `catatan`, `is_void`, `created_at`). |
 
 **Indeks Performa Wajib:**
 - `idx_transaksi_santri_tanggal ON transaksi_harian (santri_id, tanggal_lokal)`
@@ -176,6 +188,7 @@ Koneksi SQLite wajib mengaktifkan `PRAGMA foreign_keys = ON;` pada callback `onC
 - `idx_audit_log_ts ON audit_log (timestamp DESC)`
 - `idx_mutasi_dompet_jenis_tipe ON mutasi_dompet (jenis_dompet, tipe)`
 - `idx_mutasi_dompet_ref ON mutasi_dompet (referensi_id)`
+- `idx_tx_tabungan_santri ON transaksi_tabungan (santri_id, tanggal_lokal, is_void)`
 
 ---
 
@@ -193,9 +206,12 @@ Koneksi SQLite wajib mengaktifkan `PRAGMA foreign_keys = ON;` pada callback `onC
    - `CustomerSyncService` menonaktifkan pengiriman *Personal Identifiers* (`nama_bendahara` dan `no_wa` dikosongkan) pada build Google Play Store agar 100% patuh terhadap deklarasi *Google Play Data Safety*, serta disinkronkan penuh dengan `docs/privacy.html`.
    - Seluruh aset gambar bawaan (`assets/wallpapers/default_wallpaper.jpg`) 100% bebas watermark pihak ketiga.
 
+4. **Cloud Backup Online Terenkripsi (`app_cloud_backups` & `CloudBackupService` — v4.3):**
+   - Mendukung pencadangan otomatis/manual tanpa login Google OAuth melalui Supabase RPC (`upload_cloud_backup_snapshot`, `download_cloud_backup_snapshot`, `get_cloud_backup_metadata`) dengan enkripsi AES-256 pada sisi klien sebelum diunggah.
+
 ---
 
-## 7. Riwayat Evolusi Versi (v3.0 s.d. v4.2)
+## 7. Riwayat Evolusi Versi (v3.0 s.d. v4.3)
 
 - **v3.0:** Modul Buku Infak Bulanan (Santriyin/Santriyat/Santri Baru), Smart Split Setoran Sambangan, Serah Terima Infak ke Dapur/Yayasan, dan Akuntansi 3 Kantong Kas.
 - **v3.2:** Engine Wallpaper & Translucent Aurora Glassmorphism (`AppBackgroundWrapper`), Navigasi Geser `PageView` 5 Tab, Sistem Login & Profil Bendahara, `SearchableSantriPicker`, dan Ekspor Excel/PDF Siap Cetak.
@@ -203,7 +219,8 @@ Koneksi SQLite wajib mengaktifkan `PRAGMA foreign_keys = ON;` pada callback `onC
 - **v3.4:** Admin Command Center (`admin_dashboard/`) terisolasi dengan Supabase RLS & generator lisensi Ed25519.
 - **v4.0:** Import Santri Massal Excel (`.xlsx`), Cetak Massal Kartu Santri QR PDF A4, Manajemen Tahun Ajaran & Pindah Kamar Massal, Dashboard Analitik Eksekutif Yayasan, dan Pusat Antrean Pengingat WA Cerdas.
 - **v4.1:** Optimasi 60 FPS (penghapusan `BackdropFilter` dari item list/grid), Default Pondok Netral (`'Nama Pondok'`), `InteractiveWalkthroughOverlay` 5 langkah, Saldo Awal Santri Baru `Rp 0`, dan Gerbang Terpusat `SubscriptionService.hasProAccess`.
-- **v4.2 (Saat Ini):** Eliminasi query `N+1` di `loadAllData()` (-99% query SQLite), agregasi SQL `SUM(CASE WHEN ...)` pada `getSaldoDompet()` & `getSaldoKantongInfak()`, rekonsiliasi akuntansi 100% pada `editTransaksi`/`voidTransaksi(setoran)`/`deleteSantri`, isolasi `UndoStateNotifier` + background isolate `compute()` untuk Excel & `.ksbak`, kepatuhan Data Safety Play Store & wallpaper bebas watermark, penghubungan kembali `SantriDetailScreen` + penghapusan 5 layar warisan v1.0, modularisasi *Repository Pattern*, dan optimasi pipeline CI/CD 2-Job.
+- **v4.2:** Eliminasi query `N+1` di `loadAllData()` (-99% query SQLite), agregasi SQL `SUM(CASE WHEN ...)` pada `getSaldoDompet()` & `getSaldoKantongInfak()`, rekonsiliasi akuntansi 100% pada `editTransaksi`/`voidTransaksi(setoran)`/`deleteSantri`, isolasi `UndoStateNotifier` + background isolate `compute()` untuk Excel & `.ksbak`, kepatuhan Data Safety Play Store & wallpaper bebas watermark, penghubungan kembali `SantriDetailScreen` + penghapusan 5 layar warisan v1.0, modularisasi *Repository Pattern*, dan optimasi pipeline CI/CD 2-Job.
+- **v4.3 (Saat Ini):** Brankas Tabungan Terpisah (Kantong Kas Ke-4, SQLite v5 & `TabunganRepository` + Cash Opname 4 kantong), Perbaikan nyata Backup Lokal `.ksbak` berbasis SAF & Cloud Backup Online terenkripsi AES-256 (`app_cloud_backups`), Kredensial Pengembang Netral tanpa nama pondok, serta Tutorial Sorotan Kontekstual (`ScreenSpotlightHost` + `SpotlightHelpButton`) pada seluruh 16 halaman & menu fitur.
 
 ---
 
@@ -235,4 +252,4 @@ Koneksi SQLite wajib mengaktifkan `PRAGMA foreign_keys = ON;` pada callback `onC
 
 ### C. Prosedur Git Commit & Push
 - Path Git lokal: `C:\Users\smkit\AppData\Local\Programs\Git\cmd\git.exe` (jalankan dengan `BypassSandbox: true` saat melakukan operasi jaringan `git push origin main`).
-- Pastikan seluruh 10 tabel SQLite tercakup dalam Backup & Restore `.JSON`, `.KSBAK`, dan Google Drive Backup.
+- Pastikan seluruh 11 tabel SQLite tercakup dalam Backup & Restore `.JSON`, `.KSBAK`, dan Cloud Backup Online (`app_cloud_backups`).

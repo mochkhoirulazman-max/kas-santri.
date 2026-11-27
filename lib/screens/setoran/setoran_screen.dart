@@ -8,6 +8,7 @@ import '../../providers/theme_wallpaper_provider.dart';
 import '../../utils/app_feedback.dart';
 import '../../utils/currency_formatter.dart';
 import '../../utils/date_formatter.dart';
+import '../../widgets/guided_spotlight_tour.dart';
 import '../../widgets/sambangan_receipt_dialog.dart';
 import '../../widgets/searchable_santri_picker.dart';
 import '../paywall_screen.dart';
@@ -18,6 +19,7 @@ class SetoranScreen extends StatefulWidget {
   final int activeSubTab;
   final ValueChanged<int>? onSubTabChanged;
   final String? preselectedSantriId;
+  final bool isActiveTab;
 
   const SetoranScreen({
     Key? key,
@@ -25,6 +27,7 @@ class SetoranScreen extends StatefulWidget {
     this.activeSubTab = 0,
     this.onSubTabChanged,
     this.preselectedSantriId,
+    this.isActiveTab = true,
   }) : super(key: key);
 
   @override
@@ -35,6 +38,11 @@ class _SetoranScreenState extends State<SetoranScreen>
     with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
+  final ScreenSpotlightController _setoranSpotCtrl = ScreenSpotlightController();
+  final ScreenSpotlightController _infakSpotCtrl = ScreenSpotlightController();
+  final GlobalKey _spotSubTabKey = GlobalKey();
+  final GlobalKey _spotFormCardKey = GlobalKey();
+  final GlobalKey _spotPickerKey = GlobalKey();
   String? _selectedSantriId;
   TipeSetoran _tipeSetoran = TipeSetoran.sambanganSplit;
   bool _potongTunggakan = true;
@@ -366,52 +374,107 @@ class _SetoranScreenState extends State<SetoranScreen>
       targetBerasUang: provider.pengaturan.defaultInfakBerasUang,
     );
 
-    return SafeArea(
-      bottom: false,
-      child: Column(
-        children: [
-          // Top Sub-Tab Switcher: [ 💸 Setoran & Sambangan ] | [ 🌾 Buku Infak ]
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    const Color(0xFF072534).withValues(alpha: (0.88 * cardOpacity).clamp(0.48, 0.92)),
-                    const Color(0xFF101936).withValues(alpha: (0.88 * cardOpacity).clamp(0.48, 0.92)),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(
-                  color: const Color(0xFF38BDF8).withValues(alpha: 0.35),
-                ),
-              ),
+    return ScreenSpotlightHost(
+      screenKey: 'tour_setoran',
+      isActive: widget.isActiveTab && widget.activeSubTab == 0,
+      controller: _setoranSpotCtrl,
+      steps: [
+        SpotlightStepSpec(
+          targetKey: _spotSubTabKey,
+          emoji: '📥',
+          title: 'Setoran Uang Saku & Buku Infak',
+          description:
+              'Gunakan tab atas untuk berpindah antara form Setoran/Sambangan wali santri dan pemantauan Buku Infak (Masak, Listrik & Beras).',
+          accent: const Color(0xFF38BDF8),
+        ),
+        SpotlightStepSpec(
+          targetKey: _spotFormCardKey,
+          emoji: '🎁',
+          title: 'Smart Split Sambangan vs Top-Up Biasa',
+          description:
+              'Pilih Sambangan bila wali menyetor uang sekaligus untuk Infak + Jajan agar otomatis dipecah tanpa tercampur, atau Top-Up Biasa untuk menambah saldo jajan saja.',
+          accent: const Color(0xFFFBBF24),
+        ),
+        SpotlightStepSpec(
+          targetKey: _spotPickerKey,
+          emoji: '🧾',
+          title: 'Pilih Santri & Sumber Dana (Tunai / Bank)',
+          description:
+              'Pilih santri tujuan dan tentukan apakah uang diterima ke Kas Laci Tunai atau Rekening Bank agar pencatatan opname fisik laci selalu cocok.',
+          accent: const Color(0xFF34D399),
+        ),
+      ],
+      child: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            // Top Sub-Tab Switcher: [ 💸 Setoran & Sambangan ] | [ 🌾 Buku Infak ] + (?)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
               child: Row(
                 children: [
-                  _buildSubTabPill(
-                    label: '💸 Setoran & Sambangan',
-                    selected: widget.activeSubTab == 0,
-                    onTap: () => widget.onSubTabChanged?.call(0),
+                  Expanded(
+                    child: Container(
+                      key: _spotSubTabKey,
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            const Color(0xFF072534).withValues(alpha: (0.88 * cardOpacity).clamp(0.48, 0.92)),
+                            const Color(0xFF101936).withValues(alpha: (0.88 * cardOpacity).clamp(0.48, 0.92)),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: const Color(0xFF38BDF8).withValues(alpha: 0.35),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          _buildSubTabPill(
+                            label: '💸 Setoran & Sambangan',
+                            selected: widget.activeSubTab == 0,
+                            onTap: () => widget.onSubTabChanged?.call(0),
+                          ),
+                          _buildSubTabPill(
+                            label: '🌾 Buku Infak',
+                            selected: widget.activeSubTab == 1,
+                            onTap: () => widget.onSubTabChanged?.call(1),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  _buildSubTabPill(
-                    label: '🌾 Buku Infak',
-                    selected: widget.activeSubTab == 1,
-                    onTap: () => widget.onSubTabChanged?.call(1),
+                  const SizedBox(width: 8),
+                  SpotlightHelpButton(
+                    onTap: () {
+                      if (widget.activeSubTab == 1) {
+                        _infakSpotCtrl.startTour();
+                      } else {
+                        _setoranSpotCtrl.startTour();
+                      }
+                    },
+                    size: 36,
+                    accent: widget.activeSubTab == 1
+                        ? const Color(0xFF34D399)
+                        : const Color(0xFF38BDF8),
                   ),
                 ],
               ),
             ),
-          ),
 
-          Expanded(
-            child: widget.activeSubTab == 1
-                ? const BukuInfakView()
-                : ListView(
-                    padding: EdgeInsets.fromLTRB(16, 4, 16, 120 + bottomSafe),
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(18),
+            Expanded(
+              child: widget.activeSubTab == 1
+                  ? BukuInfakView(
+                      isActiveTab: widget.isActiveTab && widget.activeSubTab == 1,
+                      spotlightController: _infakSpotCtrl,
+                    )
+                  : ListView(
+                      padding: EdgeInsets.fromLTRB(16, 4, 16, 120 + bottomSafe),
+                      children: [
+                        Container(
+                          key: _spotFormCardKey,
+                          padding: const EdgeInsets.all(18),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: isSambangan
@@ -518,9 +581,10 @@ class _SetoranScreenState extends State<SetoranScreen>
                             const SizedBox(height: 16),
 
                             // Pilih Santri (Universal Searchable Picker)
-                            const Text(
+                            Text(
                               'PILIH SANTRI',
-                              style: TextStyle(
+                              key: _spotPickerKey,
+                              style: const TextStyle(
                                 color: Colors.white54,
                                 fontSize: 10,
                                 fontWeight: FontWeight.w800,
@@ -916,6 +980,7 @@ class _SetoranScreenState extends State<SetoranScreen>
           ),
         ],
       ),
+    ),
     );
   }
 

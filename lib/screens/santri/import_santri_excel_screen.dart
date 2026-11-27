@@ -10,6 +10,7 @@ import '../../services/bulk_santri_excel_service.dart';
 import '../../utils/app_feedback.dart';
 import '../../utils/currency_formatter.dart';
 import '../../widgets/app_background_wrapper.dart';
+import '../../widgets/guided_spotlight_tour.dart';
 import '../paywall_screen.dart';
 
 class ImportSantriExcelScreen extends StatefulWidget {
@@ -21,6 +22,7 @@ class ImportSantriExcelScreen extends StatefulWidget {
 }
 
 class _ImportSantriExcelScreenState extends State<ImportSantriExcelScreen> {
+  final ScreenSpotlightController _spotCtrl = ScreenSpotlightController();
   String _sumberDompet = 'TUNAI';
   bool _isBusy = false;
   BulkExcelParseResult? _parseResult;
@@ -191,10 +193,43 @@ class _ImportSantriExcelScreenState extends State<ImportSantriExcelScreen> {
     }
     final parsed = _parseResult;
 
-    return AppBackgroundWrapper(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(title: const Text('Import Santri Massal (.xlsx)')),
+    return ScreenSpotlightHost(
+      screenKey: 'tour_import_excel',
+      controller: _spotCtrl,
+      steps: const [
+        SpotlightStepSpec(
+          emoji: '📑',
+          title: 'Unduh & Isi Template Excel (.xlsx)',
+          description:
+              'Unduh dulu template resmi agar nama kolom sesuai sistem. Cocok untuk memasukkan 100–500 santri baru sekaligus tanpa mengetik satu per satu.',
+          accent: Color(0xFF34D399),
+        ),
+        SpotlightStepSpec(
+          emoji: '🔍',
+          title: 'Pratinjau Validasi Sebelum Impor',
+          description:
+              'Unggah file .xlsx lalu periksa jumlah baris valid, deteksi duplikat, dan tentukan dompet sumber saldo awal (Tunai / Rekening) sebelum konfirmasi.',
+          accent: Color(0xFF38BDF8),
+        ),
+      ],
+      child: AppBackgroundWrapper(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            title: const Text('Import Santri Massal (.xlsx)'),
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Center(
+                  child: SpotlightHelpButton(
+                    onTap: _spotCtrl.startTour,
+                    size: 32,
+                    accent: const Color(0xFF34D399),
+                  ),
+                ),
+              ),
+            ],
+          ),
         body: SafeArea(
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
@@ -500,6 +535,7 @@ class _ImportSantriExcelScreenState extends State<ImportSantriExcelScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 

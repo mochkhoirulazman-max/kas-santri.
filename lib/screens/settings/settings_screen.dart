@@ -1,6 +1,8 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
+import '../../services/tutorial_service.dart';
+import '../../widgets/guided_spotlight_tour.dart';
 import 'package:provider/provider.dart';
 import '../../models/bendahara_account.dart';
 import '../../models/pengaturan.dart';
@@ -37,6 +39,7 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  final ScreenSpotlightController _spotCtrl = ScreenSpotlightController();
   late TextEditingController _namaPondokController;
   late TextEditingController _tahunAjaranController;
   late TextEditingController _defaultJatahController;
@@ -522,14 +525,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final isLinked = linkedEmail != null && linkedEmail.isNotEmpty;
     final bottomSafe = MediaQuery.of(context).padding.bottom;
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      appBar: AppBar(
-        title: const Text(
-          '⚙️ Pengaturan Lengkap',
-          style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w900),
+    return ScreenSpotlightHost(
+      screenKey: 'tour_settings',
+      controller: _spotCtrl,
+      steps: const [
+        SpotlightStepSpec(
+          emoji: '🎨',
+          title: 'Tampilan, Wallpaper & Identitas Pondok',
+          description:
+              'Sesuaikan preset warna kaca/wallpaper, isi nama & alamat pondok, pengelola, serta target infak bawaan untuk Smart Split Sambangan.',
+          accent: Color(0xFF38BDF8),
         ),
-      ),
+        SpotlightStepSpec(
+          emoji: '🔐',
+          title: 'Keamanan PIN, Biometrik & Mode Privasi',
+          description:
+              'Lindungi kas santri dengan PIN, sidik jari, timer kunci otomatis, dan blokir tangkapan layar agar data keuangan aman.',
+          accent: Color(0xFFFB7185),
+        ),
+        SpotlightStepSpec(
+          emoji: '💾',
+          title: 'Backup Offline (.KSBAK) & Cloud Online',
+          description:
+              'Cadangkan database terenkripsi ke file HP Anda atau gunakan Cloud Backup Online gratis yang selalu siap dipulihkan jika ganti perangkat.',
+          accent: Color(0xFF34D399),
+        ),
+      ],
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: const Text(
+            '⚙️ Pengaturan Lengkap',
+            style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w900),
+          ),
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Center(
+                child: SpotlightHelpButton(
+                  onTap: _spotCtrl.startTour,
+                  size: 32,
+                  accent: const Color(0xFF38BDF8),
+                ),
+              ),
+            ),
+          ],
+        ),
       body: ListView(
         padding: EdgeInsets.fromLTRB(16, 8, 16, 36 + bottomSafe),
         children: [
@@ -1778,6 +1819,50 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ],
                 const SizedBox(height: 8),
+                FutureBuilder<bool>(
+                  future: TutorialService.instance.isAutoTourEnabled(),
+                  builder: (context, snap) {
+                    var autoVal = snap.data ?? true;
+                    return StatefulBuilder(
+                      builder: (_, setInnerState) {
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.24),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: const Color(0xFF38BDF8).withValues(alpha: 0.25),
+                            ),
+                          ),
+                          child: SwitchListTile.adaptive(
+                            dense: true,
+                            contentPadding: EdgeInsets.zero,
+                            activeColor: const Color(0xFF34D399),
+                            title: const Text(
+                              'Panduan Sorotan Otomatis (Saat Pertama Buka Menu)',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            subtitle: const Text(
+                              'Tampil maks 1x per layar baru. Matikan kapan saja; ikon (?) tetap tersedia.',
+                              style: TextStyle(color: Colors.white60, fontSize: 10),
+                            ),
+                            value: autoVal,
+                            onChanged: (val) async {
+                              AppFeedback.tap();
+                              setInnerState(() => autoVal = val);
+                              await TutorialService.instance.setAutoTourEnabled(val);
+                            },
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
@@ -1899,6 +1984,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ],
       ),
+    ),
     );
   }
 

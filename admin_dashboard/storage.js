@@ -16,7 +16,7 @@
 
   const DEFAULT_REMOTE_CONFIG = {
     id: 1,
-    latest_version: '4.2.0',
+    latest_version: '4.3.0',
     min_version: '3.0.0',
     announcement_title: '',
     announcement_body: '',
@@ -309,7 +309,7 @@
         expiry_date: customer.expiry_date || null,
         trial_started_at: customer.trial_started_at || null,
         last_seen_at: customer.last_seen_at || nowIso,
-        app_version: String(customer.app_version || '4.2.0').trim(),
+        app_version: String(customer.app_version || '4.3.0').trim(),
         total_paid_idr: Number(customer.total_paid_idr || 0),
         payment_channel: String(customer.payment_channel || 'FREE').toUpperCase(),
         is_revoked: Boolean(customer.is_revoked),
@@ -412,7 +412,7 @@
     async saveRemoteConfig(cfg) {
       const payload = {
         id: 1,
-        latest_version: String(cfg.latest_version || '4.2.0').trim(),
+        latest_version: String(cfg.latest_version || '4.3.0').trim(),
         min_version: String(cfg.min_version || '3.0.0').trim(),
         announcement_title: String(cfg.announcement_title || '').trim(),
         announcement_body: String(cfg.announcement_body || '').trim(),
@@ -448,7 +448,7 @@
           status: 'AKTIF',
           expiry_date: new Date(now + 280 * dayMs).toISOString(),
           last_seen_at: new Date(now - 2 * 3600000).toISOString(),
-          app_version: '4.2.0',
+          app_version: '4.3.0',
           total_paid_idr: 179000,
           payment_channel: 'DANA',
           is_revoked: false,
@@ -464,7 +464,7 @@
           trial_started_at: new Date(now - 11 * dayMs).toISOString(),
           expiry_date: new Date(now + 3 * dayMs).toISOString(),
           last_seen_at: new Date(now - 5 * 3600000).toISOString(),
-          app_version: '4.2.0',
+          app_version: '4.3.0',
           total_paid_idr: 0,
           payment_channel: 'TRIAL',
           is_revoked: false,
@@ -479,7 +479,7 @@
           status: 'AKTIF',
           expiry_date: null,
           last_seen_at: new Date(now - 12 * 3600000).toISOString(),
-          app_version: '4.2.0',
+          app_version: '4.3.0',
           total_paid_idr: 399000,
           payment_channel: 'DANA',
           is_revoked: false,

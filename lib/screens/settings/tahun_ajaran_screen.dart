@@ -5,6 +5,7 @@ import '../../providers/kas_santri_provider.dart';
 import '../../utils/app_feedback.dart';
 import '../../utils/currency_formatter.dart';
 import '../../widgets/app_background_wrapper.dart';
+import '../../widgets/guided_spotlight_tour.dart';
 import '../paywall_screen.dart';
 
 class TahunAjaranScreen extends StatefulWidget {
@@ -15,6 +16,7 @@ class TahunAjaranScreen extends StatefulWidget {
 }
 
 class _TahunAjaranScreenState extends State<TahunAjaranScreen> {
+  final ScreenSpotlightController _spotCtrl = ScreenSpotlightController();
   int _tabIdx = 0; // 0: Tahun Ajaran, 1: Pindah Kamar, 2: Tutup Buku / Alumni
   late TextEditingController _tahunCtrl;
   final TextEditingController _targetKamarCtrl = TextEditingController();
@@ -227,10 +229,50 @@ class _TahunAjaranScreenState extends State<TahunAjaranScreen> {
       return s.kamar == _filterKamar;
     }).toList();
 
-    return AppBackgroundWrapper(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(title: const Text('Tahun Ajaran & Mutasi Kamar / Kelas')),
+    return ScreenSpotlightHost(
+      screenKey: 'tour_tahun_ajaran',
+      controller: _spotCtrl,
+      steps: const [
+        SpotlightStepSpec(
+          emoji: '📅',
+          title: 'Atur Tahun Ajaran Aktif',
+          description:
+              'Perbarui label tahun ajaran aktif pondok (mis. 2026/2027) agar seluruh dokumen laporan PDF & Excel tercatat sesuai periode berjalan.',
+          accent: Color(0xFF38BDF8),
+        ),
+        SpotlightStepSpec(
+          emoji: '🏠',
+          title: 'Mutasi Kamar / Kelas Massal',
+          description:
+              'Di tab Kamar / Kelas, centang beberapa santri sekaligus untuk memindahkan kamar atau naik kelas secara massal saat tahun ajaran baru.',
+          accent: Color(0xFF34D399),
+        ),
+        SpotlightStepSpec(
+          emoji: '🎓',
+          title: 'Tutup Buku & Arsipkan Alumni',
+          description:
+              'Arsipkan santri yang telah lulus/pindah tanpa menghapus jejak riwayat mutasi keuangan agar data pembukuan tetap aman dan bisa diaudit.',
+          accent: Color(0xFFFBBF24),
+        ),
+      ],
+      child: AppBackgroundWrapper(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            title: const Text('Tahun Ajaran & Mutasi Kamar / Kelas'),
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Center(
+                  child: SpotlightHelpButton(
+                    onTap: _spotCtrl.startTour,
+                    size: 32,
+                    accent: const Color(0xFF38BDF8),
+                  ),
+                ),
+              ),
+            ],
+          ),
         body: SafeArea(
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
@@ -553,6 +595,7 @@ class _TahunAjaranScreenState extends State<TahunAjaranScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 

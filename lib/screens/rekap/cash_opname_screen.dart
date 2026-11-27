@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/guided_spotlight_tour.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../providers/kas_santri_provider.dart';
@@ -30,6 +31,7 @@ class CashOpnameScreen extends StatefulWidget {
 }
 
 class _CashOpnameScreenState extends State<CashOpnameScreen> {
+  final ScreenSpotlightController _spotCtrl = ScreenSpotlightController();
   static const List<int> _denominations = [
     100000,
     50000,
@@ -167,31 +169,67 @@ class _CashOpnameScreenState extends State<CashOpnameScreen> {
       statusText = 'Lebih +${CurrencyFormatter.format(selisih)}';
     }
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      appBar: AppBar(
-        backgroundColor: const Color(0xCC060F1E),
-        title: const Row(
-          children: [
-            Flexible(
-              child: Text(
-                'Cash Opname Fisik',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-                overflow: TextOverflow.ellipsis,
+    return ScreenSpotlightHost(
+      screenKey: 'tour_opname',
+      controller: _spotCtrl,
+      steps: const [
+        SpotlightStepSpec(
+          emoji: '💵',
+          title: 'Target Laci 3 Kantong Tunai',
+          description:
+              'Sistem menjumlahkan uang tunai fisik yang seharusnya ada di laci dari Kas Jajan Tunai + Kas Infak Tunai + Tabungan Tunai Santri.',
+          accent: Color(0xFF38BDF8),
+        ),
+        SpotlightStepSpec(
+          emoji: '🧮',
+          title: 'Hitung Lembar & Koin Rupiah',
+          description:
+              'Masukkan jumlah lembar pecahan Rp 100.000 hingga koin Rp 100. Selisih (Cocok ✓ / Kurang / Lebih) dihitung otomatis secara real-time.',
+          accent: Color(0xFF34D399),
+        ),
+        SpotlightStepSpec(
+          emoji: '📝',
+          title: 'Simpan Berita Acara Opname Harian',
+          description:
+              'Ketuk Simpan Hasil Cash Opname agar laporan audit harian tersimpan dan muncul status Terverifikasi Fisik ✓ di menu Rekap.',
+          accent: Color(0xFFFBBF24),
+        ),
+      ],
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: const Color(0xCC060F1E),
+          title: const Row(
+            children: [
+              Flexible(
+                child: Text(
+                  'Cash Opname Fisik',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              SizedBox(width: 6),
+              Text('👑', style: TextStyle(fontSize: 15)),
+            ],
+          ),
+          actions: [
+            TextButton.icon(
+              onPressed: _resetAll,
+              icon: const Icon(Icons.refresh, size: 16, color: Color(0xFF7DD3FC)),
+              label: const Text('Reset 0', style: TextStyle(color: Color(0xFF7DD3FC), fontSize: 11.5, fontWeight: FontWeight.w800)),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Center(
+                child: SpotlightHelpButton(
+                  onTap: _spotCtrl.startTour,
+                  size: 32,
+                  accent: const Color(0xFF38BDF8),
+                ),
               ),
             ),
-            SizedBox(width: 6),
-            Text('👑', style: TextStyle(fontSize: 15)),
           ],
         ),
-        actions: [
-          TextButton.icon(
-            onPressed: _resetAll,
-            icon: const Icon(Icons.refresh, size: 16, color: Color(0xFF7DD3FC)),
-            label: const Text('Reset 0', style: TextStyle(color: Color(0xFF7DD3FC), fontSize: 11.5, fontWeight: FontWeight.w800)),
-          ),
-        ],
-      ),
       body: SafeArea(
         child: ListView(
           padding: EdgeInsets.fromLTRB(16, 8, 16, MediaQuery.of(context).padding.bottom + 24),
@@ -546,6 +584,7 @@ class _CashOpnameScreenState extends State<CashOpnameScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 

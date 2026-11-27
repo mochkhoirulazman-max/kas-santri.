@@ -17,6 +17,7 @@ import 'package:kas_santri/models/santri_status.dart';
 import 'package:kas_santri/models/serah_terima_infak.dart';
 import 'package:kas_santri/models/setoran.dart';
 import 'package:kas_santri/models/transaksi.dart';
+import 'package:kas_santri/models/transaksi_tabungan.dart';
 import 'package:kas_santri/providers/kas_santri_provider.dart';
 import 'package:kas_santri/services/account_auth_service.dart';
 import 'package:kas_santri/services/auth_service.dart';
@@ -2429,6 +2430,210 @@ void main() {
       final exporter = YayasanExportService.instance;
       expect(exporter.excelExporter, isNotNull);
       expect(exporter.pdfExporter, isNotNull);
+    });
+
+    test('AJ. v4.3.0: Migrasi SQLite v4->v5, Brankas Tabungan Terpisah (Isolasi Jajan & Cash Opname 4 Kantong), Backup Kompatibilitas Mundur & TutorialService 16 Layar', () async {
+      sqfliteFfiInit();
+
+      // a) Migrasi SQLite v4 -> v5 tanpa merusak data santri eksisting
+      final v4Db = await databaseFactoryFfi.openDatabase(
+        inMemoryDatabasePath,
+        options: OpenDatabaseOptions(
+          version: 4,
+          singleInstance: false,
+          onCreate: (db, _) async {
+            await db.execute('''
+              CREATE TABLE santri (
+                id TEXT PRIMARY KEY,
+                nama_lengkap TEXT NOT NULL,
+                nama_panggilan TEXT,
+                kategori_santri TEXT NOT NULL DEFAULT 'SANTRIYIN',
+                status_santri TEXT NOT NULL DEFAULT 'AKTIF',
+                kamar TEXT NOT NULL,
+                no_wa_wali TEXT,
+                saldo_total INTEGER NOT NULL DEFAULT 0,
+                jatah_harian INTEGER NOT NULL DEFAULT 10000,
+                setoran_awal INTEGER NOT NULL DEFAULT 300000,
+                tunggakan INTEGER NOT NULL DEFAULT 0,
+                catatan_tunggakan TEXT DEFAULT '',
+                foto_path TEXT,
+                qr_code TEXT,
+                status_aktif INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL
+              )
+            ''');
+          },
+        ),
+      );
+      addTearDown(() async => await v4Db.close());
+
+      await v4Db.insert('santri', {
+        'id': 'v4-legacy-1',
+        'nama_lengkap': 'Santri v4',
+        'kamar': 'A1',
+        'saldo_total': 45000,
+        'jatah_harian': 10000,
+        'created_at': '2026-11-01T00:00:00.000',
+      });
+
+      await DatabaseHelper.instance.upgradeSchemaForTesting(v4Db, 4, 5);
+
+      final cols = await v4Db.rawQuery('PRAGMA table_info(santri)');
+      final colNames = cols.map((c) => c['name'].toString()).toSet();
+      expect(colNames.contains('saldo_tabungan'), true);
+
+      final legacyRows = await v4Db.query(
+        'santri',
+        where: 'id = ?',
+        whereArgs: ['v4-legacy-1'],
+      );
+      expect(legacyRows.length, 1);
+      expect(legacyRows.first['saldo_total'], 45000);
+      expect(legacyRows.first['saldo_tabungan'], 0);
+
+      final tabTable = await v4Db.rawQuery(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='transaksi_tabungan'",
+      );
+      expect(tabTable.isNotEmpty, true);
+
+      // b) Brankas Tabungan Terpisah (TabunganRepository), Isolasi Jajan & Cash Opname 4 Kantong
+      final v5Db = await databaseFactoryFfi.openDatabase(
+        inMemoryDatabasePath,
+        options: OpenDatabaseOptions(
+          version: 5,
+          singleInstance: false,
+          onConfigure: (db) async => await db.execute('PRAGMA foreign_keys = ON'),
+          onCreate: (db, _) async =>
+              await DatabaseHelper.instance.createSchemaForTesting(db),
+        ),
+      );
+      DatabaseHelper.instance.setDatabaseForTesting(v5Db);
+      addTearDown(() async {
+        DatabaseHelper.instance.setDatabaseForTesting(null);
+        await v5Db.close();
+      });
+      final helper = DatabaseHelper.instance;
+
+      final s = Santri(
+        id: 'aj-santri-1',
+        namaLengkap: 'Zaid Tabungan v43',
+        namaPanggilan: 'Zaid',
+        kamar: 'Al-Ikhlas 2',
+        saldoTotal: 0,
+        jatahHarian: 10000,
+      );
+      await helper.insertSantri(s, sumberDompet: 'TUNAI');
+      await helper.catatSetoranBaru(
+        santriId: s.id,
+        nominalSetoran: 100000,
+        durasiHari: 10,
+        jatahHarianHitung: 10000,
+        tipeSetoran: TipeSetoran.awalBulan,
+        tanggalSetor: DateTime(2026, 11, 27, 8, 0),
+        potongTunggakan: false,
+        metodeBayar: 'TUNAI',
+      );
+
+      final txSetor = await helper.setorTabungan(
+        santriId: s.id,
+        nominal: 50000,
+        sumberDompet: 'TUNAI',
+        catatan: 'Tabungan Pulang',
+      );
+      expect(txSetor.tipe, TransaksiTabungan.tipeSetor);
+      var afterSetor = await helper.getSantriById(s.id);
+      expect(afterSetor?.saldoTabungan, 50000);
+      expect(afterSetor?.saldoTotal, 100000);
+
+      await helper.setorTabungan(
+        santriId: s.id,
+        nominal: 30000,
+        sumberDompet: 'REKENING',
+      );
+      var brankasTab = await helper.getSaldoBrankasTabungan();
+      expect(brankasTab['tunai'], 50000);
+      expect(brankasTab['rekening'], 30000);
+      expect(brankasTab['total'], 80000);
+
+      // Pengambilan jajan harian TIDAK boleh memotong saldoTabungan
+      await helper.catatPengambilan(
+        santriId: s.id,
+        nominal: 20000,
+        customTimestamp: DateTime(2026, 11, 27, 10, 0),
+      );
+      final afterJajan = await helper.getSantriById(s.id);
+      expect(afterJajan?.saldoTotal, 80000);
+      expect(afterJajan?.saldoTabungan, 80000);
+
+      final txTransfer = await helper.transferJajanKeTabungan(
+        santriId: s.id,
+        nominal: 10000,
+        sumberDompet: 'TUNAI',
+      );
+      expect(txTransfer.tipe, TransaksiTabungan.tipeTransferDariJajan);
+      final afterTransfer = await helper.getSantriById(s.id);
+      expect(afterTransfer?.saldoTotal, 70000);
+      expect(afterTransfer?.saldoTabungan, 90000);
+
+      final dompet = await helper.getSaldoDompet();
+      final infak = await helper.getSaldoKantongInfak();
+      brankasTab = await helper.getSaldoBrankasTabungan();
+      expect(dompet['tunai'], 70000);
+      expect(brankasTab['tunai'], 60000);
+      final targetLaci4Kantong =
+          (dompet['tunai'] ?? 0) +
+          ((infak['tunai'] as num?)?.toInt() ?? 0) +
+          (brankasTab['tunai'] ?? 0);
+      expect(targetLaci4Kantong, 130000);
+
+      await helper.tarikTabungan(
+        santriId: s.id,
+        nominal: 15000,
+        sumberDompet: 'TUNAI',
+      );
+      final afterTarik = await helper.getSantriById(s.id);
+      expect(afterTarik?.saldoTabungan, 75000);
+      expect((await helper.getSaldoBrankasTabungan())['tunai'], 45000);
+
+      await helper.voidTransaksiTabungan(txTransfer.id);
+      final afterVoid = await helper.getSantriById(s.id);
+      expect(afterVoid?.saldoTotal, 80000);
+      expect(afterVoid?.saldoTabungan, 65000);
+      final txTabHistory = await helper.getTransaksiTabungan(santriId: s.id);
+      expect(txTabHistory.any((t) => t.id == txTransfer.id && t.isVoided), true);
+
+      // c) Backup & Restore v5 + Kompatibilitas Mundur v4 (tanpa key transaksi_tabungan)
+      final dump = await helper.dumpBackupJson();
+      expect(dump.containsKey('transaksi_tabungan'), true);
+      expect((dump['transaksi_tabungan'] as List).isNotEmpty, true);
+
+      await helper.restoreFromJson(dump);
+      final restoredSantri = await helper.getSantriById(s.id);
+      expect(restoredSantri?.saldoTabungan, 65000);
+      expect((await helper.getTransaksiTabungan(santriId: s.id)).isNotEmpty, true);
+
+      final legacyDump = Map<String, dynamic>.from(dump)
+        ..remove('transaksi_tabungan');
+      await helper.restoreFromJson(legacyDump);
+      expect((await helper.getTransaksiTabungan()).isEmpty, true);
+
+      // d) TutorialService v4.3 (16 Layar, Auto-Tour & Reset)
+      SharedPreferences.setMockInitialValues({});
+      expect(TutorialService.allScreenTourKeys.length, 16);
+      expect(await TutorialService.instance.isAutoTourEnabled(), true);
+      expect(await TutorialService.instance.hasSeenScreenTour('tour_tabungan'), false);
+
+      await TutorialService.instance.markScreenTourSeen('tour_tabungan');
+      expect(await TutorialService.instance.hasSeenScreenTour('tour_tabungan'), true);
+      expect(await TutorialService.instance.hasSeenScreenTour('tour_opname'), false);
+
+      await TutorialService.instance.setAutoTourEnabled(false);
+      expect(await TutorialService.instance.isAutoTourEnabled(), false);
+
+      await TutorialService.instance.resetAllScreenTours();
+      expect(await TutorialService.instance.isAutoTourEnabled(), true);
+      expect(await TutorialService.instance.hasSeenScreenTour('tour_tabungan'), false);
+      expect(await TutorialService.instance.hasSeenWalkthrough(), false);
     });
   });
 }

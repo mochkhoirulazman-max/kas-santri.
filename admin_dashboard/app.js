@@ -419,7 +419,7 @@
               <div>${c.tier === 'LIFETIME' ? 'Lifetime' : formatDateShort(c.expiry_date)}</div>
               <div style="font-size:10.5px; color:var(--text-muted);">${remText}</div>
             </td>
-            <td class="mono">v${escapeHtml(c.app_version || '4.2.0')}</td>
+            <td class="mono">v${escapeHtml(c.app_version || '4.3.0')}</td>
             <td><span class="badge ${badgeCls}">${eff}</span></td>
             <td>
               <div style="display:flex; flex-wrap:wrap; gap:5px;">
@@ -463,7 +463,7 @@
 
   function renderRemoteConfigForm() {
     const cfg = state.remoteConfig || {};
-    $('rcLatestVersion').value = cfg.latest_version || '4.2.0';
+    $('rcLatestVersion').value = cfg.latest_version || '4.3.0';
     $('rcMinVersion').value = cfg.min_version || '3.0.0';
     $('rcTitle').value = cfg.announcement_title || '';
     $('rcBody').value = cfg.announcement_body || '';
@@ -653,7 +653,7 @@
     $('custChannel').value = customer?.payment_channel || 'FREE';
     $('custTotalPaid').value = Number(customer?.total_paid_idr || 0);
     $('custExpiry').value = customer?.expiry_date ? String(customer.expiry_date).slice(0, 10) : '';
-    $('custVersion').value = customer?.app_version || '4.2.0';
+    $('custVersion').value = customer?.app_version || '4.3.0';
     $('custNotes').value = customer?.notes || '';
     $('customerModal').classList.remove('hidden');
   }

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import '../../widgets/guided_spotlight_tour.dart';
 import 'package:provider/provider.dart';
 import '../../models/bendahara_account.dart';
 import '../../providers/kas_santri_provider.dart';
@@ -25,10 +26,12 @@ import 'tahun_ajaran_screen.dart';
 
 class SystemTabScreen extends StatefulWidget {
   final GlobalKey? headerSpotlightKey;
+  final bool isActiveTab;
 
   const SystemTabScreen({
     Key? key,
     this.headerSpotlightKey,
+    this.isActiveTab = true,
   }) : super(key: key);
 
   @override
@@ -37,6 +40,8 @@ class SystemTabScreen extends StatefulWidget {
 
 class _SystemTabScreenState extends State<SystemTabScreen>
     with AutomaticKeepAliveClientMixin {
+  final ScreenSpotlightController _spotCtrl = ScreenSpotlightController();
+  final GlobalKey _spotProfileKey = GlobalKey();
   @override
   bool get wantKeepAlive => true;
 
@@ -426,42 +431,77 @@ class _SystemTabScreenState extends State<SystemTabScreen>
       ),
     ];
 
-    return SafeArea(
-      bottom: false,
-      child: ListView(
-        padding: EdgeInsets.fromLTRB(16, 12, 16, 120 + bottomSafe),
-        children: [
-          // Header Tab Sistem + Tombol Gerigi ⚙️ (SettingsScreen)
-          Container(
-            key: widget.headerSpotlightKey,
-            child: Row(
-              children: [
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'SISTEM & AKUN',
-                        style: TextStyle(
-                          color: Color(0xFF38BDF8),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1.4,
+    return ScreenSpotlightHost(
+      screenKey: 'tour_sistem',
+      isActive: widget.isActiveTab,
+      controller: _spotCtrl,
+      steps: [
+        SpotlightStepSpec(
+          targetKey: widget.headerSpotlightKey,
+          emoji: '⚙️',
+          title: 'Pusat Sistem & Pengaturan Lengkap',
+          description:
+              'Ketuk tombol Pengaturan di kanan atas untuk mengatur PIN, sidik jari, preset wallpaper, target infak default, dan Backup Cloud/Lokal.',
+          accent: const Color(0xFF38BDF8),
+        ),
+        SpotlightStepSpec(
+          targetKey: _spotProfileKey,
+          emoji: '🪪',
+          title: 'Profil Pengurus & Bendahara Aktif',
+          description:
+              'Ketuk foto atau nama pengurus untuk memperbarui identitas pengelola keuangan yang tampil otomatis pada struk resmi PDF & WA wali santri.',
+          accent: const Color(0xFF34D399),
+        ),
+        const SpotlightStepSpec(
+          emoji: '⚡',
+          title: 'Akses Cepat Pengurus (6 Modul Utama)',
+          description:
+              'Akses instan ke 🏦 Brankas Tabungan Terpisah, Cash Opname Laci, Kartu QR A4, Import Excel 500 Santri, Tahun Ajaran, Wallpaper, & Backup.',
+          accent: Color(0xFFFBBF24),
+        ),
+      ],
+      child: SafeArea(
+        bottom: false,
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(16, 12, 16, 120 + bottomSafe),
+          children: [
+            // Header Tab Sistem + Tombol Gerigi ⚙️ (SettingsScreen) + (?)
+            Container(
+              key: widget.headerSpotlightKey,
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'SISTEM & AKUN',
+                          style: TextStyle(
+                            color: Color(0xFF38BDF8),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.4,
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        'Profil Pengurus Bendahara',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
+                        SizedBox(height: 2),
+                        Text(
+                          'Profil Pengurus Bendahara',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                InkWell(
+                  SpotlightHelpButton(
+                    onTap: _spotCtrl.startTour,
+                    size: 36,
+                    accent: const Color(0xFF38BDF8),
+                  ),
+                  const SizedBox(width: 8),
+                  InkWell(
                   onTap: () {
                     AppFeedback.tap();
                     Navigator.push(
@@ -499,6 +539,7 @@ class _SystemTabScreenState extends State<SystemTabScreen>
 
           // Kartu Profil Pengurus Bendahara (Vibrant Glass)
           GlassCard(
+            key: _spotProfileKey,
             borderRadius: 28,
             padding: const EdgeInsets.all(18),
             borderColor: const Color(0xFF34D399).withValues(alpha: 0.45),
@@ -964,6 +1005,7 @@ class _SystemTabScreenState extends State<SystemTabScreen>
           ),
         ],
       ),
+    ),
     );
   }
 

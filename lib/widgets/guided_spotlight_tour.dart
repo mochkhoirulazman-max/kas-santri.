@@ -1,8 +1,11 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import '../services/tutorial_service.dart';
 
 class SpotlightStepSpec {
-  final GlobalKey targetKey;
+  final GlobalKey? targetKey;
   final int tabIndex;
   final String emoji;
   final String title;
@@ -10,8 +13,8 @@ class SpotlightStepSpec {
   final Color accent;
 
   const SpotlightStepSpec({
-    required this.targetKey,
-    required this.tabIndex,
+    this.targetKey,
+    this.tabIndex = 0,
     required this.emoji,
     required this.title,
     required this.description,
@@ -19,7 +22,218 @@ class SpotlightStepSpec {
   });
 }
 
-/// Overlay interaktif Guided Spotlight Tour (6 Langkah) murni CustomPainter
+/// Controller untuk memicu ulang Tutorial Sorotan dari tombol bantuan (?) di header/AppBar.
+class ScreenSpotlightController {
+  VoidCallback? _onStart;
+
+  void startTour() => _onStart?.call();
+
+  void _attach(VoidCallback onStart) {
+    _onStart = onStart;
+  }
+
+  void _detach(VoidCallback onStart) {
+    if (_onStart == onStart) {
+      _onStart = null;
+    }
+  }
+}
+
+/// Tombol bantuan kaca neon (?) berukuran ringkas dan tidak mencolok
+/// untuk memutar ulang tutorial sorotan kapan saja sesuai kebutuhan bendahara.
+class SpotlightHelpButton extends StatelessWidget {
+  final VoidCallback onTap;
+  final Color accent;
+  final double size;
+  final String tooltip;
+
+  const SpotlightHelpButton({
+    Key? key,
+    required this.onTap,
+    this.accent = const Color(0xFF38BDF8),
+    this.size = 34,
+    this.tooltip = 'Panduan Menu Ini',
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
+        borderRadius: BorderRadius.circular(11),
+        child: Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            color: accent.withValues(alpha: 0.14),
+            borderRadius: BorderRadius.circular(11),
+            border: Border.all(
+              color: accent.withValues(alpha: 0.42),
+              width: 1,
+            ),
+          ),
+          alignment: Alignment.center,
+          child: Icon(
+            Icons.help_outline_rounded,
+            size: size * 0.52,
+            color: accent,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Pembungkus non-intrusif untuk memasang Tutorial Sorotan Kontekstual pada setiap halaman/tab.
+/// - Otomatis tampil maksimal 1x per `screenKey` (kecuali dimatikan oleh user).
+/// - Menggunakan `OverlayEntry` di rootOverlay agar mencakup AppBar maupun Floating Bottom Bar.
+class ScreenSpotlightHost extends StatefulWidget {
+  final String screenKey;
+  final List<SpotlightStepSpec> steps;
+  final ScreenSpotlightController? controller;
+  final bool isActive;
+  final bool autoStart;
+  final Widget child;
+
+  const ScreenSpotlightHost({
+    Key? key,
+    required this.screenKey,
+    required this.steps,
+    this.controller,
+    this.isActive = true,
+    this.autoStart = true,
+    required this.child,
+  }) : super(key: key);
+
+  @override
+  State<ScreenSpotlightHost> createState() => _ScreenSpotlightHostState();
+}
+
+class _ScreenSpotlightHostState extends State<ScreenSpotlightHost> {
+  OverlayEntry? _overlayEntry;
+  int _currentStep = 0;
+  bool _hasCheckedAutoThisSession = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller?._attach(startTour);
+    if (widget.isActive) {
+      _scheduleAutoTourCheck();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant ScreenSpotlightHost oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller?._detach(startTour);
+      widget.controller?._attach(startTour);
+    }
+    if (!oldWidget.isActive && widget.isActive) {
+      _scheduleAutoTourCheck();
+    } else if (oldWidget.isActive && !widget.isActive && _overlayEntry != null) {
+      _removeOverlay();
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller?._detach(startTour);
+    _removeOverlay();
+    super.dispose();
+  }
+
+  void _scheduleAutoTourCheck() {
+    if (_hasCheckedAutoThisSession || !widget.autoStart || widget.steps.isEmpty) {
+      return;
+    }
+    Future.delayed(const Duration(milliseconds: 380), () async {
+      if (!mounted || !widget.isActive) return;
+      final isCurrentRoute = ModalRoute.of(context)?.isCurrent ?? true;
+      if (!isCurrentRoute) return;
+
+      _hasCheckedAutoThisSession = true;
+      final autoEnabled = await TutorialService.instance.isAutoTourEnabled();
+      if (!mounted || !widget.isActive || !autoEnabled) return;
+
+      final seen = await TutorialService.instance.hasSeenScreenTour(widget.screenKey);
+      if (!mounted || !widget.isActive || seen) return;
+      final stillCurrent = ModalRoute.of(context)?.isCurrent ?? true;
+      if (!stillCurrent) return;
+
+      startTour();
+    });
+  }
+
+  void startTour() {
+    if (!mounted || widget.steps.isEmpty) return;
+    _removeOverlay();
+    _currentStep = 0;
+    _overlayEntry = OverlayEntry(
+      builder: (_) => GuidedSpotlightOverlay(
+        steps: widget.steps,
+        currentStep: _currentStep,
+        onNext: _nextStep,
+        onPrev: _prevStep,
+        onSkip: _finishTour,
+        onDisableAllAutoTours: _disableAllAutoTours,
+      ),
+    );
+    Overlay.of(context, rootOverlay: true).insert(_overlayEntry!);
+  }
+
+  void _nextStep() {
+    if (_currentStep + 1 >= widget.steps.length) {
+      _finishTour();
+      return;
+    }
+    _currentStep++;
+    _overlayEntry?.markNeedsBuild();
+  }
+
+  void _prevStep() {
+    if (_currentStep > 0) {
+      _currentStep--;
+      _overlayEntry?.markNeedsBuild();
+    }
+  }
+
+  void _finishTour() {
+    _removeOverlay();
+    unawaited(TutorialService.instance.markScreenTourSeen(widget.screenKey));
+  }
+
+  void _disableAllAutoTours() {
+    _removeOverlay();
+    unawaited(TutorialService.instance.markScreenTourSeen(widget.screenKey));
+    unawaited(TutorialService.instance.setAutoTourEnabled(false));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Tutorial otomatis dimatikan. Ketuk ikon (?) kapan saja jika butuh panduan.',
+        ),
+        backgroundColor: Color(0xFF0EA5E9),
+        duration: Duration(seconds: 3),
+      ),
+    );
+  }
+
+  void _removeOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
+}
+
+/// Overlay interaktif Guided Spotlight Tour murni CustomPainter
 /// tanpa BackdropFilter agar 100% mulus 60-120 FPS di semua perangkat Android.
 class GuidedSpotlightOverlay extends StatefulWidget {
   final List<SpotlightStepSpec> steps;
@@ -27,6 +241,7 @@ class GuidedSpotlightOverlay extends StatefulWidget {
   final VoidCallback onNext;
   final VoidCallback onPrev;
   final VoidCallback onSkip;
+  final VoidCallback? onDisableAllAutoTours;
 
   const GuidedSpotlightOverlay({
     Key? key,
@@ -35,6 +250,7 @@ class GuidedSpotlightOverlay extends StatefulWidget {
     required this.onNext,
     required this.onPrev,
     required this.onSkip,
+    this.onDisableAllAutoTours,
   }) : super(key: key);
 
   @override
@@ -43,6 +259,7 @@ class GuidedSpotlightOverlay extends StatefulWidget {
 
 class _GuidedSpotlightOverlayState extends State<GuidedSpotlightOverlay> {
   Rect? _targetRect;
+  bool _didScrollStep = false;
 
   @override
   void initState() {
@@ -53,7 +270,9 @@ class _GuidedSpotlightOverlayState extends State<GuidedSpotlightOverlay> {
   @override
   void didUpdateWidget(covariant GuidedSpotlightOverlay oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.currentStep != widget.currentStep) {
+    if (oldWidget.currentStep != widget.currentStep ||
+        oldWidget.steps != widget.steps) {
+      _didScrollStep = false;
       _scheduleMeasure();
     }
   }
@@ -68,17 +287,42 @@ class _GuidedSpotlightOverlayState extends State<GuidedSpotlightOverlay> {
   void _measureTarget({required bool retryIfNull}) {
     if (!mounted || widget.currentStep >= widget.steps.length) return;
     final spec = widget.steps[widget.currentStep];
-    final targetCtx = spec.targetKey.currentContext;
+    final targetKey = spec.targetKey;
+    if (targetKey == null) {
+      setState(() => _targetRect = null);
+      return;
+    }
+
+    final targetCtx = targetKey.currentContext;
     final overlayBox = context.findRenderObject() as RenderBox?;
     final targetBox = targetCtx?.findRenderObject() as RenderBox?;
 
     if (overlayBox != null &&
+        targetCtx != null &&
+        targetCtx.mounted &&
         targetBox != null &&
         overlayBox.hasSize &&
         targetBox.hasSize &&
         targetBox.attached) {
       final topLeft = targetBox.localToGlobal(Offset.zero, ancestor: overlayBox);
       final rect = topLeft & targetBox.size;
+      final viewH = overlayBox.size.height;
+
+      // Pastikan elemen target berada di area pandang sebelum mengukur kotak sorotan
+      if (!_didScrollStep && (rect.top < 64 || rect.bottom > viewH - 80)) {
+        _didScrollStep = true;
+        Scrollable.ensureVisible(
+          targetCtx,
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOut,
+          alignment: 0.35,
+        );
+        Future.delayed(const Duration(milliseconds: 240), () {
+          if (mounted) _measureTarget(retryIfNull: false);
+        });
+        return;
+      }
+
       setState(() => _targetRect = rect);
     } else {
       setState(() => _targetRect = null);
@@ -112,7 +356,7 @@ class _GuidedSpotlightOverlayState extends State<GuidedSpotlightOverlay> {
     if (spot == null) {
       cardTop = screenH * 0.28;
     } else if (placeBelow) {
-      cardTop = math.min(spot.bottom + 16, screenH - 270 - safeBottom);
+      cardTop = math.min(spot.bottom + 16, screenH - 290 - safeBottom);
       cardTop = math.max(cardTop, safeTop);
     } else {
       final fromBottom = (screenH - spot.top) + 16;
@@ -165,18 +409,13 @@ class _GuidedSpotlightOverlayState extends State<GuidedSpotlightOverlay> {
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(
                       color: spec.accent.withValues(alpha: 0.65),
-                      width: 1.4,
+                      width: 1.5,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.65),
+                        color: spec.accent.withValues(alpha: 0.24),
                         blurRadius: 24,
                         offset: const Offset(0, 10),
-                      ),
-                      BoxShadow(
-                        color: spec.accent.withValues(alpha: 0.22),
-                        blurRadius: 18,
-                        spreadRadius: 1,
                       ),
                     ],
                   ),
@@ -185,29 +424,30 @@ class _GuidedSpotlightOverlayState extends State<GuidedSpotlightOverlay> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
+                              horizontal: 9,
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: spec.accent.withValues(alpha: 0.20),
-                              borderRadius: BorderRadius.circular(12),
+                              color: spec.accent.withValues(alpha: 0.16),
+                              borderRadius: BorderRadius.circular(10),
                               border: Border.all(
-                                color: spec.accent.withValues(alpha: 0.55),
+                                color: spec.accent.withValues(alpha: 0.45),
                               ),
                             ),
                             child: Text(
-                              'Langkah ${widget.currentStep + 1} / $total',
+                              'LANGKAH ${widget.currentStep + 1} / $total',
                               style: TextStyle(
                                 color: spec.accent,
-                                fontSize: 10.5,
+                                fontSize: 10,
                                 fontWeight: FontWeight.w900,
+                                letterSpacing: 0.8,
                               ),
                             ),
                           ),
+                          const Spacer(),
                           InkWell(
                             onTap: widget.onSkip,
                             borderRadius: BorderRadius.circular(10),
@@ -217,11 +457,11 @@ class _GuidedSpotlightOverlayState extends State<GuidedSpotlightOverlay> {
                                 vertical: 4,
                               ),
                               child: Text(
-                                'Lewati Tutorial ✕',
+                                'Lewati ✕',
                                 style: TextStyle(
                                   color: Colors.white60,
                                   fontSize: 11,
-                                  fontWeight: FontWeight.w800,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                             ),
@@ -230,15 +470,16 @@ class _GuidedSpotlightOverlayState extends State<GuidedSpotlightOverlay> {
                       ),
                       const SizedBox(height: 12),
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Container(
-                            width: 40,
-                            height: 40,
+                            width: 42,
+                            height: 42,
                             decoration: BoxDecoration(
-                              color: spec.accent.withValues(alpha: 0.18),
-                              borderRadius: BorderRadius.circular(12),
+                              color: spec.accent.withValues(alpha: 0.16),
+                              borderRadius: BorderRadius.circular(14),
                               border: Border.all(
-                                color: spec.accent.withValues(alpha: 0.50),
+                                color: spec.accent.withValues(alpha: 0.45),
                               ),
                             ),
                             alignment: Alignment.center,
@@ -249,37 +490,43 @@ class _GuidedSpotlightOverlayState extends State<GuidedSpotlightOverlay> {
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: Text(
-                              spec.title,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w900,
-                                height: 1.25,
-                              ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  spec.title,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w900,
+                                    height: 1.25,
+                                  ),
+                                ),
+                                const SizedBox(height: 5),
+                                Text(
+                                  spec.description,
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 12.2,
+                                    height: 1.48,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 10),
-                      Text(
-                        spec.description,
-                        style: const TextStyle(
-                          color: Color(0xFFE2E8F0),
-                          fontSize: 12.2,
-                          height: 1.42,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 14),
                       Row(
                         children: [
+                          // Dot progress
                           Row(
-                            children: List.generate(total, (idx) {
-                              final active = idx == widget.currentStep;
+                            children: List.generate(total, (i) {
+                              final active = i == widget.currentStep;
                               return Container(
-                                margin: const EdgeInsets.only(right: 5),
-                                width: active ? 18 : 6,
+                                width: active ? 16 : 6,
                                 height: 6,
+                                margin: const EdgeInsets.only(right: 4),
                                 decoration: BoxDecoration(
                                   color: active ? spec.accent : Colors.white24,
                                   borderRadius: BorderRadius.circular(6),
@@ -335,6 +582,31 @@ class _GuidedSpotlightOverlayState extends State<GuidedSpotlightOverlay> {
                           ),
                         ],
                       ),
+                      if (widget.onDisableAllAutoTours != null) ...[
+                        const SizedBox(height: 10),
+                        Center(
+                          child: InkWell(
+                            onTap: widget.onDisableAllAutoTours,
+                            borderRadius: BorderRadius.circular(10),
+                            child: const Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              child: Text(
+                                '🔕 Matikan tutorial otomatis di semua menu',
+                                style: TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w600,
+                                  decoration: TextDecoration.underline,
+                                  decorationColor: Colors.white30,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),

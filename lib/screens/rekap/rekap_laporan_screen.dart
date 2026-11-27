@@ -10,6 +10,7 @@ import '../../utils/time_category_helper.dart';
 import '../../utils/app_feedback.dart';
 import '../../services/report_service.dart';
 import '../../services/yayasan_export_service.dart';
+import '../../widgets/guided_spotlight_tour.dart';
 import '../../widgets/searchable_santri_picker.dart';
 import '../../widgets/struk_gambar_dialog.dart';
 import '../paywall_screen.dart';
@@ -19,7 +20,12 @@ import 'executive_dashboard_screen.dart';
 import 'smart_wa_reminder_screen.dart';
 
 class RekapLaporanScreen extends StatefulWidget {
-  const RekapLaporanScreen({Key? key}) : super(key: key);
+  final bool isActiveTab;
+
+  const RekapLaporanScreen({
+    Key? key,
+    this.isActiveTab = true,
+  }) : super(key: key);
 
   @override
   State<RekapLaporanScreen> createState() => _RekapLaporanScreenState();
@@ -27,6 +33,10 @@ class RekapLaporanScreen extends StatefulWidget {
 
 class _RekapLaporanScreenState extends State<RekapLaporanScreen>
     with AutomaticKeepAliveClientMixin {
+  final ScreenSpotlightController _spotCtrl = ScreenSpotlightController();
+  final GlobalKey _spotShortcutsKey = GlobalKey();
+  final GlobalKey _spotOpnameKey = GlobalKey();
+  final GlobalKey _spotYayasanKey = GlobalKey();
   String? _selectedSantriId;
   ExportPeriod _exportPeriod = ExportPeriod.bulanIni;
   DateTime? _customStart;
@@ -274,13 +284,82 @@ Salam hormat & ta'dzim,
       opnameBadgeText = 'Selisih ${CurrencyFormatter.format(opnameToday.selisih)}';
     }
 
-    return SafeArea(
-      bottom: false,
-      child: ListView(
-        padding: EdgeInsets.fromLTRB(16, 12, 16, 115 + bottomSafe),
-        children: [
-          // 0. Pintasan Eksekutif & Pengingat WA Cerdas v4.0 (PRO)
-          Row(
+    return ScreenSpotlightHost(
+      screenKey: 'tour_rekap',
+      isActive: widget.isActiveTab,
+      controller: _spotCtrl,
+      steps: [
+        SpotlightStepSpec(
+          targetKey: _spotShortcutsKey,
+          emoji: '📊',
+          title: 'Analitik Eksekutif & Antrean WA Cerdas',
+          description:
+              'Buka Laporan Eksekutif Yayasan 1 halaman atau Antrean Pengingat WA Cerdas (Saldo Kritis, Infak Jatuh Tempo & Tunggakan) dalam satu ketukan.',
+          accent: const Color(0xFF34D399),
+        ),
+        SpotlightStepSpec(
+          targetKey: _spotOpnameKey,
+          emoji: '💵',
+          title: 'Audit Kas Harian & Cash Opname Laci',
+          description:
+              'Cocokkan fisik uang tunai di laci pondok terhadap target 3 kantong tunai (Kas Jajan + Infak Tunai + Tabungan Tunai) setiap malam.',
+          accent: const Color(0xFF38BDF8),
+        ),
+        SpotlightStepSpec(
+          targetKey: _spotYayasanKey,
+          emoji: '📄',
+          title: 'Laporan PDF/Excel & Kirim WA Wali Santri',
+          description:
+              'Unduh laporan resmi berkop pondok (PDF & Excel Multi-Sheet) atau pratinjau & kirim ringkasan harian santun langsung ke WhatsApp Wali Santri.',
+          accent: const Color(0xFFFBBF24),
+        ),
+      ],
+      child: SafeArea(
+        bottom: false,
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(16, 12, 16, 115 + bottomSafe),
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'PUSAT REKAP & AUDITING',
+                          style: TextStyle(
+                            color: Color(0xFF34D399),
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.1,
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Laporan, Opname & WA Wali',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SpotlightHelpButton(
+                    onTap: _spotCtrl.startTour,
+                    size: 34,
+                    accent: const Color(0xFF34D399),
+                  ),
+                ],
+              ),
+            ),
+
+            // 0. Pintasan Eksekutif & Pengingat WA Cerdas v4.0 (PRO)
+            Row(
+              key: _spotShortcutsKey,
             children: [
               Expanded(
                 child: InkWell(
@@ -395,6 +474,7 @@ Salam hormat & ta'dzim,
 
           // 1. Audit Kas Harian Card (Vibrant Cyan -> Blue Glass)
           Container(
+            key: _spotOpnameKey,
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -627,6 +707,7 @@ Salam hormat & ta'dzim,
 
         // 1B. Ekspor Laporan Resmi Yayasan (Royal Gold -> Amber / Emerald Glass)
         Container(
+          key: _spotYayasanKey,
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -1046,6 +1127,7 @@ Salam hormat & ta'dzim,
         // 3. Prioritas Saldo Kritis (< 3 Hari) - PRO
         _buildSaldoKritisCard(provider, cardOpacity),
       ],
+    ),
     ),
     );
   }
